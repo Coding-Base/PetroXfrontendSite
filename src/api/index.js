@@ -67,15 +67,15 @@ export const registerUser = (username, email, password) =>
   api.post('users/', { username, email, password });
 
 // Courses & Tests
-export const fetchCourses = () => api.get('courses/');
+export const fetchCourses = () => api.get('/api/courses/');
 export const startTest = (courseId, questionCount, duration) =>
-  api.post('start-test/', {
+  api.post('/api/start-test/', {
     course_id: courseId,
     question_count: questionCount,
     duration
   });
 export const submitTest = (sessionId, answers) =>
-  api.post(`submit-test/${sessionId}/`, { answers });
+  api.post(`/api/submit-test/${sessionId}/`, { answers });
 export const fetchTestSession = (sessionId) =>
   api.get(`test-session/${sessionId}/`);
 
@@ -84,12 +84,12 @@ export const fetchHistory = () => api.get('history/');
 
 // Group Test
 export const createGroupTest = (payload) =>
-  api.post('create-group-test/', payload);
+  api.post('/api/create-group-test/', payload);
 
 // Leaderboard and rank
-export const fetchLeaderboard = () => api.get('leaderboard/');
-export const fetchUserHistory = () => api.get('history/');
-export const fetchUserRank = () => api.get('user/rank/');
+export const fetchLeaderboard = () => api.get('/api/leaderboard/');
+export const fetchUserHistory = () => api.get('/api/history/');
+export const fetchUserRank = () => api.get('/api/user/rank/');
 
 //fetch user upload stats
 
