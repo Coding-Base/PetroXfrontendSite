@@ -57,11 +57,11 @@ api.interceptors.response.use(
 
 // Auth API
 export const refreshToken = (refresh) =>
-  api.post('api/token/refresh/', { refresh });
+  api.post('/api/token/refresh/', { refresh });
 
 
 export const loginUser = (username, password) =>
-  api.post('api/token/', { username, password });
+  api.post('/api/token/', { username, password });
 
 export const registerUser = (username, email, password) =>
   api.post('users/', { username, email, password });
