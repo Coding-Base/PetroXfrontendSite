@@ -35,7 +35,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = getRefreshToken();
-        const response = await axios.post(`${baseURL}token/refresh/`, {
+        const response = await axios.post(`${baseURL}/api/token/refresh/`, {
           refresh: refreshToken
         });
 
@@ -56,14 +56,14 @@ api.interceptors.response.use(
 );
 
 // Auth API
-export const registerUser = (username, email, password) =>
-  api.post('users/', { username, email, password });
+export const refreshToken = (refresh) =>
+  api.post('api/token/refresh/', { refresh });
+
 
 export const loginUser = (username, password) =>
-  api.post('token/', { username, password });
+  api.post('api/token/', { username, password });
 
-export const refreshToken = (refresh) =>
-  api.post('token/refresh/', { refresh });
+
 
 // Courses & Tests
 export const fetchCourses = () => api.get('courses/');
