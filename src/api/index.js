@@ -63,7 +63,8 @@ export const refreshToken = (refresh) =>
 export const loginUser = (username, password) =>
   api.post('api/token/', { username, password });
 
-
+export const registerUser = (username, email, password) =>
+  api.post('users/', { username, email, password });
 
 // Courses & Tests
 export const fetchCourses = () => api.get('courses/');
