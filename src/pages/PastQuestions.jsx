@@ -150,7 +150,7 @@ const UploadPassQuestions = () => {
           
                           error.response?.data?.message || 
                           'Submission failed. Please try again.';
-                           console.log(error.response.data)
+                          //  console.log(error.response.data)
           setMessage({ text: errorMsg, type: 'error' });
         }
       } finally {

@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // Use relative path for development
-const baseURL = import.meta.env.VITE_SERVER_URL;
-
+const baseURL = 'https://petroxtestbackend.onrender.com';
 export const api = axios.create({
   baseURL: baseURL,
   headers: { 'Content-Type': 'application/json' }

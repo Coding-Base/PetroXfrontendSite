@@ -2,7 +2,7 @@ import NotFound from '../pages/NotFound';
 import { Suspense, lazy } from 'react';
 import { Navigate, Outlet, useRoutes } from 'react-router-dom';
 
-const NewDashboardLayout = lazy(() => import('../layouts/dashboard-layout'));
+const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
 const Settings = lazy(() => import('../pages/Settings'));
 const SignUp = lazy(() => import('../pages/SignUp'));
