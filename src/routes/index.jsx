@@ -5,7 +5,7 @@ import { Navigate, Outlet, useRoutes } from 'react-router-dom';
 const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
 const Settings = lazy(() => import('../pages/Settings'));
-const SignUp = lazy(() => import('../pages/SignUp'));
+const SignUp = lazy(() => import('../pages/Signup'));
 const DashboardPage = lazy(() => import('../layouts/dashboard'));
 const Chat = lazy(() => import('../pages/chat'));
 const CreateGroupTest = lazy(() => import('../pages/CreateGroupTest'));
