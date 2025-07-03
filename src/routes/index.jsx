@@ -6,7 +6,7 @@ const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
 const Settings = lazy(() => import('../pages/Settings'));
 const SignUp = lazy(() => import('../pages/Signup'));
-const DashboardPage = lazy(() => import('../layouts/dashboard'));
+const DashboardPage = lazy(() => import('../Layouts/dashboard'));
 const Chat = lazy(() => import('../pages/chat'));
 const CreateGroupTest = lazy(() => import('../pages/CreateGroupTest'));
 const GroupTestPage = lazy(() => import('../pages/GroupTestPage'));
