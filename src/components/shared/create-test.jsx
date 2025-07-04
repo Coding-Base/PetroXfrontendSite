@@ -1,4 +1,4 @@
-/import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { useGetCourses } from '@/hooks/courses';
@@ -186,12 +186,15 @@ export default function CreateTest() {
             required
             disabled={isSubmitting || courses.length === 0}
           >
-            <option value="">{courses.length ? 'Select a course' : 'No courses available'}</option>
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.name}
-              </option>
-            ))}
+            {courses.length === 0 ? (
+              <option value="">No courses available</option>
+            ) : (
+              courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
