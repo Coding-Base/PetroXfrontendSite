@@ -8,7 +8,6 @@ import {
   fetchUserRank,
   fetchUserUploadStats
 } from '../api';
-import Chat from '../pages/chat';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -21,7 +20,6 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import logo from "../images/whitelogo.png";
 import {Button} from '../components/ui/button'
 
 // Register chart components
@@ -40,7 +38,7 @@ ChartJS.register(
 const PetroMarkAI = () => {
   useEffect(() => {
     const existingScript = document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]');
-
+    
     if (!existingScript) {
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
@@ -48,7 +46,7 @@ const PetroMarkAI = () => {
       script.type = 'text/javascript';
       document.head.appendChild(script);
     }
-
+    
     return () => {
       // Clean up if needed
     };
@@ -87,11 +85,11 @@ const calculateRank = (approvedUploads) => {
   const thresholds = Object.keys(RANK_THRESHOLDS)
     .map(Number)
     .sort((a, b) => a - b);
-
+  
   let currentRank = 'Recruit';
   let nextRank = null;
   let uploadsNeeded = 0;
-
+  
   for (const threshold of thresholds) {
     if (approvedUploads >= threshold) {
       currentRank = RANK_THRESHOLDS[threshold];
@@ -102,7 +100,7 @@ const calculateRank = (approvedUploads) => {
       }
     }
   }
-
+  
   return {
     currentRank,
     nextRank,
@@ -126,7 +124,7 @@ const calculateTestRank = (totalScore) => {
       };
     }
   }
-
+  
   // Default for scores below 0 (shouldn't happen, but safe)
   return {
     currentRank: TEST_RANK_THRESHOLDS[0],
@@ -187,7 +185,7 @@ export default function Dashboard() {
     if (showMobileMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -197,31 +195,26 @@ export default function Dashboard() {
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
+        // Fetch courses
+        const coursesRes = await fetchCourses();
+        setCourses(coursesRes.data);
+        setIsLoading(prev => ({ ...prev, courses: false }));
+        
+        // Set first course as default selection
+        if (coursesRes.data.length > 0) {
+          setSelectedCourse(coursesRes.data[0].id);
+        }
+        
         // Fetch leaderboard
         const leaderboardRes = await fetchLeaderboard();
         setLeaderboard(leaderboardRes.data);
         setIsLoading(prev => ({ ...prev, leaderboard: false }));
-      //      // FETCH COURSES
-      //   const coursesRes = await fetchCourses();
-      //   setCourses(coursesRes.data);
-      //   setIsLoading(prev => ({ ...prev, courses: false }));
         
-      //   // Set first course as default selection
-      //   if (coursesRes.data.length > 0) {
-      //     setSelectedCourse(coursesRes.data[0].id);
-      //   }
-        
-      //   // ... rest of the existing code
-      // } catch (err) {
-      //   console.error('Failed to load dashboard data', err);
-      // }
-
-
         // Fetch user history
         const historyRes = await fetchUserHistory();
         setTestHistory(historyRes.data);
         setIsLoading(prev => ({ ...prev, history: false }));
-
+        
         // Calculate total test score from history
         if (historyRes.data.length > 0) {
           const totalScore = historyRes.data.reduce((acc, session) => acc + session.score, 0);
@@ -234,12 +227,12 @@ export default function Dashboard() {
             pointsNeeded: 10
           });
         }
-
+        
         // Fetch user rank
         const rankRes = await fetchUserRank();
         setUserRank(rankRes.data.rank);
         setIsLoading(prev => ({ ...prev, rank: false }));
-
+        
         // Fetch upload stats
         const uploadStatsRes = await fetchUserUploadStats();
         const approvedUploads = uploadStatsRes.data.approved_uploads || 0;
@@ -248,22 +241,23 @@ export default function Dashboard() {
           rankInfo: calculateRank(approvedUploads)
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
-
+        
         // Set username
         const storedName = localStorage.getItem('username') || 'User';
         setUserName(storedName);
-
+        
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setIsLoading({
           leaderboard: false,
           history: false,
+          courses: false,
           rank: false,
           uploadStats: false
         });
       }
     };
-
+    
     fetchDashboardData();
   }, []);
 
@@ -342,7 +336,7 @@ export default function Dashboard() {
   // Create performance doughnut chart data
   const getPerformanceData = () => {
     const [colorStart, colorEnd] = getGradientColors(stats.averageScore);
-
+    
     return {
       datasets: [{
         data: [stats.averageScore, 100 - stats.averageScore],
@@ -382,22 +376,22 @@ export default function Dashboard() {
               </span>
             )}
           </div>
-
+          
           {testRankInfo && (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
               {totalTestScore === 0 ? (
                 "Take your first test! You need 10 points to become a Lieutenant"
               ) : testRankInfo.pointsNeeded > 0 ? (
-                `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold].title}`
+                `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold]?.title || 'Lieutenant'}`
               ) : (
                 "Congratulations! You've reached the highest rank!"
               )}
             </p>
           )}
-
+          
           {!isLoading.uploadStats && uploadStats.rankInfo.nextRank && (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
-              {/* Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank} */}
+              Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank}
             </p>
           )}
         </div>
@@ -425,7 +419,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Total tests completed</p>
               </div>
-
+              
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-green-500">
                 <div className="flex items-center">
                   <div className="bg-green-100 p-2 rounded-lg mr-4">
@@ -444,7 +438,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Across all tests</p>
               </div>
-
+              
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-purple-500">
                 <div className="flex items-center">
                   <div className="bg-purple-100 p-2 rounded-lg mr-4">
@@ -486,7 +480,7 @@ export default function Dashboard() {
                                 <p className="text-xs md:text-sm text-gray-500 mt-2">Your position on leaderboard</p>
                             </div>
                         </div>
-
+            
             {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
@@ -529,7 +523,6 @@ export default function Dashboard() {
                         onClick={() => {
                           setActiveTab('createTest');
                           setShowTestForm(true);
-                          navigate('/dashboard/my-tests');
                         }}
                         className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
                       >
@@ -539,7 +532,7 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-
+              
             <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-800">
@@ -620,7 +613,7 @@ export default function Dashboard() {
                   </svg>
                   Start New Test
                 </Button>
-
+                
                 <Button 
                   className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
                   onClick={() => navigate('/create-group')}
@@ -630,7 +623,7 @@ export default function Dashboard() {
                   </svg>
                   Group Test
                 </Button>
-
+                
                 <Button 
                   onClick={() => setActiveTab('petromark')}
                   className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
@@ -647,7 +640,6 @@ export default function Dashboard() {
       </div>
     </div>
   );
-
 }
 
 
