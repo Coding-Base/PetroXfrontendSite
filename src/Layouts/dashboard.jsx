@@ -147,8 +147,7 @@ const getGradientColors = (score) => {
     return ['#f9a8d4', '#f87171']; // Pink to red
   }
 };
-
-const export default function Dashboard() {
+export default function Dashboard() {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
