@@ -1,47 +1,42 @@
-// CreateGroupTest.jsx
-
 import React, { useState, useEffect } from 'react';
-import {  Button } from '../components/ui/button'
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { fetchCourses, api } from '../api';
+import { Button } from '../components/ui/button';
 
 export default function CreateGroupTest() {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState([]);
+
+  // form state
   const [name, setName] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
-  const [duration, setDuration] = useState(10); // in minutes
-  const [invitees, setInvitees] = useState(['']); // array of emails
-  const [scheduledStart, setScheduledStart] = useState(''); // local datetime‐local string
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [duration, setDuration] = useState(10);
+  const [invitees, setInvitees] = useState(['']);
+  const [scheduledStart, setScheduledStart] = useState('');
+
+  // UI state
+  const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
-    // Fetch the list of courses so the user can select one
-    const fetchCourses = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        const res = await axios.get('https://petroxtestbackend.onrender.com/api/courses/', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+    fetchCourses()
+      .then(res => {
         setCourses(res.data);
-      } catch (err) {
+      })
+      .catch(err => {
         console.error('Failed to load courses', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCourses();
+        setError('Could not load courses.');
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleInviteeChange = (index, value) => {
-    const newInvitees = [...invitees];
-    newInvitees[index] = value;
-    setInvitees(newInvitees);
+    const updated = [...invitees];
+    updated[index] = value;
+    setInvitees(updated);
   };
 
   const addInviteeField = () => {
@@ -49,8 +44,8 @@ export default function CreateGroupTest() {
   };
 
   const removeInviteeField = (index) => {
-    const newInvitees = invitees.filter((_, idx) => idx !== index);
-    setInvitees(newInvitees.length ? newInvitees : ['']);
+    const updated = invitees.filter((_, i) => i !== index);
+    setInvitees(updated.length ? updated : ['']);
   };
 
   const handleSubmit = async (e) => {
@@ -59,7 +54,6 @@ export default function CreateGroupTest() {
     setSuccessMsg('');
     setIsSubmitting(true);
 
-    // Basic validation
     if (!name || !selectedCourse || !scheduledStart) {
       setError('Name, course, and scheduled start date/time are required.');
       setIsSubmitting(false);
@@ -67,32 +61,17 @@ export default function CreateGroupTest() {
     }
 
     try {
-      const token = localStorage.getItem('access_token');
-
-      // Convert the local "YYYY-MM-DDTHH:mm" into a UTC ISO string:
-      // e.g. "2025-06-01T16:12" → new Date(...) → "2025-06-01T15:12:00.000Z" (if your local zone is UTC+1)
-      const scheduledStartUtc = new Date(scheduledStart).toISOString();
-
       const payload = {
         name,
         course: selectedCourse,
         question_count: questionCount,
         duration_minutes: duration,
-        invitees: invitees.filter((email) => email.trim() !== ''), // only non-empty
-        scheduled_start: scheduledStartUtc // send UTC‐based ISO string
+        invitees: invitees.filter(email => email.trim() !== ''),
+        scheduled_start: new Date(scheduledStart).toISOString(),
       };
 
-      const { data } = await axios.post(
-        'http://127.0.0.1:8000/api/create-group-test/',
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      // Show success message, then redirect
+      const { data } = await api.post('/api/create-group-test/', payload);
+
       setSuccessMsg('Group test created successfully! Redirecting…');
       setTimeout(() => {
         navigate(`/dashboard/group-test/${data.id}`);
@@ -101,8 +80,9 @@ export default function CreateGroupTest() {
       console.error(err);
       setError(
         err.response?.data?.error ||
-          'Failed to create group test. Please try again.'
+        'Failed to create group test. Please try again.'
       );
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -116,7 +96,7 @@ export default function CreateGroupTest() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl rounded-xl bg-gray-50 bg-white p-6 shadow-md">
+    <div className="mx-auto max-w-2xl rounded-xl bg-white p-6 shadow-md">
       <h2 className="mb-4 text-center text-2xl font-bold">Create Group Test</h2>
 
       {error && (
@@ -135,7 +115,7 @@ export default function CreateGroupTest() {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
             required
             disabled={isSubmitting}
@@ -147,13 +127,13 @@ export default function CreateGroupTest() {
           <label className="mb-1 block text-sm font-medium">Course</label>
           <select
             value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
+            onChange={e => setSelectedCourse(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
             required
             disabled={isSubmitting}
           >
             <option value="">Select a course</option>
-            {courses.map((course) => (
+            {courses.map(course => (
               <option key={course.id} value={course.id}>
                 {course.name}
               </option>
@@ -171,7 +151,7 @@ export default function CreateGroupTest() {
               type="number"
               min="1"
               value={questionCount}
-              onChange={(e) => setQuestionCount(+e.target.value)}
+              onChange={e => setQuestionCount(+e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
               required
               disabled={isSubmitting}
@@ -185,7 +165,7 @@ export default function CreateGroupTest() {
               type="number"
               min="1"
               value={duration}
-              onChange={(e) => setDuration(+e.target.value)}
+              onChange={e => setDuration(+e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
               required
               disabled={isSubmitting}
@@ -193,7 +173,7 @@ export default function CreateGroupTest() {
           </div>
         </div>
 
-        {/* Scheduled Start Date & Time */}
+        {/* Scheduled Start */}
         <div>
           <label className="mb-1 block text-sm font-medium">
             Scheduled Start (Date & Time)
@@ -201,7 +181,7 @@ export default function CreateGroupTest() {
           <input
             type="datetime-local"
             value={scheduledStart}
-            onChange={(e) => setScheduledStart(e.target.value)}
+            onChange={e => setScheduledStart(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
             required
             disabled={isSubmitting}
@@ -210,16 +190,14 @@ export default function CreateGroupTest() {
 
         {/* Invitee Emails */}
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Invitee Emails
-          </label>
+          <label className="mb-1 block text-sm font-medium">Invitee Emails</label>
           {invitees.map((email, idx) => (
             <div key={idx} className="mb-2 flex items-center space-x-2">
               <input
                 type="email"
                 placeholder="invitee@example.com"
                 value={email}
-                onChange={(e) => handleInviteeChange(idx, e.target.value)}
+                onChange={e => handleInviteeChange(idx, e.target.value)}
                 className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 disabled={isSubmitting}
               />
@@ -227,7 +205,6 @@ export default function CreateGroupTest() {
                 type="button"
                 onClick={() => removeInviteeField(idx)}
                 className="text-red-600 hover:text-red-800"
-                title="Remove"
                 disabled={isSubmitting}
               >
                 &times;
@@ -244,7 +221,7 @@ export default function CreateGroupTest() {
           </Button>
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <div>
           <Button
             type="submit"
