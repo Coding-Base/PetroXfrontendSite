@@ -77,7 +77,7 @@ const UploadPassQuestions = () => {
       setMessage({ text: '', type: '' });
       try {
         const response = await axios.post(
-          'http://127.0.0.1:8000/api/preview-pass-questions/', 
+          'https://petroxtestbackend.onrender.com/api/preview-pass-questions/', 
           formData, 
           {
             headers: {

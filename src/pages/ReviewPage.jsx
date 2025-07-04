@@ -18,7 +18,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
         setLoading(true);
         const token = localStorage.getItem('access_token');
         const response = await axios.get(
-          `http://127.0.0.1:8000/api/test-session/${sessionId}/`,
+          `https://petroxtestbackend.onrender.com/api/test-session/${sessionId}/`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
