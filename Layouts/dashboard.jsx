@@ -168,7 +168,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState({
     leaderboard: true,
     history: true,
-    courses: true,
+    courses: true, // Fixed: Added courses property
     rank: true,
     uploadStats: true
   });
@@ -197,6 +197,16 @@ export default function Dashboard() {
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
+        // FETCH COURSES FIRST
+        const coursesRes = await fetchCourses();
+        setCourses(coursesRes.data);
+        setIsLoading(prev => ({ ...prev, courses: false }));
+        
+        // Set first course as default selection
+        if (coursesRes.data.length > 0) {
+          setSelectedCourse(coursesRes.data[0].id);
+        }
+
         // Fetch leaderboard
         const leaderboardRes = await fetchLeaderboard();
         setLeaderboard(leaderboardRes.data);
@@ -234,7 +244,7 @@ export default function Dashboard() {
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
         
-        // Set username
+        // Set username - FIXED: using correct localStorage key
         const storedName = localStorage.getItem('username') || 'User';
         setUserName(storedName);
         
@@ -243,6 +253,7 @@ export default function Dashboard() {
         setIsLoading({
           leaderboard: false,
           history: false,
+          courses: false, // Fixed: Added courses property
           rank: false,
           uploadStats: false
         });
@@ -353,13 +364,7 @@ export default function Dashboard() {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-              {testRankInfo ? (
-                <>
-                  Welcome, {userName} 👋
-                </>
-              ) : (
-                `Welcome, ${userName} 👋`
-              )}
+              Welcome, {userName} 👋
             </h1>
             {testRankInfo && testRankInfo.currentRank.title !== 'Cadet' && (
               <span className="ml-3 bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
@@ -373,7 +378,7 @@ export default function Dashboard() {
               {totalTestScore === 0 ? (
                 "Take your first test! You need 10 points to become a Lieutenant"
               ) : testRankInfo.pointsNeeded > 0 ? (
-                `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold].title}`
+                `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold]?.title || 'higher rank'}`
               ) : (
                 "Congratulations! You've reached the highest rank!"
               )}
@@ -382,7 +387,7 @@ export default function Dashboard() {
           
           {!isLoading.uploadStats && uploadStats.rankInfo.nextRank && (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
-              {/* Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank} */}
+              Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank}
             </p>
           )}
         </div>
