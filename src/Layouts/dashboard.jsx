@@ -201,6 +201,21 @@ export default function Dashboard() {
         const leaderboardRes = await fetchLeaderboard();
         setLeaderboard(leaderboardRes.data);
         setIsLoading(prev => ({ ...prev, leaderboard: false }));
+           // FETCH COURSES
+        const coursesRes = await fetchCourses();
+        setCourses(coursesRes.data);
+        setIsLoading(prev => ({ ...prev, courses: false }));
+        
+        // Set first course as default selection
+        if (coursesRes.data.length > 0) {
+          setSelectedCourse(coursesRes.data[0].id);
+        }
+        
+        // ... rest of the existing code
+      } catch (err) {
+        console.error('Failed to load dashboard data', err);
+      }
+
         
         // Fetch user history
         const historyRes = await fetchUserHistory();
