@@ -254,9 +254,8 @@ export default function Dashboard() {
           rank: false,
           uploadStats: false
         });
-      }
-    }
-    ;
+      };
+    };
     
     fetchDashboardData();
   }, []);
