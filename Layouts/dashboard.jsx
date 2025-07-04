@@ -8,7 +8,6 @@ import {
   fetchUserRank,
   fetchUserUploadStats
 } from '../api';
-import Chat from '../pages/chat';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -168,7 +167,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState({
     leaderboard: true,
     history: true,
-    courses: true, // Fixed: Added courses property
+    courses: true,
     rank: true,
     uploadStats: true
   });
@@ -244,16 +243,15 @@ export default function Dashboard() {
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
         
-        // Set username - FIXED: using correct localStorage key
+        // Set username
         const storedName = localStorage.getItem('username') || 'User';
         setUserName(storedName);
-        
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setIsLoading({
           leaderboard: false,
           history: false,
-          courses: false, // Fixed: Added courses property
+          courses: false,
           rank: false,
           uploadStats: false
         });
@@ -300,30 +298,31 @@ export default function Dashboard() {
   };
 
   // Calculate stats from real data
- const calculateStats = () => {
-        const testsTaken = testHistory.length;
-        let totalScorePercentage = 0;
-        let scoredTests = 0;
+  const calculateStats = () => {
+    const testsTaken = testHistory.length;
+    let totalScorePercentage = 0;
+    let scoredTests = 0;
 
-     testHistory.forEach(session => {
-            const questionCount = session.questions?.length || 0;
-            if (questionCount > 0) {
-                const sessionScore = (session.score / questionCount) * 100;
-                totalScorePercentage += sessionScore;
-                scoredTests++;
-            }
-        });
+    testHistory.forEach(session => {
+      const questionCount = session.questions?.length || 0;
+      if (questionCount > 0) {
+        const sessionScore = (session.score / questionCount) * 100;
+        totalScorePercentage += sessionScore;
+        scoredTests++;
+      }
+    });
 
     const averageScore = scoredTests > 0
-            ? Math.round(totalScorePercentage / scoredTests)
-            : 0;
+      ? Math.round(totalScorePercentage / scoredTests)
+      : 0;
 
-        return {
-            testsTaken,
-            averageScore,
-            currentRank: userRank,
-        };
+    return {
+      testsTaken,
+      averageScore,
+      currentRank: userRank,
     };
+  };
+  
   const stats = calculateStats();
 
   // Get performance rating description
