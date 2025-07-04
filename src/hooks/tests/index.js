@@ -1,4 +1,6 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+// tests/index.js
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getTests,
   getTest,
@@ -9,61 +11,94 @@ import {
 } from '@/services/test.service';
 import { toast } from 'sonner';
 
+// Create a new test session
 export const useCreateTest = () => {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (test) => createTest(test),
     mutationKey: ['create-test'],
+    mutationFn: test => createTest(test).then(res => res),
     onSuccess: () => {
-      toast.success('history created successfully');
+      toast.success('Test created successfully');
+      // Invalidate any test list caches
+      queryClient.invalidateQueries({ queryKey: ['tests'] });
+    },
+    onError: err => {
+      toast.error(err.response?.data?.detail || 'Failed to create test');
     }
   });
 };
 
-export const useGetTests = () => {
-  return useQuery({
+// Fetch all available tests
+export const useGetTests = () =>
+  useQuery({
     queryKey: ['tests'],
-    queryFn: () => getTests(),
+    queryFn: () => getTests().then(res => res),
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load tests');
+    }
   });
-};
-export const useGetTestSession = (sessionId, shouldEnable) => {
-  return useQuery({
+
+// Fetch a single test by ID
+export const useGetTest = id =>
+  useQuery({
+    queryKey: ['test', id],
+    queryFn: () => getTest(id).then(res => res),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load test details');
+    }
+  });
+
+// Start or fetch a test session
+export const useGetTestSession = (sessionId, enabled) =>
+  useQuery({
     queryKey: ['test-session', sessionId],
-    queryFn: (sessionId) => getTestSession(sessionId),
-    enabled: shouldEnable,
+    queryFn: () => getTestSession(sessionId).then(res => res),
+    enabled: enabled && Boolean(sessionId),
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load test session');
+    }
   });
-};
 
-export const useGetTest = (id) => {
-  return useQuery({
-    queryKey: ['history', id],
-    queryFn: () => getTest(id),
+// Fetch user's test history
+export const useGetUserHistory = () =>
+  useQuery({
+    queryKey: ['history'],
+    queryFn: () => getUserHistory().then(res => res),
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load your test history');
+    }
   });
-};
 
-export const useGetLeaderBoard = () => {
-  return useQuery({
-    queryKey: ['history-leaderboard'],
-    queryFn: () => getLeaderBoard(),
+// Fetch leaderboard
+export const useGetLeaderBoard = () =>
+  useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: () => getLeaderBoard().then(res => res),
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load leaderboard');
+    }
   });
-};
-export const useGetUserRank = () => {
-  return useQuery({
-    queryKey: ['history-rank'],
-    queryFn: () => getUserHistory(),
+
+// Fetch user's rank
+export const useGetUserRank = () =>
+  useQuery({
+    queryKey: ['user-rank'],
+    queryFn: () => getUserHistory().then(res => res), // or a dedicated getUserRank()
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    onError: err => {
+      toast.error('Failed to load your rank');
+    }
   });
-};
+
