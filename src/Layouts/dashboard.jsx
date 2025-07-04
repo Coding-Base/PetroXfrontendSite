@@ -148,7 +148,7 @@ const getGradientColors = (score) => {
   }
 };
 
-xport default function Dashboard() {
+const export default function Dashboard() {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
