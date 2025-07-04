@@ -255,7 +255,8 @@ export default function Dashboard() {
           uploadStats: false
         });
       }
-    };
+    }
+    ;
     
     fetchDashboardData();
   }, []);
