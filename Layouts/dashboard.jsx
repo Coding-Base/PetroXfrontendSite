@@ -196,6 +196,10 @@ export default function Dashboard() {
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
+        // Fetch leaderboard
+        const leaderboardRes = await fetchLeaderboard();
+        setLeaderboard(leaderboardRes.data);
+        setIsLoading(prev => ({ ...prev, leaderboard: false }));
         // FETCH COURSES FIRST
         const coursesRes = await fetchCourses();
         setCourses(coursesRes.data);
@@ -204,12 +208,7 @@ export default function Dashboard() {
         // Set first course as default selection
         if (coursesRes.data.length > 0) {
           setSelectedCourse(coursesRes.data[0].id);
-        }
-
-        // Fetch leaderboard
-        const leaderboardRes = await fetchLeaderboard();
-        setLeaderboard(leaderboardRes.data);
-        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        } 
         
         // Fetch user history
         const historyRes = await fetchUserHistory();
@@ -221,7 +220,7 @@ export default function Dashboard() {
           const totalScore = historyRes.data.reduce((acc, session) => acc + session.score, 0);
           setTotalTestScore(totalScore);
           setTestRankInfo(calculateTestRank(totalScore));
-        } else {
+        }else {
           setTestRankInfo({
             currentRank: TEST_RANK_THRESHOLDS[0],
             nextThreshold: 10,
