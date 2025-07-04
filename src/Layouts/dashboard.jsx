@@ -8,7 +8,6 @@ import {
   fetchUserRank,
   fetchUserUploadStats
 } from '../api';
-import Chat from '../pages/chat';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -21,7 +20,6 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import logo from "../images/whitelogo.png";
 import {Button} from '../components/ui/button'
 
 // Register chart components
@@ -147,11 +145,13 @@ const getGradientColors = (score) => {
     return ['#f9a8d4', '#f87171']; // Pink to red
   }
 };
+
 export default function Dashboard() {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
   const [testDuration, setTestDuration] = useState(300);
+  const [showTestForm, setShowTestForm] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [testHistory, setTestHistory] = useState([]);
   const [userName, setUserName] = useState('');
@@ -174,55 +174,78 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const menuRef = useRef(null);
 
-  // Close mobile menu on outside click
+  // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMobileMenu(false);
       }
     };
+
     if (showMobileMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [showMobileMenu]);
 
-  // Fetch dashboard data
   useEffect(() => {
+    // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
-        // 1) Courses
+        // Fetch courses
         const coursesRes = await fetchCourses();
         setCourses(coursesRes.data);
-        setIsLoading((s) => ({ ...s, courses: false }));
-        if (coursesRes.data.length) setSelectedCourse(coursesRes.data[0].id);
-
-        // 2) Leaderboard
-        const lbRes = await fetchLeaderboard();
-        setLeaderboard(lbRes.data);
-        setIsLoading((s) => ({ ...s, leaderboard: false }));
-
-        // 3) History
-        const histRes = await fetchUserHistory();
-        setTestHistory(histRes.data);
-        setIsLoading((s) => ({ ...s, history: false }));
-        const total = histRes.data.reduce((acc, s) => acc + s.score, 0);
-        setTotalTestScore(total);
-        setTestRankInfo(calculateTestRank(total));
-
-        // 4) Rank
+        setIsLoading(prev => ({ ...prev, courses: false }));
+        
+        // Set first course as default selection
+        if (coursesRes.data.length > 0) {
+          setSelectedCourse(coursesRes.data[0].id);
+        }
+        
+        // Fetch leaderboard
+        const leaderboardRes = await fetchLeaderboard();
+        setLeaderboard(leaderboardRes.data);
+        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        
+        // Fetch user history
+        const historyRes = await fetchUserHistory();
+        setTestHistory(historyRes.data);
+        setIsLoading(prev => ({ ...prev, history: false }));
+        
+        // Calculate total test score from history
+        if (historyRes.data.length > 0) {
+          const totalScore = historyRes.data.reduce((acc, session) => acc + session.score, 0);
+          setTotalTestScore(totalScore);
+          setTestRankInfo(calculateTestRank(totalScore));
+        } else {
+          setTestRankInfo({
+            currentRank: TEST_RANK_THRESHOLDS[0],
+            nextThreshold: 10,
+            pointsNeeded: 10
+          });
+        }
+        
+        // Fetch user rank
         const rankRes = await fetchUserRank();
         setUserRank(rankRes.data.rank);
-        setIsLoading((s) => ({ ...s, rank: false }));
-
-        // 5) Upload stats
-        const usRes = await fetchUserUploadStats();
-        const approved = usRes.data.approved_uploads || 0;
-        setUploadStats({ approvedUploads: approved, rankInfo: calculateRank(approved) });
-        setIsLoading((s) => ({ ...s, uploadStats: false }));
-
-        // 6) Username
-        setUserName(localStorage.getItem('username') || 'User');
+        setIsLoading(prev => ({ ...prev, rank: false }));
+        
+        // Fetch upload stats
+        const uploadStatsRes = await fetchUserUploadStats();
+        const approvedUploads = uploadStatsRes.data.approved_uploads || 0;
+        setUploadStats({
+          approvedUploads,
+          rankInfo: calculateRank(approvedUploads)
+        });
+        setIsLoading(prev => ({ ...prev, uploadStats: false }));
+        
+        // Set username
+        const storedName = localStorage.getItem('username') || 'User';
+        setUserName(storedName);
+        
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setIsLoading({
@@ -234,98 +257,141 @@ export default function Dashboard() {
         });
       }
     };
-
+    
     fetchDashboardData();
   }, []);
 
   const handleStartTest = () => {
-    if (!selectedCourse) {
-      alert('Select a course');
-      return;
+    if (!selectedCourse) { 
+      alert('Select a course'); 
+      return; 
     }
     startTest(selectedCourse, questionCount, testDuration)
-      .then((res) => navigate(`/test/${res.data.id}`))
-      .catch(() => alert('Error starting test'));
+      .then(res => navigate(`/test/${res.data.id}`))
+      .catch(err => alert('Error starting test'));
   };
 
-  // Doughnut chart config
-  const doughnutOptions = {
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
+
+  // Doughnut chart options
+  const doughnutChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        enabled: false
+      },
+    },
     cutout: '75%',
-    rotation: 270,
-    circumference: 360,
-    animation: { animateRotate: true, animateScale: true }
+    rotation: 270, // Start from top
+    circumference: 360, // Full circle
+    animation: {
+      animateRotate: true,
+      animateScale: true
+    }
   };
 
-  // Stats calculations
-  const stats = (() => {
-    const testsTaken = testHistory.length;
-    let totalPct = 0,
-      count = 0;
-    testHistory.forEach((s) => {
-      const qc = s.questions?.length || 0;
-      if (qc) {
-        totalPct += (s.score / qc) * 100;
-        count++;
-      }
-    });
-    return {
-      testsTaken,
-      averageScore: count ? Math.round(totalPct / count) : 0,
-      currentRank: userRank
-    };
-  })();
+  // Calculate stats from real data
+ const calculateStats = () => {
+        const testsTaken = testHistory.length;
+        let totalScorePercentage = 0;
+        let scoredTests = 0;
 
-  const performanceData = {
-    datasets: [
-      {
+     testHistory.forEach(session => {
+            const questionCount = session.questions?.length || 0;
+            if (questionCount > 0) {
+                const sessionScore = (session.score / questionCount) * 100;
+                totalScorePercentage += sessionScore;
+                scoredTests++;
+            }
+        });
+
+    const averageScore = scoredTests > 0
+            ? Math.round(totalScorePercentage / scoredTests)
+            : 0;
+
+        return {
+            testsTaken,
+            averageScore,
+            currentRank: userRank,
+        };
+    };
+  const stats = calculateStats();
+
+  // Get performance rating description
+  const getPerformanceRating = (score) => {
+    if (score >= 90) return 'Excellent!';
+    if (score >= 80) return 'Great job!';
+    if (score >= 70) return 'Good work!';
+    if (score >= 60) return 'Keep improving!';
+    return 'Needs practice';
+  };
+
+  // Create performance doughnut chart data
+  const getPerformanceData = () => {
+    const [colorStart, colorEnd] = getGradientColors(stats.averageScore);
+    
+    return {
+      datasets: [{
         data: [stats.averageScore, 100 - stats.averageScore],
         backgroundColor: [
-          `linear-gradient(135deg, ${getGradientColors(stats.averageScore).join(', ')})`,
-          'rgba(229, 231, 235, 0.3)'
+          `linear-gradient(135deg, ${colorStart}, ${colorEnd})`,
+          'rgba(229, 231, 235, 0.3)' // Light gray for the remaining
         ],
         borderWidth: 0,
         borderRadius: 10,
         spacing: 0,
         hoverOffset: 0
-      }
-    ]
+      }]
+    };
   };
+
+  const performanceData = getPerformanceData();
 
   return (
     <div className="flex flex-col md:flex-row h-screen">
+      {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
-        {/* Welcome */}
+        {/* Welcome Header with Dynamic Rank */}
         <div className="mb-6 md:mb-8">
           <div className="flex items-center">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-              Welcome, {userName} 👋
+              {testRankInfo ? (
+                <>
+                  Welcome, {userName} 👋
+                </>
+              ) : (
+                `Welcome, ${userName} 👋`
+              )}
             </h1>
-            {testRankInfo?.currentRank.title !== 'Cadet' && (
-              <span className="ml-3 bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+            {testRankInfo && testRankInfo.currentRank.title !== 'Cadet' && (
+              <span className="ml-3 bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
                 {testRankInfo.currentRank.title}
               </span>
             )}
           </div>
-          <p className="text-gray-600 mt-1 text-sm md:text-base">
-            {stats.testsTaken === 0
-              ? 'Take your first test! You need 10 points to become a Lieutenant'
-              : `You need ${testRankInfo.pointsNeeded} more points to become a ${
-                  TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold]?.title
-                }`}
-          </p>
-          {!isLoading.uploadStats && uploadStats.rankInfo.nextRank && (
-            <p className="text-gray-600 mt-1 text-sm md:text-base">
-              Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a{' '}
-              {uploadStats.rankInfo.nextRank}
+          
+          {testRankInfo && (
+            <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
+              {totalTestScore === 0 ? (
+                "Take your first test! You need 10 points to become a Lieutenant"
+              ) : testRankInfo.pointsNeeded > 0 ? (
+                `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold]?.title || 'Lieutenant'}`
+              ) : (
+                "Congratulations! You've reached the highest rank!"
+              )}
             </p>
           )}
-        </div>
+          
           {!isLoading.uploadStats && uploadStats.rankInfo.nextRank && (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
-              {/* Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank} */}
+              Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank}
             </p>
           )}
         </div>
@@ -457,7 +523,6 @@ export default function Dashboard() {
                         onClick={() => {
                           setActiveTab('createTest');
                           setShowTestForm(true);
-                          navigate('/dashboard/my-tests');
                         }}
                         className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
                       >
