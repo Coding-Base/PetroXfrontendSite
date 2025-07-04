@@ -1,28 +1,31 @@
-// CreateGroupTest.jsx
-import React, { useState, useEffect } from 'react';
+/import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { Button } from '../ui/button';
 import { useGetCourses } from '@/hooks/courses';
 import { useCreateTest } from '@/hooks/tests';
 
 export default function CreateTest() {
   const navigate = useNavigate();
-  // const [courses, setCourses] = useState([]);
   const [name, setName] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
-  const [duration, setDuration] = useState(10); // in minutes
-  const [invitees, setInvitees] = useState(['']); // array of emails
-  const [scheduledStart, setScheduledStart] = useState(''); // local datetime‐local string
+  const [duration, setDuration] = useState(10);
+  const [invitees, setInvitees] = useState(['']);
+  const [scheduledStart, setScheduledStart] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [testType, setTestType] = useState('personal'); // 'personal' or 'group'
+  const [testType, setTestType] = useState('personal');
 
   const { isLoading, data } = useGetCourses();
-  const { isLoading: isSubmitting, mutateAsync: createTestAsync } =
-    useCreateTest();
-  const courses = data?.data ?? [];
+  const { isLoading: isSubmitting, mutateAsync: createTestAsync } = useCreateTest();
+  const courses = data?.data || [];
+
+  // Set default course when courses load
+  useEffect(() => {
+    if (!isLoading && courses.length > 0 && !selectedCourse) {
+      setSelectedCourse(courses[0].id);
+    }
+  }, [isLoading, courses, selectedCourse]);
 
   const handleInviteeChange = (index, value) => {
     const newInvitees = [...invitees];
@@ -35,8 +38,9 @@ export default function CreateTest() {
   };
 
   const removeInviteeField = (index) => {
+    if (invitees.length <= 1) return;
     const newInvitees = invitees.filter((_, idx) => idx !== index);
-    setInvitees(newInvitees.length ? newInvitees : ['']);
+    setInvitees(newInvitees);
   };
 
   const handleSubmit = async (e) => {
@@ -44,15 +48,14 @@ export default function CreateTest() {
     setError('');
     setSuccessMsg('');
 
-    // Basic validation
+    // Validation
     if (!name || !selectedCourse || !scheduledStart) {
       setError('Name, course, and scheduled start date/time are required.');
       return;
     }
 
-    // Validate group test has at least one valid email
     if (testType === 'group') {
-      const validEmails = invitees.filter((email) => email.trim() !== '');
+      const validEmails = invitees.filter(email => email.trim() !== '');
       if (validEmails.length === 0) {
         setError('Please add at least one email for group test.');
         return;
@@ -60,7 +63,7 @@ export default function CreateTest() {
     }
 
     try {
-      // Convert to UTC ISO string
+      // Convert to UTC
       const scheduledStartUtc = new Date(scheduledStart).toISOString();
 
       const payload = {
@@ -68,17 +71,14 @@ export default function CreateTest() {
         course: selectedCourse,
         question_count: questionCount,
         duration_minutes: duration,
-        // Only include invitees for group tests
-        invitees:
-          testType === 'group'
-            ? invitees.filter((email) => email.trim() !== '')
-            : [],
+        invitees: testType === 'group' 
+          ? invitees.filter(email => email.trim() !== '') 
+          : [],
         scheduled_start: scheduledStartUtc
       };
 
       const { data } = await createTestAsync(payload);
 
-      // Show success message, then redirect
       setSuccessMsg(
         testType === 'personal'
           ? 'Personal test created successfully! Redirecting...'
@@ -89,10 +89,10 @@ export default function CreateTest() {
         navigate(`/dashboard/group-test/${data.id}`);
       }, 1000);
     } catch (err) {
-      console.error(err);
+      console.error('Test creation error:', err);
       setError(
-        err.response?.data?.error ||
-          `Failed to create ${testType} test. Please try again.`
+        err.response?.data?.error || 
+        `Failed to create ${testType} test. Please try again.`
       );
     }
   };
@@ -100,81 +100,93 @@ export default function CreateTest() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <p>Loading courses…</p>
+        <p className="text-lg">Loading courses...</p>
+        <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
+          <div className="h-full w-3/4 animate-pulse rounded-full bg-blue-500"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6 max-h-screen overflow-y-auto md:max-h-none md:overflow-visible">
-      <h2 className="mb-6 text-center text-2xl font-bold">Create Test</h2>
+    <div className="mx-auto max-w-2xl p-6 overflow-y-auto md:overflow-visible">
+      <h2 className="mb-6 text-center text-2xl font-bold text-gray-800">Create Test</h2>
 
       {error && (
-        <div className="mb-4 rounded bg-red-100 p-3 text-red-700">{error}</div>
+        <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">
+          <strong>Error:</strong> {error}
+        </div>
       )}
+      
       {successMsg && (
-        <div className="mb-4 rounded bg-green-100 p-3 text-green-700">
+        <div className="mb-4 rounded-lg bg-green-50 p-3 text-green-700">
           {successMsg}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Test Type Selection */}
-        <div className="rounded-lg bg-gray-50 p-4">
-          <label className="mb-2 block text-sm font-medium">Test Type</label>
-          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-6">
-            <label className="flex items-center">
+        <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
+          <label className="block mb-2 font-medium text-blue-800">Test Type</label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="testType"
                 value="personal"
                 checked={testType === 'personal'}
                 onChange={() => setTestType('personal')}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 disabled={isSubmitting}
               />
-              <span className="text-gray-700">Personal Test (for myself)</span>
+              <span className="ml-2 text-gray-700">Personal Test</span>
             </label>
-            <label className="flex items-center">
+            
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="testType"
                 value="group"
                 checked={testType === 'group'}
                 onChange={() => setTestType('group')}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 disabled={isSubmitting}
               />
-              <span className="text-gray-700">Group Test (invite friends)</span>
+              <span className="ml-2 text-gray-700">Group Test</span>
             </label>
           </div>
+          <p className="mt-2 text-sm text-blue-600">
+            {testType === 'personal' 
+              ? 'Test for yourself only' 
+              : 'Invite others to join your test'}
+          </p>
         </div>
 
         {/* Test Name */}
         <div>
-          <label className="mb-2 block text-sm font-medium">Test Name</label>
+          <label className="block mb-2 font-medium text-gray-700">Test Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
+            placeholder="e.g., Physics Midterm Practice"
             required
             disabled={isSubmitting}
-            placeholder="Enter test name"
           />
         </div>
 
         {/* Course Selection */}
         <div>
-          <label className="mb-2 block text-sm font-medium">Course</label>
+          <label className="block mb-2 font-medium text-gray-700">Course</label>
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
             required
-            disabled={isSubmitting}
+            disabled={isSubmitting || courses.length === 0}
           >
-            <option value="">Select a course</option>
+            <option value="">{courses.length ? 'Select a course' : 'No courses available'}</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.name}
@@ -184,30 +196,33 @@ export default function CreateTest() {
         </div>
 
         {/* Question Count & Duration */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="block mb-2 font-medium text-gray-700">
               Number of Questions
             </label>
             <input
               type="number"
               min="1"
+              max="100"
               value={questionCount}
-              onChange={(e) => setQuestionCount(+e.target.value)}
+              onChange={(e) => setQuestionCount(Math.max(1, Math.min(100, +e.target.value)))}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
               required
               disabled={isSubmitting}
             />
           </div>
+          
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="block mb-2 font-medium text-gray-700">
               Duration (minutes)
             </label>
             <input
               type="number"
               min="1"
+              max="180"
               value={duration}
-              onChange={(e) => setDuration(+e.target.value)}
+              onChange={(e) => setDuration(Math.max(1, Math.min(180, +e.target.value)))}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-blue-500"
               required
               disabled={isSubmitting}
@@ -215,10 +230,10 @@ export default function CreateTest() {
           </div>
         </div>
 
-        {/* Scheduled Start Date & Time */}
+        {/* Scheduled Start */}
         <div>
-          <label className="mb-2 block text-sm font-medium">
-            Scheduled Start (Date & Time)
+          <label className="block mb-2 font-medium text-gray-700">
+            Scheduled Start
           </label>
           <input
             type="datetime-local"
@@ -228,35 +243,46 @@ export default function CreateTest() {
             required
             disabled={isSubmitting}
           />
+          <p className="mt-2 text-sm text-gray-500">
+            Your test will start at this time
+          </p>
         </div>
 
-        {/* Conditionally render invitees section only for group test */}
+        {/* Invitees for Group Test */}
         {testType === 'group' && (
-          <div className="rounded-lg bg-blue-50 p-4">
-            <label className="mb-2 block text-sm font-medium">
-              Invitee Emails (optional)
-            </label>
-            <p className="mb-3 text-sm text-gray-600">
-              Add email addresses of friends you want to invite to this test
+          <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
+            <div className="flex justify-between items-center">
+              <label className="block font-medium text-blue-800">
+                Invitee Emails
+              </label>
+              <span className="text-sm text-blue-600">
+                {invitees.filter(e => e.trim()).length} added
+              </span>
+            </div>
+            
+            <p className="mb-3 text-sm text-blue-600">
+              Add email addresses of people you want to invite
             </p>
 
-            {invitees.map((email, idx) => (
-              <div key={idx} className="mb-2 flex items-center space-x-2">
-                <input
-                  type="email"
-                  placeholder="friend@example.com"
-                  value={email}
-                  onChange={(e) => handleInviteeChange(idx, e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  disabled={isSubmitting}
-                />
-                {invitees.length > 1 && (
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              {invitees.map((email, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    placeholder="friend@example.com"
+                    value={email}
+                    onChange={(e) => handleInviteeChange(idx, e.target.value)}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                  />
                   <button
                     type="button"
                     onClick={() => removeInviteeField(idx)}
-                    className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400"
+                    className={`p-2 rounded-full ${invitees.length > 1 
+                      ? 'text-red-600 hover:bg-red-100' 
+                      : 'text-gray-400 cursor-not-allowed'}`}
+                    disabled={invitees.length <= 1}
                     title="Remove email"
-                    disabled={isSubmitting}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -271,18 +297,19 @@ export default function CreateTest() {
                       />
                     </svg>
                   </button>
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
+            
             <button
               type="button"
               onClick={addInviteeField}
-              className="mt-2 flex items-center text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+              className="mt-3 flex items-center text-blue-600 hover:text-blue-800 font-medium"
               disabled={isSubmitting}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="mr-1 h-5 w-5"
+                className="mr-2 h-5 w-5"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -298,16 +325,16 @@ export default function CreateTest() {
         )}
 
         {/* Submit Button */}
-        <div>
+        <div className="pt-4">
           <Button
             type="submit"
-            className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-3 text-white transition hover:bg-blue-700 disabled:opacity-50"
-            disabled={isSubmitting}
+            className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 py-3 text-white font-medium shadow-md hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-70"
+            disabled={isSubmitting || courses.length === 0}
           >
             {isSubmitting ? (
-              <>
+              <div className="flex items-center">
                 <svg
-                  className="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+                  className="mr-3 h-5 w-5 animate-spin text-white"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -326,12 +353,18 @@ export default function CreateTest() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Creating...
-              </>
+                Creating Test...
+              </div>
             ) : (
               `Create ${testType === 'personal' ? 'Personal' : 'Group'} Test`
             )}
           </Button>
+          
+          {courses.length === 0 && (
+            <p className="mt-2 text-center text-sm text-red-600">
+              Cannot create test - no courses available
+            </p>
+          )}
         </div>
       </form>
     </div>
