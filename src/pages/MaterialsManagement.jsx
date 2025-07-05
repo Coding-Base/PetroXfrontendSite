@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { useGetCourses } from '@/hooks/courses';
-import { useUploadMaterial } from '@/hooks/materials';
+// import { useGetCourses } from '@/hooks/courses';
+// import { useUploadMaterial } from '@/hooks/materials';
+import { useGetCourses } from '@/hooks/courses/index';
 
 export default function MaterialsManagement() {
   const [mode, setMode] = useState('upload');

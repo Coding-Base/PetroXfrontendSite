@@ -1,9 +1,9 @@
 // src/components/Dashboard.jsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  startTest, 
+import {
+  fetchCourses,
+  startTest,
   fetchLeaderboard,
   fetchUserHistory,
   fetchUserRank,
@@ -25,7 +25,7 @@ import {
 import logo from "../images/whitelogo.png";
 import { Button } from '../components/ui/button';
 
-// register ChartJS components
+// Register chart components
 ChartJS.register(
   ArcElement,
   CategoryScale,
@@ -37,7 +37,20 @@ ChartJS.register(
   Legend
 );
 
-// rank thresholds, chart helpers, etc...
+// PetroMark AI Widget Component
+const PetroMarkAI = () => {
+  useEffect(() => {
+    if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+  return <elevenlabs-convai agent-id="agent_01jx3tjzhyfjnt6cxax880pxx4" />;
+};
+
+// Rank thresholds
 const RANK_THRESHOLDS = {
   5: 'Lieutenant',
   10: 'Commander',
@@ -46,30 +59,33 @@ const RANK_THRESHOLDS = {
   25: 'General'
 };
 const TEST_RANK_THRESHOLDS = {
-  0:  { title: 'Cadet',        symbol: '🎓' },
-  10: { title: 'Lieutenant',   symbol: '⭐' },
-  30: { title: 'Commander',    symbol: '🚀' },
-  70: { title: 'Captain',      symbol: '👨‍✈️' },
-  100:{ title: 'Admiral',      symbol: '🎖️' },
-  150:{ title: 'Major General',symbol: '🏅' }
+  0: { title: 'Cadet', symbol: '🎓' },
+  10: { title: 'Lieutenant', symbol: '⭐' },
+  30: { title: 'Commander', symbol: '🚀' },
+  70: { title: 'Captain', symbol: '👨‍✈️' },
+  100: { title: 'Admiral', symbol: '🎖️' },
+  150: { title: 'Major General', symbol: '🏅' }
 };
-function calculateRank(approvedUploads) {
-  const thresholds = Object.keys(RANK_THRESHOLDS).map(Number).sort((a,b)=>a-b);
-  let currentRank='Recruit', nextRank=null, uploadsNeeded=0;
-  for(let t of thresholds) {
-    if(approvedUploads>=t) currentRank=RANK_THRESHOLDS[t];
-    else if(!nextRank) {
-      nextRank=RANK_THRESHOLDS[t];
+
+const calculateRank = (approvedUploads) => {
+  const thresholds = Object.keys(RANK_THRESHOLDS).map(Number).sort((a, b) => a - b);
+  let currentRank = 'Recruit', nextRank = null, uploadsNeeded = 0;
+  for (const t of thresholds) {
+    if (approvedUploads >= t) {
+      currentRank = RANK_THRESHOLDS[t];
+    } else if (nextRank === null) {
+      nextRank = RANK_THRESHOLDS[t];
       uploadsNeeded = t - approvedUploads;
     }
   }
   return { currentRank, nextRank, uploadsNeeded };
-}
-function calculateTestRank(totalScore) {
-  const thr = Object.keys(TEST_RANK_THRESHOLDS).map(Number).sort((a,b)=>b-a);
-  for(let t of thr) {
-    if(totalScore>=t) {
-      const next = thr.find(x=>x>t);
+};
+
+const calculateTestRank = (totalScore) => {
+  const thresholds = Object.keys(TEST_RANK_THRESHOLDS).map(Number).sort((a, b) => b - a);
+  for (const t of thresholds) {
+    if (totalScore >= t) {
+      const next = thresholds.find(x => x > t) || null;
       return {
         currentRank: TEST_RANK_THRESHOLDS[t],
         nextThreshold: next,
@@ -77,315 +93,260 @@ function calculateTestRank(totalScore) {
       };
     }
   }
-  return { currentRank: TEST_RANK_THRESHOLDS[0], nextThreshold:10, pointsNeeded:10 };
-}
-function getGradientColors(score) {
-  if (score>=90) return ['#4ade80','#22d3ee'];
-  if (score>=70) return ['#60a5fa','#c084fc'];
-  if (score>=50) return ['#fbbf24','#fb923c'];
-  return ['#f9a8d4','#f87171'];
-}
+  return {
+    currentRank: TEST_RANK_THRESHOLDS[0],
+    nextThreshold: 10,
+    pointsNeeded: 10
+  };
+};
+
+const getGradientColors = (score) => {
+  if (score >= 90) return ['#4ade80', '#22d3ee'];
+  if (score >= 70) return ['#60a5fa', '#c084fc'];
+  if (score >= 50) return ['#fbbf24', '#fb923c'];
+  return ['#f9a8d4', '#f87171'];
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [testHistory, setTestHistory] = useState([]);
+  const [userRank, setUserRank] = useState(null);
+  const [uploadStats, setUploadStats] = useState({ approvedUploads: 0, rankInfo: {} });
+  const [totalTestScore, setTotalTestScore] = useState(0);
+  const [testRankInfo, setTestRankInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState({
+    leaderboard: true,
+    history: true,
+    rank: true,
+    uploadStats: true
+  });
+  const [userName, setUserName] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // state
-  const [selectedCourse] = useState('');
-  const [questionCount] = useState(5);
-  const [testDuration] = useState(300);
-  const [leaderboard,   setLeaderboard]   = useState([]);
-  const [testHistory,   setTestHistory]   = useState([]);
-  const [userName,      setUserName]      = useState('');
-  const [userRank,      setUserRank]      = useState(null);
-  const [uploadStats,   setUploadStats]   = useState({ approvedUploads:0, rankInfo:calculateRank(0) });
-  const [totalTestScore,setTotalTestScore]= useState(0);
-  const [testRankInfo,  setTestRankInfo]  = useState(null);
-  const [isLoading,     setIsLoading]     = useState({
-    leaderboard:true, history:true, rank:true, uploadStats:true
-  });
-  const [activeTab,     setActiveTab]     = useState('dashboard');
-  const [showMobileMenu,setShowMobileMenu]= useState(false);
-
-  // pull username ASAP
+  // Close mobile menu
   useEffect(() => {
-    const stored = localStorage.getItem('username') || 'User';
-    setUserName(stored);
-  }, []);
-
-  // click-outside for mobile menu
-  useEffect(() => {
-    function onDown(e) {
-      if(menuRef.current && !menuRef.current.contains(e.target)) {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMobileMenu(false);
       }
-    }
-    if(showMobileMenu) document.addEventListener('mousedown', onDown);
-    return ()=>document.removeEventListener('mousedown', onDown);
+    };
+    if (showMobileMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [showMobileMenu]);
 
-  // fetch all dashboard data
+  // Fetch dashboard data
   useEffect(() => {
-    (async function load() {
+    (async () => {
       try {
-        // leaderboard
-        const lb = await fetchLeaderboard();
-        setLeaderboard(lb.data);
-        setIsLoading(s=>({...s, leaderboard:false}));
+        const [lbRes, histRes, rankRes, uploadRes] = await Promise.all([
+          fetchLeaderboard(),
+          fetchUserHistory(),
+          fetchUserRank(),
+          fetchUserUploadStats()
+        ]);
 
-        // history
-        const hist = await fetchUserHistory();
-        setTestHistory(hist.data);
-        setIsLoading(s=>({...s, history:false}));
+        // Leaderboard
+        setLeaderboard(lbRes.data);
+        setIsLoading(s => ({ ...s, leaderboard: false }));
 
-        // total score & test rank
-        const tot = hist.data.reduce((acc,sess)=>acc+sess.score,0);
-        setTotalTestScore(tot);
-        setTestRankInfo(calculateTestRank(tot));
+        // History & test score
+        setTestHistory(histRes.data);
+        setIsLoading(s => ({ ...s, history: false }));
+        const totalScore = histRes.data.reduce((sum, s) => sum + s.score, 0);
+        setTotalTestScore(totalScore);
+        setTestRankInfo(calculateTestRank(totalScore));
 
-        // global rank
-        const ur = await fetchUserRank();
-        setUserRank(ur.data.rank);
-        setIsLoading(s=>({...s, rank:false}));
+        // Rank
+        setUserRank(rankRes.data.rank);
+        setIsLoading(s => ({ ...s, rank: false }));
 
-        // uploads
-        const up = await fetchUserUploadStats();
-        const approved = up.data.approved_uploads||0;
+        // Upload stats
+        const approved = uploadRes.data.approved_uploads || 0;
         setUploadStats({
           approvedUploads: approved,
           rankInfo: calculateRank(approved)
         });
-        setIsLoading(s=>({...s, uploadStats:false}));
-      }
-      catch(e){
-        console.error(e);
-        setIsLoading({ leaderboard:false, history:false, rank:false, uploadStats:false });
+        setIsLoading(s => ({ ...s, uploadStats: false }));
+
+        // Username
+        setUserName(localStorage.getItem('username') || 'User');
+      } catch (err) {
+        console.error(err);
+        setIsLoading({
+          leaderboard: false,
+          history: false,
+          rank: false,
+          uploadStats: false
+        });
       }
     })();
   }, []);
 
-  function handleStartTest(){
-    if(!selectedCourse) return alert('Select a course');
-    startTest(selectedCourse, questionCount, testDuration)
-      .then(res => navigate(`/test/${res.data.id}`))
-      .catch(_=>alert('Error starting test'));
-  }
-  function handleLogout(){
-    localStorage.clear();
-    navigate('/login', { replace:true });
-  }
+  const calculateStats = () => {
+    const testsTaken = testHistory.length;
+    const totalPct = testHistory.reduce((sum, s) => {
+      const count = s.questions?.length || 0;
+      return count > 0 ? sum + (s.score / count) * 100 : sum;
+    }, 0);
+    const avg = testsTaken ? Math.round(totalPct / testsTaken) : 0;
+    return { testsTaken, averageScore: avg, currentRank: userRank };
+  };
+  const stats = calculateStats();
 
-  // stats cards
-  const stats = {
-    testsTaken: testHistory.length,
-    averageScore: testHistory.length
-      ? Math.round(
-          testHistory.reduce((sum, s) => 
-            sum + ( s.questions?.length 
-                    ? (s.score/s.questions.length)*100 
-                    : 0), 0
-          ) / testHistory.length
-        )
-      : 0,
-    currentRank: userRank
+  const doughnutData = () => {
+    const [c1, c2] = getGradientColors(stats.averageScore);
+    return {
+      datasets: [{
+        data: [stats.averageScore, 100 - stats.averageScore],
+        backgroundColor: [c1, 'rgba(229,231,235,0.3)'],
+        hoverOffset: 0,
+        borderWidth: 0
+      }]
+    };
   };
 
-  const doughnutData = {
-    datasets:[{
-      data:[stats.averageScore, 100-stats.averageScore],
-      backgroundColor:[
-        getGradientColors(stats.averageScore)[0],
-        'rgba(229,231,235,0.3)'
-      ],
-      borderWidth:0
-    }]
-  };
   const doughnutOptions = {
-    responsive:true,
-    cutout:'75%',
-    plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-    rotation:270
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '75%',
+    rotation: 270,
+    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+  };
+
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const handleStartTest = () => {
+    alert('Select a course from sidebar to start a new test');
+  };
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar omitted for brevity */}
+
       <div className="flex-1 p-6 overflow-y-auto">
-        {/* header */}
+        {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center">
-            <h1 className="text-3xl font-bold">
-              Welcome, {userName} 👋
-            </h1>
-            {testRankInfo?.currentRank.title !== 'Cadet' && (
-              <span className="ml-3 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                {testRankInfo.currentRank.title}
-              </span>
-            )}
-          </div>
-          <p className="text-gray-600 mt-2 text-sm">
-            {testRankInfo && testRankInfo.pointsNeeded>0
-              ? `You need ${testRankInfo.pointsNeeded} more points to become ${
-                  TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold].title
-                }`
-              : 'You are at the top rank!'}
-          </p>
+          <h1 className="text-3xl font-bold text-gray-800">
+            Welcome, {userName} 👋
+          </h1>
+          {testRankInfo && (
+            <p className="text-gray-600 mt-2 text-sm">
+              {testRankInfo.pointsNeeded > 0
+                ? `You need ${testRankInfo.pointsNeeded} more points to become a ${TEST_RANK_THRESHOLDS[testRankInfo.nextThreshold]?.title}`
+                : 'Congratulations! You have reached the highest rank!'}
+            </p>
+          )}
         </div>
 
-        {/* stats grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Tests Taken */}
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
-            <h3 className="font-semibold text-gray-700">Tests Taken</h3>
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Tests Taken</h3>
             {isLoading.history
-              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2 w-16" />
-              : <p className="text-3xl font-bold text-blue-600 mt-2">{stats.testsTaken}</p>
-            }
-            <p className="text-xs text-gray-500 mt-1">Total tests completed</p>
+              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2" />
+              : <p className="text-3xl font-bold mt-2 text-blue-600">{stats.testsTaken}</p>}
+            <p className="text-sm text-gray-500 mt-1">Total tests completed</p>
           </div>
-
           {/* Average Score */}
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
-            <h3 className="font-semibold text-gray-700">Average Score</h3>
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Average Score</h3>
             {isLoading.history
-              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2 w-16" />
-              : <p className="text-3xl font-bold text-green-600 mt-2">{stats.averageScore}%</p>
-            }
-            <p className="text-xs text-gray-500 mt-1">Across all tests</p>
+              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2" />
+              : <p className="text-3xl font-bold mt-2 text-green-600">{stats.averageScore}%</p>}
+            <p className="text-sm text-gray-500 mt-1">Across all tests</p>
           </div>
-
-          {/* Approved Uploads */}
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
-            <h3 className="font-semibold text-gray-700">Approved Uploads</h3>
-            {isLoading.uploadStats
-              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2 w-16" />
-              : <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {uploadStats.approvedUploads}
-                </p>
-            }
-            <p className="text-xs text-gray-500 mt-1">Questions approved</p>
-          </div>
-
           {/* Global Rank */}
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-            <h3 className="font-semibold text-gray-700">Global Rank</h3>
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Global Rank</h3>
             {isLoading.rank
-              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2 w-16" />
-              : <p className="text-3xl font-bold text-yellow-600 mt-2">
-                  {userRank ? `#${userRank}` : 'N/A'}
-                </p>
-            }
-            <p className="text-xs text-gray-500 mt-1">Your position</p>
+              ? <div className="animate-pulse h-8 bg-gray-200 rounded mt-2" />
+              : <p className="text-3xl font-bold mt-2 text-purple-600">#{userRank ?? 'N/A'}</p>}
+            <p className="text-sm text-gray-500 mt-1">Your position</p>
           </div>
         </div>
 
-        {/* performance & leaderboard */}
+        {/* Performance & Leaderboard */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* performance */}
+          {/* Performance */}
           <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-800">Performance Overview</h2>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                {stats.averageScore}% Achieved
-              </span>
-            </div>
-            <div className="relative h-64">
-              {isLoading.history
-                ? <div className="h-full flex items-center justify-center text-gray-500">Loading data…</div>
-                : testHistory.length > 0
-                  ? <>
-                      <Doughnut data={doughnutData} options={doughnutOptions}/>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold">{stats.averageScore}%</span>
-                        <span className="text-gray-600 text-xs mt-1">
-                          {stats.averageScore >= 90
-                            ? 'Excellent!'
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Performance Overview</h2>
+            <div className="h-64 flex items-center justify-center relative">
+              {isLoading.history || stats.testsTaken === 0
+                ? <div className="text-gray-500">No test data available</div>
+                : <>
+                    <Doughnut data={doughnutData()} options={doughnutOptions} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-bold text-gray-800">{stats.averageScore}%</span>
+                      <span className="text-sm text-gray-600 mt-1">
+                        {stats.averageScore >= 90
+                          ? 'Excellent!'
+                          : stats.averageScore >= 80
+                            ? 'Great job!'
                             : stats.averageScore >= 70
-                              ? 'Good job!'
-                              : 'Keep practicing'}
-                        </span>
-                      </div>
-                    </>
-                  : <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                      <p>No test data available</p>
-                      <Button
-                        onClick={handleStartTest}
-                        className="mt-4 bg-blue-600 text-white py-2 rounded-lg text-sm"
-                      >
-                        Take Your First Test
-                      </Button>
+                              ? 'Good work!'
+                              : stats.averageScore >= 60
+                                ? 'Keep improving!'
+                                : 'Needs practice'}
+                      </span>
                     </div>
-              }
+                  </>}
             </div>
           </div>
 
-          {/* leaderboard */}
+          {/* Leaderboard */}
           <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-800">Leaderboard</h2>
-              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-                Top Performers
-              </span>
-            </div>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Leaderboard</h2>
             {isLoading.leaderboard
               ? <div className="space-y-4">
-                  {[...Array(5)].map((_,i)=>(
-                    <div key={i} className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse h-10 bg-gray-200 rounded" />
                   ))}
                 </div>
               : leaderboard.length > 0
-                ? <div className="space-y-3">
-                    {leaderboard.slice(0,5).map((u,i)=>(
-                      <div key={i} className="flex items-center p-3 bg-white rounded-lg shadow-sm">
-                        <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                          i===0?'bg-yellow-200 text-yellow-800':
-                          i===1?'bg-gray-200 text-gray-800':
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {i+1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-800">{u.username}</p>
-                          <p className="text-xs text-gray-500">{u.tests_taken} tests</p>
-                        </div>
-                        <p className="font-semibold text-blue-600">{Math.round(u.avg_score)}%</p>
+                ? leaderboard.slice(0, 5).map((u, idx) => (
+                    <div key={u.id} className="flex items-center justify-between py-2">
+                      <div className="flex items-center">
+                        <span className="font-semibold w-6">{idx+1}.</span>
+                        <span className="ml-2">{u.username}</span>
                       </div>
-                    ))}
-                  </div>
-                : <div className="h-32 flex items-center justify-center text-gray-500">
-                    No leaderboard data available
-                  </div>
+                      <span className="font-medium text-blue-600">
+                        {Math.round(u.avg_score)}%
+                      </span>
+                    </div>
+                  ))
+                : <div className="text-gray-500">No leaderboard data available</div>
             }
           </div>
         </div>
 
-        {/* quick actions */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
-          <h2 className="font-semibold text-gray-800 mb-4">Quick Actions</h2>
+        {/* Quick Actions */}
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button
-              onClick={handleStartTest}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center"
-            >
+            <Button onClick={handleStartTest} className="bg-blue-600 text-white">
               Start New Test
             </Button>
-            <Button
-              onClick={()=>navigate('/create-group')}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white flex items-center justify-center"
-            >
+            <Button onClick={() => navigate('/create-group')} className="bg-purple-600 text-white">
               Group Test
             </Button>
-            <Button
-              onClick={()=>setActiveTab('petromark')}
-              className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white flex items-center justify-center"
-            >
+            <Button onClick={() => setActiveTab('petromark')} className="bg-yellow-600 text-white">
               PetroMark AI
             </Button>
           </div>
         </div>
 
-        {/* chat */}
-        <div className="mt-6">
-          <Chat />
-        </div>
       </div>
     </div>
   );
