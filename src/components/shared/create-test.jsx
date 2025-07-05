@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { fetchCourses } from '../api/index';
-import { createGroupTest } from '../api/index';
+import { fetchCourses } from '../../../api/index';
+import { createGroupTest } from '../../../api/index';
 
 export default function CreateTest() {
   const navigate = useNavigate();
