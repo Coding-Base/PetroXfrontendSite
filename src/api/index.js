@@ -65,43 +65,44 @@ export const refreshToken = refresh =>
 export const registerUser = (username, email, password) =>
   api.post('/api/users/', { username, email, password });
 
-// COURSES & TESTS endpoints - REMOVED /api/ PREFIX
+// COURSES & TESTS endpoints
 export const fetchCourses     = () =>
-  api.get('/courses/');  // Fixed endpoint
+  api.get('/api/courses/');
 
 export const startTest        = (courseId, questionCount, duration) =>
-  api.post('/start-test/', {  // Fixed endpoint
+  api.post('/api/start-test/', {
     course_id:      courseId,
     question_count: questionCount,
-    duration
+    duration        // or duration_minutes depending on your backend
   });
 
 export const submitTest       = (sessionId, answers) =>
-  api.post(`/submit-test/${sessionId}/`, { answers });  // Fixed endpoint
+  api.post(`/api/submit-test/${sessionId}/`, { answers });
 
 export const fetchTestSession = sessionId =>
-  api.get(`/test-session/${sessionId}/`);  // Fixed endpoint
+  api.get(`/api/test-session/${sessionId}/`);
 
 // HISTORY endpoints
 export const fetchHistory = () =>
-  api.get('/history/');  // Fixed endpoint
+  api.get('/api/history/');
 
 // GROUP TEST endpoints
 export const createGroupTest = payload =>
-  api.post('/create-group-test/', payload);  // Fixed endpoint
+  api.post('/api/create-group-test/', payload);
 
 // LEADERBOARD & RANK endpoints
 export const fetchLeaderboard    = () =>
-  api.get('/leaderboard/');  // Fixed endpoint
+  api.get('/api/leaderboard/');
 
 export const fetchUserHistory    = () =>
-  api.get('/history/');  // Fixed endpoint
+  api.get('/api/history/');
 
 export const fetchUserRank       = () =>
-  api.get('/user/rank/');  // Fixed endpoint
+  api.get('/api/user/rank/');
 
 // USER UPLOAD STATS
 export const fetchUserUploadStats = () =>
-  api.get('/user/upload-stats/');  // Fixed endpoint
+  api.get('/api/user/upload-stats/');
 
 export default api;
+
