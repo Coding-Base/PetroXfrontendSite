@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { useGetCourses } from '@/hooks/courses';
+import { useGetCourses } from '@/hooks/courses/index';
 import { useCreateTest } from '@/hooks/tests/index';
 
 export default function CreateTest() {
