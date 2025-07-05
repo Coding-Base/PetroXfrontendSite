@@ -1,15 +1,14 @@
 // src/components/CreateTest.jsx
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { useGetCourses } from '@/hooks/courses/index';
-import { useCreateTest } from '@/hooks/tests/index';
+import { fetchCourses } from '../api/index';
+import { createGroupTest } from '../api/index';
 
 export default function CreateTest() {
   const navigate = useNavigate();
 
-  // form state
+  // Form state
   const [name, setName] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
@@ -20,76 +19,133 @@ export default function CreateTest() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // fetch courses
-  const { isLoading: loadingCourses, data: courses = [] } = useGetCourses();
-  // create-test mutation
-  const { isLoading: isSubmitting, mutateAsync: createTestAsync } =
-    useCreateTest();
+  // Course fetching state
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const coursesData = await fetchCourses();
+        setCourses(coursesData);
+      } catch (err) {
+        console.error('Failed to fetch courses:', err);
+        setCourseError('Failed to load courses. Please try again later.');
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    loadCourses();
+  }, []);
 
   const handleInviteeChange = (idx, val) => {
-    const arr = [...invitees];
-    arr[idx] = val;
-    setInvitees(arr);
+    const newInvitees = [...invitees];
+    newInvitees[idx] = val;
+    setInvitees(newInvitees);
   };
 
   const addInvitee = () => setInvitees([...invitees, '']);
-  const removeInvitee = (idx) =>
-    setInvitees(invitees.filter((_, i) => i !== idx) || ['']);
+  const removeInvitee = (idx) => {
+    if (invitees.length <= 1) return;
+    setInvitees(invitees.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
 
-    if (!name || !selectedCourse || !scheduledStart) {
+    // Validation
+    if (!name.trim() || !selectedCourse || !scheduledStart) {
       setError('Name, course, and scheduled start are required.');
       return;
     }
+    
+    if (questionCount < 1 || duration < 1) {
+      setError('Question count and duration must be at least 1');
+      return;
+    }
+    
     if (
       testType === 'group' &&
       invitees.filter((em) => em.trim() !== '').length === 0
     ) {
-      setError('Please add at least one email for a group test.');
+      setError('Please add at least one valid email for a group test.');
       return;
     }
 
     try {
+      setIsSubmitting(true);
+      
+      // Format date to UTC without changing time value
+      const scheduledDate = new Date(scheduledStart);
+      const utcDate = new Date(
+        Date.UTC(
+          scheduledDate.getFullYear(),
+          scheduledDate.getMonth(),
+          scheduledDate.getDate(),
+          scheduledDate.getHours(),
+          scheduledDate.getMinutes()
+        )
+      );
+
       const payload = {
-        name,
+        name: name.trim(),
         course: selectedCourse,
-        question_count: questionCount,
-        duration_minutes: duration,
-        scheduled_start: new Date(scheduledStart).toISOString(),
-        invitees:
-          testType === 'group'
-            ? invitees.filter((em) => em.trim() !== '')
-            : [],
+        question_count: Number(questionCount),
+        duration_minutes: Number(duration),
+        scheduled_start: utcDate.toISOString(),
+        invitees: testType === 'group' 
+          ? invitees.map(email => email.trim()).filter(email => email !== '')
+          : [],
       };
 
-      const { data } = await createTestAsync(payload);
+      const response = await createGroupTest(payload);
+      const testId = response.id || response.data?.id;
 
       setSuccessMsg(
-        testType === 'personal'
-          ? 'Personal test created! Redirecting…'
-          : 'Group test created! Redirecting…'
+        `${testType === 'personal' ? 'Personal' : 'Group'} test created! Redirecting...`
       );
 
       setTimeout(() => {
-        navigate(`/dashboard/group-test/${data.id}`);
-      }, 1000);
+        navigate(testType === 'personal' 
+          ? `/dashboard/tests` 
+          : `/dashboard/group-test/${testId}`);
+      }, 1500);
     } catch (err) {
-      console.error(err);
+      console.error('Test creation failed:', err);
       setError(
-        err.response?.data?.error ||
-          `Failed to create ${testType} test. Please try again.`
+        err.response?.data?.error?.message ||
+        err.message ||
+        `Failed to create ${testType} test. Please try again.`
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   if (loadingCourses) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <p>Loading courses…</p>
+        <p>Loading courses...</p>
+      </div>
+    );
+  }
+
+  if (courseError) {
+    return (
+      <div className="mx-auto max-w-md p-6 text-center text-red-500">
+        <p>{courseError}</p>
+        <Button 
+          onClick={() => window.location.reload()} 
+          className="mt-4"
+        >
+          Retry
+        </Button>
       </div>
     );
   }
@@ -156,7 +212,7 @@ export default function CreateTest() {
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || courses.length === 0}
             className="w-full rounded-lg border px-4 py-2 focus:ring-blue-500"
             required
           >
@@ -167,19 +223,26 @@ export default function CreateTest() {
               </option>
             ))}
           </select>
+          {courses.length === 0 && (
+            <p className="text-red-500 text-sm mt-1">No courses available</p>
+          )}
         </div>
 
         {/* Count & Duration */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Questions
+              Questions (1-100)
             </label>
             <input
               type="number"
               min="1"
+              max="100"
               value={questionCount}
-              onChange={(e) => setQuestionCount(+e.target.value)}
+              onChange={(e) => {
+                const val = Math.min(100, Math.max(1, Number(e.target.value) || 1));
+                setQuestionCount(val);
+              }}
               disabled={isSubmitting}
               className="w-full rounded-lg border px-4 py-2 focus:ring-blue-500"
               required
@@ -187,13 +250,17 @@ export default function CreateTest() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
-              Duration (min)
+              Duration (minutes, 1-180)
             </label>
             <input
               type="number"
               min="1"
+              max="180"
               value={duration}
-              onChange={(e) => setDuration(+e.target.value)}
+              onChange={(e) => {
+                const val = Math.min(180, Math.max(1, Number(e.target.value) || 1));
+                setDuration(val);
+              }}
               disabled={isSubmitting}
               className="w-full rounded-lg border px-4 py-2 focus:ring-blue-500"
               required
@@ -213,6 +280,7 @@ export default function CreateTest() {
             disabled={isSubmitting}
             className="w-full rounded-lg border px-4 py-2 focus:ring-blue-500"
             required
+            min={new Date().toISOString().slice(0, 16)}
           />
         </div>
 
@@ -231,13 +299,15 @@ export default function CreateTest() {
                   onChange={(e) => handleInviteeChange(idx, e.target.value)}
                   disabled={isSubmitting}
                   className="flex-1 rounded-lg border px-3 py-2 focus:ring-blue-500"
+                  required={idx === 0}
                 />
                 {invitees.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeInvitee(idx)}
                     disabled={isSubmitting}
-                    className="text-red-600 hover:text-red-800"
+                    className="px-3 py-2 text-red-600 hover:text-red-800 disabled:opacity-50"
+                    aria-label="Remove invitee"
                   >
                     &times;
                   </button>
@@ -247,11 +317,14 @@ export default function CreateTest() {
             <button
               type="button"
               onClick={addInvitee}
-              disabled={isSubmitting}
-              className="text-blue-600 hover:text-blue-800"
+              disabled={isSubmitting || invitees.length >= 10}
+              className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
             >
               + Add another email
             </button>
+            {invitees.length >= 10 && (
+              <p className="text-sm text-gray-500 mt-1">Maximum 10 invitees</p>
+            )}
           </div>
         )}
 
@@ -259,11 +332,11 @@ export default function CreateTest() {
         <div>
           <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
+            disabled={isSubmitting || courses.length === 0}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg disabled:opacity-50 transition-colors"
           >
             {isSubmitting
-              ? 'Creating…'
+              ? 'Creating...'
               : `Create ${testType === 'personal' ? 'Personal' : 'Group'} Test`}
           </Button>
         </div>

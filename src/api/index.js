@@ -104,5 +104,12 @@ export const fetchUserRank       = () =>
 export const fetchUserUploadStats = () =>
   api.get('/api/user/upload-stats/');
 
+// MATERIALS endpoints
+export const uploadMaterial = (formData, signal) =>
+  api.post('/api/materials/upload/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    signal
+  });
+
 export default api;
 

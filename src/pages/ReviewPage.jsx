@@ -174,7 +174,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                                     </div>
                                     <p className="ml-8">
                                       <span className="font-bold">
-                                        {correctOption}):
+                                        {correctOption}:
                                       </span>
                                       {getOptionText(question, correctOption)}
                                     </p>

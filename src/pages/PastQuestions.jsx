@@ -1,7 +1,8 @@
+// src/components/PastQuestionUpload.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {Button} from '../components/ui/button';
-import { useGetCourses } from '@/hooks/courses';
+import { Button } from '../components/ui/button';
+import { fetchCourses } from '../api/index'; // Fixed import name
 
 const UploadPassQuestions = () => {
   const [step, setStep] = useState(1);
@@ -13,13 +14,32 @@ const UploadPassQuestions = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [uploadStatus, setUploadStatus] = useState(null);
   const [parsedQuestions, setParsedQuestions] = useState([]);
-
-  const { data } = useGetCourses();
-  const courses = data?.data || [];
+  
+  // Added state for courses
+  const [courses, setCourses] = useState([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState('');
 
   // Generate years from current year back 30 years
   const currentYear = new Date().getFullYear();
   const years = Array.from({length: 30}, (_, i) => currentYear - i);
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const coursesData = await fetchCourses();
+        setCourses(coursesData);
+      } catch (err) {
+        console.error('Failed to fetch courses:', err);
+        setCourseError('Failed to load courses. Please try again later.');
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    loadCourses();
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -31,9 +51,9 @@ const UploadPassQuestions = () => {
       ];
       if (!validTypes.includes(selectedFile.type)) {
         setMessage({
-  text: 'Invalid file type. Please upload PDF, DOCX, or TXT.',
-  type: 'error'
-});
+          text: 'Invalid file type. Please upload PDF, DOCX, or TXT.',
+          type: 'error'
+        });
         return;
       }
       setFile(selectedFile);
@@ -108,7 +128,7 @@ const UploadPassQuestions = () => {
       
       try {
         const response = await axios.post(
-          'http://127.0.0.1:8000/api/upload-pass-questions/', 
+          'https://petroxtestbackend.onrender.com/api/upload-pass-questions/', 
           {
             course_id: selectedCourse,
             year: year,
@@ -147,10 +167,8 @@ const UploadPassQuestions = () => {
           });
         } else {
           const errorMsg = error.response?.data?.error || 
-          
                           error.response?.data?.message || 
                           'Submission failed. Please try again.';
-                          //  console.log(error.response.data)
           setMessage({ text: errorMsg, type: 'error' });
         }
       } finally {
@@ -271,6 +289,35 @@ const UploadPassQuestions = () => {
       </div>
     </div>
   );
+
+  if (isLoadingCourses) {
+    return (
+      <div className="container bg-gray-50 mx-auto p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+          <p className="mt-4 text-indigo-700">Loading courses...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (courseError) {
+    return (
+      <div className="container bg-gray-50 mx-auto p-4">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg bg-red-100 p-4 text-red-700">
+            <p className="font-medium">{courseError}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-3 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container bg-gray-50 mx-auto p-4">      

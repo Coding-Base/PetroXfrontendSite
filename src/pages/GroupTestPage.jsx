@@ -62,7 +62,7 @@ export default function GroupTestPage() {
       // Create a new test session - use course ID instead of test ID
       const token = localStorage.getItem('access_token');
       const response = await axios.post(
-        'http://127.0.0.1:8000/api/start-test/',
+        'https://petroxtestbackend.onrender.com/api/start-test/',
         { course: groupTest.course.id }, // Use course ID instead of test ID
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -217,7 +217,7 @@ export default function GroupTestPage() {
     const fetchTest = async () => {
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/api/group-test/${testId}/`,
+          `https://petroxtestbackend.onrender.com/api/group-test/${testId}/`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
