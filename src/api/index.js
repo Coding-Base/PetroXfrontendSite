@@ -73,7 +73,7 @@ export const startTest        = (courseId, questionCount, duration) =>
   api.post('/api/start-test/', {
     course_id:      courseId,
     question_count: questionCount,
-    duration        // or duration_minutes depending on your backend
+    duration_minutes: duration
   });
 
 export const submitTest       = (sessionId, answers) =>
@@ -89,6 +89,9 @@ export const fetchHistory = () =>
 // GROUP TEST endpoints
 export const createGroupTest = payload =>
   api.post('/api/create-group-test/', payload);
+
+export const fetchGroupTestDetail = (testId) =>
+  api.get(`/api/group-test/${testId}/`);
 
 // LEADERBOARD & RANK endpoints
 export const fetchLeaderboard    = () =>
@@ -110,6 +113,34 @@ export const uploadMaterial = (formData, signal) =>
     headers: { 'Content-Type': 'multipart/form-data' },
     signal
   });
+
+// ADDED: Search materials endpoint
+export const searchMaterials = (query) =>
+  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`);
+
+// ADDED: Download material endpoint
+export const downloadMaterial = (materialId) =>
+  api.get(`/api/materials/download/${materialId}/`);
+
+// PAST QUESTIONS endpoints
+// ADDED: Preview past questions endpoint
+export const previewPassQuestions = (formData) =>
+  api.post('/api/preview-pass-questions/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+// ADDED: Upload past questions endpoint
+export const uploadPassQuestions = (payload) =>
+  api.post('/api/upload-pass-questions/', payload);
+
+// QUESTION APPROVAL endpoints
+// ADDED: Fetch pending questions
+export const fetchPendingQuestions = () =>
+  api.get('/api/questions/pending/');
+
+// ADDED: Update question status
+export const updateQuestionStatus = (questionId, status) =>
+  api.put(`/api/questions/${questionId}/status/`, { status });
 
 export default api;
 
