@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { fetchCourses } from '../api/index'; // Fixed import name
+import { fetchCourses } from '@/api/index'; // Fixed import name
 
 const UploadPassQuestions = () => {
   const [step, setStep] = useState(1);

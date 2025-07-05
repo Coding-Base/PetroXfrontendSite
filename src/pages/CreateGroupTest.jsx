@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchCourses, api } from '../api';
+import { fetchCourses, api } from '@/api/index';
 import { Button } from '../components/ui/button';
 
 export default function CreateGroupTest() {

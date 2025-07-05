@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '../api/index';
+import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '@/api/index';
 
 export default function MaterialsManagement() {
   const [mode, setMode] = useState('upload');

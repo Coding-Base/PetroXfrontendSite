@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { submitTest } from '../api';
+import { submitTest } from '@/api/index';
 import { FaCopy, FaShareAlt } from 'react-icons/fa';
 import ReviewPage from './ReviewPage'; // Import the ReviewPage component
 import { Button } from '../components/ui/button';

@@ -6,13 +6,13 @@ import path from 'path';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  build:{
+  build: {
     outDir: 'dist'
   },
   resolve: {
     alias: {
-      // “@/foo” will map to “<project-root>/src/foo”
-      '@/': path.resolve(__dirname, 'src') + '/'
+      // Remove the trailing slash
+      '@': path.resolve(__dirname, 'src')
     }
   }
 });
