@@ -26,16 +26,10 @@ const UploadPassQuestions = () => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
-        const coursesData = await fetchCourses();
-        
-        // Handle API response properly
-        if (Array.isArray(coursesData)) {
-          setCourses(coursesData);
-        } else {
-          console.error('Unexpected courses response:', coursesData);
-          setCourseError('Invalid course data format');
-          setCourses([]);
-        }
+        const response = await fetchCourses();
+        // If your API returns { data: [...] }
+        const courseArr = Array.isArray(response.data) ? response.data : response;
+        setCourses(courseArr);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');
