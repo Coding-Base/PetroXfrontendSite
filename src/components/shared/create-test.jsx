@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchCourses, startTest } from '../api'; // assuming this is correct path
+import { fetchCourses, startTest } from '@/api/index'; // assuming this is correct path
 import { useNavigate } from 'react-router-dom';
 
 const CreateTest = () => {
