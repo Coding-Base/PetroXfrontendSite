@@ -26,8 +26,14 @@ const UploadPassQuestions = () => {
     const loadCourses = async () => {
       try {
         const coursesData = await fetchCourses();
-        // Ensure coursesData is always an array
-        setCourses(Array.isArray(coursesData) ? coursesData : []);
+        // Ensure coursesData is properly mapped
+        const mappedCourses = Array.isArray(coursesData) 
+          ? coursesData.map(course => ({
+              id: course.id,
+              name: course.name
+            }))
+          : [];
+        setCourses(mappedCourses);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');

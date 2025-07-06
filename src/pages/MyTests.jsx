@@ -6,30 +6,33 @@ import { Button } from '../components/ui/button';
 import CreateTest from '../components/shared/create-test';
 import { useGetTests } from '@/hooks/tests';
 import { DataTableSkeleton } from '@/components/shared/data-table-skeleton';
-import DataTable from '@/components/shared/data-table';
 import dayjs from 'dayjs';
 
 export const columns = [
   {
     id: 'course',
     header: 'Course',
-    cell: ({ row }) => <p>{row.original.course}</p>,
+    cell: ({ row }) => <p>{row?.original?.course || 'N/A'}</p>,
   },
   {
     id: 'score',
     header: 'Score',
     cell: ({ row }) => {
-      const pct =
-        (row.original.score * 100) / row.original.questions?.length || 0;
+      // FIX: Added null checks to prevent "map is not a function" error
+      const questions = row?.original?.questions || [];
+      const score = row?.original?.score || 0;
+      const pct = questions.length > 0 ? (score * 100) / questions.length : 0;
+      
       const colorClass =
         pct >= 80
           ? 'bg-green-100 text-green-800'
           : pct >= 60
           ? 'bg-yellow-100 text-yellow-800'
           : 'bg-red-100 text-red-800';
+          
       return (
         <span className={`rounded-full px-2 py-1 text-xs font-semibold ${colorClass}`}>
-          {row.original.questions?.length ? `${Math.round(pct)}%` : 'n/a'}
+          {questions.length ? `${Math.round(pct)}%` : 'n/a'}
         </span>
       );
     },
@@ -37,13 +40,13 @@ export const columns = [
   {
     id: 'questions',
     header: 'No Of Questions',
-    cell: ({ row }) => <>{row.original.questions?.length ?? 'n/a'}</>,
+    cell: ({ row }) => <>{row?.original?.questions?.length || 'n/a'}</>,
   },
   {
     id: 'start_time',
     header: 'Scheduled Time',
     cell: ({ row }) => (
-      <p>{dayjs(row.original.start_time).format('DD/MM/YYYY')}</p>
+      <p>{row?.original?.start_time ? dayjs(row.original.start_time).format('DD/MM/YYYY') : 'N/A'}</p>
     ),
   },
 ];
@@ -98,11 +101,34 @@ export default function MyTests() {
             You haven't taken any tests yet.
           </p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={recordsArray}
-            pageCount={pageCount}
-          />
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {columns.map((column) => (
+                    <th
+                      key={column.id}
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                    >
+                      {column.header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {recordsArray.map((record, index) => (
+                  <tr key={index}>
+                    {columns.map((column) => (
+                      <td key={column.id} className="whitespace-nowrap px-6 py-4">
+                        {column.cell({ row: { original: record } })}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
