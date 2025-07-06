@@ -1,8 +1,7 @@
-// src/components/PastQuestionUpload.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { fetchCourses } from '@/api/index'; // Fixed import name
+import { fetchCourses } from '@/api/index';
 
 const UploadPassQuestions = () => {
   const [step, setStep] = useState(1);
@@ -14,8 +13,6 @@ const UploadPassQuestions = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [uploadStatus, setUploadStatus] = useState(null);
   const [parsedQuestions, setParsedQuestions] = useState([]);
-  
-  // Added state for courses
   const [courses, setCourses] = useState([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState('');
@@ -29,10 +26,12 @@ const UploadPassQuestions = () => {
     const loadCourses = async () => {
       try {
         const coursesData = await fetchCourses();
-        setCourses(coursesData);
+        // Ensure coursesData is always an array
+        setCourses(Array.isArray(coursesData) ? coursesData : []);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');
+        setCourses([]);
       } finally {
         setIsLoadingCourses(false);
       }

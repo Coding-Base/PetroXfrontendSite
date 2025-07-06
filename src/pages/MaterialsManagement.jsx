@@ -1,13 +1,7 @@
-// src/components/MaterialManagement.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { 
-  fetchCourses, 
-  uploadMaterial, 
-  searchMaterials,  // Now available
-  downloadMaterial   // Now available
-} from '@/api/index';
+import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '@/api/index';
 
 export default function MaterialsManagement() {
   const [mode, setMode] = useState('upload');
@@ -31,11 +25,14 @@ export default function MaterialsManagement() {
   useEffect(() => {
     const loadCourses = async () => {
       try {
+        setIsLoadingCourses(true);
         const coursesData = await fetchCourses();
-        setCourses(coursesData);
+        // Ensure coursesData is always an array
+        setCourses(Array.isArray(coursesData) ? coursesData : []);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setError('Failed to load courses. Please try again later.');
+        setCourses([]);
       } finally {
         setIsLoadingCourses(false);
       }
@@ -49,17 +46,25 @@ export default function MaterialsManagement() {
     const savedDownloads = JSON.parse(
       localStorage.getItem('downloadedMaterials') || '[]'
     );
-    setDownloadedMaterials(savedDownloads);
+    // Ensure it's always an array
+    setDownloadedMaterials(Array.isArray(savedDownloads) ? savedDownloads : []);
   }, []);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        setError('File size exceeds 10MB limit');
+      } else {
+        setError('');
+        setFile(selectedFile);
+      }
+    }
+  };
 
   const handleUpload = async () => {
     if (!selectedCourseId || !materialName.trim() || !file) {
       setError('Please fill all required fields');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      setError('File size exceeds 10MB limit');
       return;
     }
 
@@ -107,12 +112,14 @@ export default function MaterialsManagement() {
 
     try {
       const results = await searchMaterials(searchQuery.trim());
-      setSearchResults(results);
+      // Ensure results are always an array
+      setSearchResults(Array.isArray(results) ? results : []);
       setMode('search-results');
       setShowMobileMenu(false);
-    } catch (err) {
-      console.error('Search error:', err);
+    } catch (error) {
+      console.error('Search error:', error);
       setError('Failed to search materials. Please try again.');
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -130,16 +137,13 @@ export default function MaterialsManagement() {
       link.click();
       document.body.removeChild(link);
 
-      // Add to downloaded materials if not already present
+      // Add to downloaded materials
       const alreadyDownloaded = downloadedMaterials.some(
         item => item.id === material.id
       );
       
       if (!alreadyDownloaded) {
-        const newDownloaded = [
-          {...material, downloadedAt: new Date().toISOString()}, 
-          ...downloadedMaterials
-        ];
+        const newDownloaded = [material, ...downloadedMaterials];
         setDownloadedMaterials(newDownloaded);
         localStorage.setItem(
           'downloadedMaterials',
@@ -204,18 +208,6 @@ export default function MaterialsManagement() {
   const getCourseName = (courseId) => {
     const course = courses.find((c) => c.id === courseId);
     return course ? course.name : 'Unknown Course';
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        setError('File size exceeds 10MB limit');
-      } else {
-        setError('');
-        setFile(selectedFile);
-      }
-    }
   };
 
   if (isLoadingCourses) {

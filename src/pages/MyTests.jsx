@@ -1,5 +1,3 @@
-// src/components/History.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Breadcrumbs from '../components/shared/breadcrumbs';
@@ -65,7 +63,10 @@ export default function MyTests() {
   // Destructure data and isLoading directly from useGetTests
   const { data: records = [], isLoading } = useGetTests();
 
-  const total = records.length;
+  // Ensure records is always an array
+  const recordsArray = Array.isArray(records) ? records : [];
+
+  const total = recordsArray.length;
   const pageLimit = 10;
   const pageCount = Math.ceil(total / pageLimit);
 
@@ -92,14 +93,14 @@ export default function MyTests() {
             filterableColumnCount={1}
             searchableColumnCount={1}
           />
-        ) : records.length === 0 ? (
+        ) : recordsArray.length === 0 ? (
           <p className="mt-4 text-2xl text-gray-600">
             You haven't taken any tests yet.
           </p>
         ) : (
           <DataTable
             columns={columns}
-            data={records}
+            data={recordsArray}
             pageCount={pageCount}
           />
         )}
@@ -109,4 +110,3 @@ export default function MyTests() {
     </div>
   );
 }
-

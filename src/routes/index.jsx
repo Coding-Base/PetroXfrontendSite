@@ -18,6 +18,7 @@ const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PetroMarkAI = lazy(() => import('../pages/Petromark'));
 const MaterialsManagement = lazy(() => import('../pages/MaterialsManagement'));
 const Tools = lazy(() => import('../Layouts/ToolPage'));
+const NotFounds = lazy(() => import('../pages/NotFound'));
 // ----------------------------------------------------------------------
 
 export default function AppRouter() {
@@ -98,7 +99,7 @@ export default function AppRouter() {
     },
     {
       path: '/404',
-      element: <NotFound />
+      element: <NotFounds />
     }
     // {
     //   path: '*',
