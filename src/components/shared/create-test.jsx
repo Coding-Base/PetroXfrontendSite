@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { fetchCourses } from '@/api/index';
-import { createGroupTest } from '@/api/index';
+import { fetchCourses, createGroupTest } from '@/api/index';
 
 export default function CreateTest() {
   const navigate = useNavigate();
@@ -30,7 +29,15 @@ export default function CreateTest() {
     const loadCourses = async () => {
       try {
         const coursesData = await fetchCourses();
-        setCourses(coursesData);
+        
+        // Ensure we always have an array, even if response is empty
+        if (Array.isArray(coursesData)) {
+          // Filter only approved courses if needed
+          setCourses(coursesData);
+        } else {
+          console.error('Unexpected courses format:', coursesData);
+          setCourseError('Invalid courses data format');
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');

@@ -25,15 +25,17 @@ const UploadPassQuestions = () => {
   useEffect(() => {
     const loadCourses = async () => {
       try {
+        setIsLoadingCourses(true);
         const coursesData = await fetchCourses();
-        // Ensure coursesData is properly mapped
-        const mappedCourses = Array.isArray(coursesData) 
-          ? coursesData.map(course => ({
-              id: course.id,
-              name: course.name
-            }))
-          : [];
-        setCourses(mappedCourses);
+        
+        // Handle API response properly
+        if (Array.isArray(coursesData)) {
+          setCourses(coursesData);
+        } else {
+          console.error('Unexpected courses response:', coursesData);
+          setCourseError('Invalid course data format');
+          setCourses([]);
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');

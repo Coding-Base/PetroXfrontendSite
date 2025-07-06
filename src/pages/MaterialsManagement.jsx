@@ -26,14 +26,15 @@ export default function MaterialsManagement() {
       try {
         setIsLoadingCourses(true);
         const coursesData = await fetchCourses();
-        // Ensure coursesData is properly mapped
-        const mappedCourses = Array.isArray(coursesData) 
-          ? coursesData.map(course => ({
-              id: course.id,
-              name: course.name
-            }))
-          : [];
-        setCourses(mappedCourses);
+        
+        // Handle API response properly
+        if (Array.isArray(coursesData)) {
+          setCourses(coursesData);
+        } else {
+          console.error('Unexpected courses response:', coursesData);
+          setError('Invalid course data format');
+          setCourses([]);
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setError('Failed to load courses. Please try again later.');
@@ -418,83 +419,152 @@ export default function MaterialsManagement() {
           </button>
         </div>
 
-        {/* Upload form - now always visible in mobile view */}
-        <div className={`mb-6 rounded-xl border border-indigo-100 bg-white p-5 shadow-lg md:mb-8 md:rounded-2xl md:p-8 md:shadow-xl ${mode !== 'upload' ? 'hidden md:block' : ''}`}>
-          <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-indigo-800 md:mb-6 md:text-2xl">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 md:h-6 md:w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            Upload New Material
-          </h2>
-
-          <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
-                Course <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
-                required
+        {mode === 'upload' && (
+          <div className="mb-6 rounded-xl border border-indigo-100 bg-white p-5 shadow-lg md:mb-8 md:rounded-2xl md:p-8 md:shadow-xl">
+            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-indigo-800 md:mb-6 md:text-2xl">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 md:h-6 md:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <option value="">Select a course</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.name}
-                  </option>
-                ))}
-              </select>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              Upload New Material
+            </h2>
+
+            <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Course <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedCourseId}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
+                  required
+                >
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Material Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={materialName}
+                  onChange={(e) => setMaterialName(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
+                  placeholder="Enter material name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
+                  placeholder="e.g., math, calculus, formulas"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  File <span className="text-red-500">*</span>
+                </label>
+                <div className="flex w-full items-center justify-center">
+                  <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50 transition-colors hover:bg-indigo-100 md:rounded-2xl">
+                    <div className="flex flex-col items-center justify-center p-4">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="mb-2 h-8 w-8 text-indigo-500 md:h-10 md:w-10"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="text-center text-xs font-medium text-indigo-600 md:text-sm">
+                        {file ? file.name : 'Click to upload or drag and drop'}
+                      </p>
+                      <p className="mt-1 text-xs text-indigo-400">
+                        Max file size: 10MB
+                      </p>
+                      {file?.size > 10 * 1024 * 1024 && (
+                        <p className="mt-1 text-xs text-red-500">
+                          File too large! Max 10MB
+                        </p>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
-                Material Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={materialName}
-                onChange={(e) => setMaterialName(e.target.value)}
-                className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
-                placeholder="Enter material name"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
-                Tags (comma separated)
-              </label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
-                placeholder="e.g., math, calculus, formulas"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
-                File <span className="text-red-500">*</span>
-              </label>
-              <div className="flex w-full items-center justify-center">
-                <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50 transition-colors hover:bg-indigo-100 md:rounded-2xl">
-                  <div className="flex flex-col items-center justify-center p-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleUpload}
+                disabled={isUploading || !file || !selectedCourseId || !materialName.trim()}
+                className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl disabled:opacity-70 md:w-auto md:rounded-xl md:px-8 md:py-3 md:text-base"
+              >
+                {isUploading ? (
+                  <>
+                    <svg
+                      className="mr-2 h-4 w-4 animate-spin text-white md:h-5 md:w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="mb-2 h-8 w-8 text-indigo-500 md:h-10 md:w-10"
+                      className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -506,81 +576,13 @@ export default function MaterialsManagement() {
                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                       />
                     </svg>
-                    <p className="text-center text-xs font-medium text-indigo-600 md:text-sm">
-                      {file ? file.name : 'Click to upload or drag and drop'}
-                    </p>
-                    <p className="mt-1 text-xs text-indigo-400">
-                      Max file size: 10MB
-                    </p>
-                    {file?.size > 10 * 1024 * 1024 && (
-                      <p className="mt-1 text-xs text-red-500">
-                        File too large! Max 10MB
-                      </p>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
-                  />
-                </label>
-              </div>
+                    Upload Material
+                  </>
+                )}
+              </button>
             </div>
           </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={handleUpload}
-              disabled={isUploading || !file || !selectedCourseId || !materialName.trim()}
-              className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl disabled:opacity-70 md:w-auto md:rounded-xl md:px-8 md:py-3 md:text-base"
-            >
-              {isUploading ? (
-                <>
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin text-white md:h-5 md:w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  Upload Material
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        )}
 
         {(mode === 'download' || mode === 'search-results') && (
           <div className="rounded-xl border border-indigo-100 bg-white p-4 shadow-lg md:rounded-2xl md:p-6 md:shadow-xl">
