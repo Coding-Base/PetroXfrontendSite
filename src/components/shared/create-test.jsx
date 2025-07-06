@@ -30,13 +30,12 @@ export default function CreateTest() {
       try {
         const coursesData = await fetchCourses();
         
-        // Ensure we always have an array, even if response is empty
+        // FIX: Simplified validation - just check if we have an array
         if (Array.isArray(coursesData)) {
-          // Filter only approved courses if needed
           setCourses(coursesData);
         } else {
           console.error('Unexpected courses format:', coursesData);
-          setCourseError('Invalid courses data format');
+          setCourseError('Failed to load courses. Invalid data format from server.');
         }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
