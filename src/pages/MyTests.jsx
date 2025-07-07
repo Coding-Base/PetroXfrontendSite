@@ -7,6 +7,7 @@ import CreateTest from '../components/shared/create-test';
 import { useGetTests } from '@/hooks/tests';
 import { DataTableSkeleton } from '@/components/shared/data-table-skeleton';
 import dayjs from 'dayjs';
+import DataTable from '../components/shared/data-table';
 
 export const columns = [
   {
@@ -101,33 +102,8 @@ export default function MyTests() {
             You haven't taken any tests yet.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {columns.map((column) => (
-                    <th
-                      key={column.id}
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                    >
-                      {column.header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {recordsArray.map((record, index) => (
-                  <tr key={index}>
-                    {columns.map((column) => (
-                      <td key={column.id} className="whitespace-nowrap px-6 py-4">
-                        {column.cell({ row: { original: record } })}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            <DataTable columns={columns} data={recordsArray} pageCount={pageCount} />
           </div>
         )}
       </div>

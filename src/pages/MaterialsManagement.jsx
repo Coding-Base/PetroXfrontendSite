@@ -73,7 +73,7 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     const formData = new FormData();
-    formData.append('course_id', selectedCourseId); // Changed from 'course' to 'course_id'
+    formData.append('course', selectedCourseId); // <-- FIXED: use 'course'
     formData.append('name', materialName.trim());
     formData.append('tags', tags.trim());
     formData.append('file', file);

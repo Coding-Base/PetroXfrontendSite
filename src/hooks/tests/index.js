@@ -32,7 +32,7 @@ export const useCreateTest = () => {
 export const useGetTests = () =>
   useQuery({
     queryKey: ['tests'],
-    queryFn: () => getTests().then(res => res),
+    queryFn: () => getTests(),
     staleTime: 5 * 60 * 1000,
     retry: 2,
     onError: err => {
@@ -44,7 +44,7 @@ export const useGetTests = () =>
 export const useGetTest = id =>
   useQuery({
     queryKey: ['test', id],
-    queryFn: () => getTest(id).then(res => res),
+    queryFn: () => getTest(id),
     enabled: Boolean(id),
     staleTime: 5 * 60 * 1000,
     retry: 2,
