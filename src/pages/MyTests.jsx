@@ -67,8 +67,12 @@ export default function MyTests() {
   // Destructure data and isLoading directly from useGetTests
   const { data: records = [], isLoading } = useGetTests();
 
-  // Ensure records is always an array
-  const recordsArray = Array.isArray(records) ? records : [];
+  // Fix: support both array and object with data property
+  const recordsArray = Array.isArray(records)
+    ? records
+    : Array.isArray(records?.data)
+      ? records.data
+      : [];
 
   const total = recordsArray.length;
   const pageLimit = 10;
