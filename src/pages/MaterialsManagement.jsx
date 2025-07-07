@@ -213,7 +213,7 @@ export default function MaterialsManagement() {
 
   if (isLoadingCourses) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center overflow-x-hidden">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
           <p className="mt-4 text-indigo-700">Loading courses...</p>
@@ -223,22 +223,22 @@ export default function MaterialsManagement() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden">
       <div className="mx-auto max-w-7xl">
         {/* Error/Success messages */}
         {error && (
-          <div className="mb-6 rounded-lg bg-red-100 p-4 text-red-700">
+          <div className="mb-4 sm:mb-6 rounded-lg bg-red-100 p-2 sm:p-4 text-red-700 text-xs sm:text-base">
             {error}
           </div>
         )}
         {successMsg && (
-          <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-700">
+          <div className="mb-4 sm:mb-6 rounded-lg bg-green-100 p-2 sm:p-4 text-green-700 text-xs sm:text-base">
             {successMsg}
           </div>
         )}
 
         {/* Mobile menu button */}
-        <div className="mb-4 flex items-center justify-between md:hidden">
+        <div className="mb-3 flex items-center justify-between md:hidden">
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
             className="rounded-lg bg-indigo-600 p-2 text-white"
@@ -259,11 +259,11 @@ export default function MaterialsManagement() {
               />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-indigo-900">Study Materials</h1>
-          <div className="w-10"></div> {/* Spacer for alignment */}
+          <h1 className="text-lg font-bold text-indigo-900">Study Materials</h1>
+          <div className="w-10"></div>
         </div>
 
-        <div className="mb-6 flex flex-col items-center justify-between gap-4 md:mb-8 md:flex-row">
+        <div className="mb-4 flex flex-col items-center justify-between gap-2 md:mb-8 md:flex-row">
           <div className="hidden md:block">
             <h1 className="text-2xl font-bold text-indigo-900 md:text-3xl">
               Study Materials
@@ -273,13 +273,13 @@ export default function MaterialsManagement() {
             </p>
           </div>
 
-          <div className="flex w-full flex-col items-center gap-3 md:flex-row md:gap-4">
+          <div className="flex w-full flex-col items-center gap-2 md:flex-row md:gap-4">
             <div className="relative w-full">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-indigo-200 bg-white py-2 pr-4 pl-10 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:py-3"
+                className="w-full rounded-lg border border-indigo-200 bg-white py-2 pr-4 pl-10 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:py-3 text-xs sm:text-sm"
                 placeholder="Search materials..."
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
@@ -303,6 +303,7 @@ export default function MaterialsManagement() {
               onClick={handleSearch}
               variant="primary"
               disabled={isSearching}
+              className="w-full md:w-auto text-xs sm:text-sm"
             >
               {isSearching ? (
                 <>
@@ -337,13 +338,13 @@ export default function MaterialsManagement() {
 
         {/* Mobile menu dropdown */}
         {showMobileMenu && (
-          <div className="mb-6 rounded-xl bg-white p-4 shadow-lg md:hidden">
+          <div className="mb-4 rounded-xl bg-white p-2 shadow-lg md:hidden">
             <button
               onClick={() => {
                 setMode('upload');
                 setShowMobileMenu(false);
               }}
-              className={`mb-2 w-full rounded-lg px-4 py-3 text-center font-medium ${
+              className={`mb-2 w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
                 mode === 'upload'
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                   : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -356,7 +357,7 @@ export default function MaterialsManagement() {
                 setMode('download');
                 setShowMobileMenu(false);
               }}
-              className={`mb-2 w-full rounded-lg px-4 py-3 text-center font-medium ${
+              className={`mb-2 w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
                 mode === 'download'
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                   : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -369,7 +370,7 @@ export default function MaterialsManagement() {
                 setMode('search-results');
                 setShowMobileMenu(false);
               }}
-              className={`w-full rounded-lg px-4 py-3 text-center font-medium ${
+              className={`w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
                 mode === 'search-results'
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                   : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -381,10 +382,10 @@ export default function MaterialsManagement() {
         )}
 
         {/* Desktop mode buttons */}
-        <div className="mb-6 hidden space-x-2 md:mb-8 md:flex md:space-x-4">
+        <div className="mb-4 hidden space-x-2 md:mb-8 md:flex md:space-x-4">
           <button
             onClick={() => setMode('upload')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
               mode === 'upload'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -394,7 +395,7 @@ export default function MaterialsManagement() {
           </button>
           <button
             onClick={() => setMode('download')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
               mode === 'download'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -404,7 +405,7 @@ export default function MaterialsManagement() {
           </button>
           <button
             onClick={() => setMode('search-results')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
               mode === 'search-results'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
@@ -679,9 +680,9 @@ export default function MaterialsManagement() {
 
             {/* Scrollable container for mobile */}
             <div className="max-h-[calc(100vh-300px)] overflow-y-auto md:max-h-none">
-              {(mode === 'search-results' && searchResults.length > 0) || 
+              {(mode === 'search-results' && searchResults.length > 0) ||
               (mode === 'download' && downloadedMaterials.length > 0) ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
                   {(mode === 'search-results'
                     ? searchResults
                     : downloadedMaterials

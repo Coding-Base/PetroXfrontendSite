@@ -250,8 +250,8 @@ export default function GroupTestPage() {
   // —————————— RENDER LOGIC ——————————
   if (isLoading) {
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="p-6 text-center">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="p-4 md:p-6 text-center">
           <div className="animate-pulse">
             <div className="mx-auto mb-4 h-8 w-3/4 rounded bg-gray-200"></div>
             <div className="mx-auto mb-8 h-6 w-1/2 rounded bg-gray-200"></div>
@@ -265,8 +265,8 @@ export default function GroupTestPage() {
 
   if (error) {
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-center">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="p-4 md:p-6 bg-red-50 border border-red-200 rounded-xl text-center">
           <p className="text-red-700 mb-4">{error}</p>
           <Button
             onClick={() => navigate('/dashboard')}
@@ -282,37 +282,37 @@ export default function GroupTestPage() {
   // ——————— PHASE 0: Countdown to Start ———————
   if (phase === 0) {
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center shadow-lg">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold text-gray-800">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 text-center shadow-lg">
+          <div className="mb-6 md:mb-8">
+            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">
               {groupTest?.name || 'Group Test'}
             </h1>
-            <div className="mx-auto mb-6 h-1 w-24 bg-blue-500"></div>
-            <p className="mb-6 text-gray-600">
+            <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-blue-500"></div>
+            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
               {groupTest?.scheduled_start
                 ? `Test begins at: ${parseUtcDate(groupTest.scheduled_start).toLocaleString()}`
                 : 'Test start time not set'}
             </p>
           </div>
-          <div className="mb-10">
-            <div className="inline-block rounded-xl bg-white p-6 shadow-md">
-              <p className="mb-2 text-sm text-gray-500">Time until test starts</p>
-              <p className="text-4xl font-bold text-blue-600">
+          <div className="mb-6 md:mb-10">
+            <div className="inline-block rounded-xl bg-white p-4 md:p-6 shadow-md">
+              <p className="mb-2 text-xs md:text-sm text-gray-500">Time until test starts</p>
+              <p className="text-3xl md:text-4xl font-bold text-blue-600">
                 {formatTime(timeLeft)}
               </p>
             </div>
           </div>
-          <div className="mb-8 rounded-xl bg-white p-6 text-left shadow-sm">
-            <h3 className="mb-4 text-lg font-bold text-gray-800">Test Details</h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="mb-6 md:mb-8 rounded-xl bg-white p-4 md:p-6 text-left shadow-sm">
+            <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">Test Details</h3>
+            <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2">
               <div className="flex items-center">
                 <div className="mr-3 rounded-lg bg-blue-100 p-2">
                   {/* ...icon... */}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Course</p>
-                  <p className="font-medium">
+                  <p className="text-xs md:text-sm text-gray-500">Course</p>
+                  <p className="text-sm md:text-base font-medium">
                     {groupTest?.course?.name || 'No course specified'}
                   </p>
                 </div>
@@ -322,15 +322,15 @@ export default function GroupTestPage() {
                   {/* ...icon... */}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Questions</p>
-                  <p className="font-medium">{questions.length}</p>
+                  <p className="text-xs md:text-sm text-gray-500">Questions</p>
+                  <p className="text-sm md:text-base font-medium">{questions.length}</p>
                 </div>
               </div>
               <div className="flex items-center">
                 <div className="mr-3 rounded-lg bg-purple-100 p-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-purple-600"
+                    className="h-5 w-5 md:h-6 md:w-6 text-purple-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -344,8 +344,8 @@ export default function GroupTestPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Duration</p>
-                  <p className="font-medium">
+                  <p className="text-xs md:text-sm text-gray-500">Duration</p>
+                  <p className="text-sm md:text-base font-medium">
                     {groupTest?.duration_minutes || 0} minutes
                   </p>
                 </div>
@@ -354,7 +354,7 @@ export default function GroupTestPage() {
                 <div className="mr-3 rounded-lg bg-yellow-100 p-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-yellow-600"
+                    className="h-5 w-5 md:h-6 md:w-6 text-yellow-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -368,31 +368,31 @@ export default function GroupTestPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Created by</p>
-                  <p className="font-medium">{creatorName}</p>
+                  <p className="text-xs md:text-sm text-gray-500">Created by</p>
+                  <p className="text-sm md:text-base font-medium">{creatorName}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg bg-blue-50 p-6">
-            <h3 className="mb-4 text-lg font-bold text-gray-800">
+          <div className="rounded-lg bg-blue-50 p-4 md:p-6">
+            <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">
               Invite Participants
             </h3>
-            <p className="mb-4 text-gray-600">Share this test with others:</p>
+            <p className="mb-3 md:mb-4 text-sm md:text-base text-gray-600">Share this test with others:</p>
 
-            <div className="flex justify-center space-x-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
               <Button
                 onClick={copyTestLink}
-                className="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 transition duration-200 hover:bg-gray-50"
+                className="flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm text-gray-700 transition duration-200 hover:bg-gray-50 w-full sm:w-auto"
               >
-                <FaCopy className="mr-2" /> Copy Link
+                <FaCopy className="mr-1 md:mr-2" /> Copy Link
               </Button>
               <Button
                 onClick={shareTestLink}
-                className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white transition duration-200 hover:bg-blue-700"
+                className="flex items-center rounded-lg bg-blue-600 px-3 py-2 text-xs sm:text-sm text-white transition duration-200 hover:bg-blue-700 w-full sm:w-auto"
               >
-                <FaShareAlt className="mr-2" /> Share
+                <FaShareAlt className="mr-1 md:mr-2" /> Share
               </Button>
             </div>
           </div>
@@ -404,32 +404,32 @@ export default function GroupTestPage() {
   // ——————— PHASE 1: Ready to Start (user must click “Start Test”) ———————
   if (phase === 1) {
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-green-50 to-teal-50 p-8 text-center shadow-lg">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold text-gray-800">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-green-50 to-teal-50 p-4 md:p-8 text-center shadow-lg">
+          <div className="mb-6 md:mb-8">
+            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">
               {groupTest?.name || 'Group Test'}
             </h1>
-            <div className="mx-auto mb-6 h-1 w-24 bg-green-500"></div>
-            <p className="mb-6 text-gray-600">
+            <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-green-500"></div>
+            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
               {groupTest?.scheduled_start
                 ? `Scheduled start was: ${parseUtcDate(groupTest.scheduled_start).toLocaleString()}`
                 : 'Test start time not set'}
             </p>
           </div>
-          <div className="mb-10">
-            <div className="inline-block rounded-xl bg-white p-6 shadow-md">
-              <p className="mb-2 text-sm text-gray-500">
+          <div className="mb-6 md:mb-10">
+            <div className="inline-block rounded-xl bg-white p-4 md:p-6 shadow-md">
+              <p className="mb-2 text-xs md:text-sm text-gray-500">
                 Time available to complete the test
               </p>
-              <p className="text-4xl font-bold text-green-600">
+              <p className="text-3xl md:text-4xl font-bold text-green-600">
                 {formatTime(groupTest?.duration_minutes * 60 || 0)}
               </p>
             </div>
           </div>
-          <div className="mb-8 rounded-xl bg-white p-6 text-left shadow-sm">
-            <h3 className="mb-4 text-lg font-bold text-gray-800">Instructions</h3>
-            <ul className="list-disc space-y-2 pl-5 text-gray-600">
+          <div className="mb-6 md:mb-8 rounded-xl bg-white p-4 md:p-6 text-left shadow-sm">
+            <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">Instructions</h3>
+            <ul className="list-disc space-y-1 md:space-y-2 pl-4 md:pl-5 text-xs md:text-sm text-gray-600">
               <li>This test has {questions.length} multiple-choice questions</li>
               <li>
                 You have {groupTest?.duration_minutes || 0} minutes to complete
@@ -444,7 +444,7 @@ export default function GroupTestPage() {
           </div>
           <Button
             onClick={handleStartButton}
-            className="rounded-lg bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-green-700 hover:shadow-lg"
+            className="rounded-lg bg-green-600 px-6 py-3 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-green-700 hover:shadow-lg w-full md:w-auto"
             disabled={!groupTest || questions.length === 0}
           >
             {questions.length === 0 ? "Loading Questions..." : "Start Test Now"}
@@ -458,15 +458,15 @@ export default function GroupTestPage() {
   if (phase === 2) {
     if (questions.length === 0) {
       return (
-        <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-          <div className="p-8 text-center">
-            <div className="mb-6">
-              <div className="mx-auto h-16 w-16 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
+        <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+          <div className="p-4 md:p-8 text-center">
+            <div className="mb-4 md:mb-6">
+              <div className="mx-auto h-12 w-12 md:h-16 md:w-16 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
             </div>
-            <h2 className="mb-2 text-xl font-bold text-gray-800">
+            <h2 className="mb-2 text-lg md:text-xl font-bold text-gray-800">
               Questions Loading
             </h2>
-            <p className="mb-4 text-gray-600">
+            <p className="text-sm md:text-base text-gray-600">
               {groupTest ? groupTest.name : 'Test'} questions are being prepared
             </p>
           </div>
@@ -475,21 +475,21 @@ export default function GroupTestPage() {
     }
     const currentQ = questions[currentQuestion];
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-lg">
-          <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg">
+          <div className="mb-6 md:mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-xl font-bold text-gray-800">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">
                 {groupTest?.name || 'Group Test'}
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs md:text-sm text-gray-500">
                 {groupTest?.course?.name || ''}
               </p>
             </div>
-            <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-red-700">
+            <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-red-700">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="mr-2 h-5 w-5"
+                className="mr-1 h-4 w-4 md:h-5 md:w-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -506,18 +506,18 @@ export default function GroupTestPage() {
               </span>
             </div>
           </div>
-          <div className="mb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+          <div className="mb-6 md:mb-8">
+            <div className="mb-3 md:mb-4 flex items-center justify-between">
+              <p className="text-xs md:text-sm text-gray-600">
                 Question{' '}
                 <span className="font-medium">{currentQuestion + 1}</span> of{' '}
                 <span className="font-medium">{questions.length}</span>
               </p>
-              <div className="flex space-x-1">
+              <div className="flex flex-wrap gap-1">
                 {questions.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`h-3 w-3 rounded-full ${
+                    className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${
                       currentQuestion === idx
                         ? 'bg-blue-600'
                         : answers[questions[idx]?.id]
@@ -528,11 +528,11 @@ export default function GroupTestPage() {
                 ))}
               </div>
             </div>
-            <div className="mb-6 rounded-lg bg-gray-50 p-6">
-              <h3 className="mb-4 text-lg font-medium text-gray-800">
+            <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
+              <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800">
                 {currentQ?.question_text || 'Question not available'}
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {['A', 'B', 'C', 'D'].map((option, idx) => {
                   const labelText = currentQ
                     ? currentQ[`option_${option.toLowerCase()}`]
@@ -552,13 +552,13 @@ export default function GroupTestPage() {
                       />
                       <label
                         htmlFor={`option-${idx}`}
-                        className={`ml-3 block w-full cursor-pointer rounded-lg p-3 transition duration-200 ${
+                        className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${
                           answers[currentQ?.id] === option
                             ? 'border border-blue-200 bg-blue-50'
                             : 'hover:bg-gray-100'
                         }`}
                       >
-                        <span className="mr-2 font-medium">{option}.</span>{' '}
+                        <span className="mr-1 font-medium">{option}.</span>{' '}
                         {labelText || `Option ${option}`}
                       </label>
                     </div>
@@ -567,12 +567,12 @@ export default function GroupTestPage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col justify-between gap-4 sm:flex-row">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row">
             <div>
               <Button
                 onClick={handlePrevQuestion}
                 disabled={currentQuestion === 0}
-                className={`flex items-center rounded-lg px-4 py-2 ${
+                className={`flex items-center rounded-lg px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm ${
                   currentQuestion === 0
                     ? 'cursor-not-allowed text-gray-400'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -580,7 +580,7 @@ export default function GroupTestPage() {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="mr-1 h-5 w-5"
+                  className="mr-1 h-4 w-4 md:h-5 md:w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -595,22 +595,22 @@ export default function GroupTestPage() {
                 Previous
               </Button>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 justify-end">
               <Button
                 onClick={handleSubmitTest}
-                className="rounded-lg border border-red-500 px-4 py-2 text-red-600 transition duration-200 hover:bg-red-50"
+                className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50"
               >
                 Submit Test
               </Button>
               {currentQuestion < questions.length - 1 ? (
                 <Button
                   onClick={handleNextQuestion}
-                  className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white transition duration-200 hover:bg-blue-700"
+                  className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700"
                 >
                   Next
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="ml-1 h-5 w-5"
+                    className="ml-1 h-4 w-4 md:h-5 md:w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -634,18 +634,18 @@ export default function GroupTestPage() {
   // ——————— PHASE 3: Test Ended ———————
   if (phase === 3) {
     return (
-      <div className="h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-purple-50 p-8 text-center shadow-lg">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold text-gray-800">
+      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
+        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 md:p-8 text-center shadow-lg">
+          <div className="mb-6 md:mb-8">
+            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">
               Test Completed
             </h1>
-            <div className="mx-auto mb-6 h-1 w-24 bg-purple-500"></div>
-            <p className="text-xl text-gray-600">
+            <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-purple-500"></div>
+            <p className="text-lg md:text-xl text-gray-600">
               {groupTest?.name || 'Group Test'}
             </p>
           </div>
-          <div className="mb-8 rounded-xl bg-white p-8 shadow-md">
+          <div className="mb-6 md:mb-8 rounded-xl bg-white p-4 md:p-8 shadow-md">
             <div className="relative">
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg className="h-full w-full" viewBox="0 0 100 100">
@@ -671,50 +671,50 @@ export default function GroupTestPage() {
                 </svg>
               </div>
               <div className="relative z-10">
-                <p className="text-5xl font-bold text-gray-800">
+                <p className="text-4xl md:text-5xl font-bold text-gray-800">
                   {score?.percentage ?? 0}%
                 </p>
               </div>
             </div>
-            <p className="mt-6 text-gray-600">
+            <p className="mt-4 md:mt-6 text-sm md:text-base text-gray-600">
               {score?.correct ?? 0} out of {score?.total ?? 0} questions correct
             </p>
-            <div className="mt-6">
-              <div className="flex justify-center space-x-6">
+            <div className="mt-4 md:mt-6">
+              <div className="flex flex-wrap justify-center gap-4 md:gap-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-xl md:text-2xl font-bold text-green-600">
                     {score?.correct
                       ? Math.floor((score.correct / questions.length) * 100)
                       : 0}
                     %
                   </p>
-                  <p className="text-sm text-gray-500">Accuracy</p>
+                  <p className="text-xs md:text-sm text-gray-500">Accuracy</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-xl md:text-2xl font-bold text-blue-600">
                     {questions.length || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Questions</p>
+                  <p className="text-xs md:text-sm text-gray-500">Questions</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-xl md:text-2xl font-bold text-purple-600">
                     {groupTest?.duration_minutes || 0} min
                   </p>
-                  <p className="text-sm text-gray-500">Duration</p>
+                  <p className="text-xs md:text-sm text-gray-500">Duration</p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Button
               onClick={() => navigate('/dashboard')}
-              className="rounded-lg bg-purple-600 px-8 py-3 text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-purple-700 hover:shadow-lg"
+              className="rounded-lg bg-purple-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-purple-700 hover:shadow-lg"
             >
               Return to Dashboard
             </Button>
             <Button
               onClick={() => setShowReview(true)}
-              className="rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-blue-700 hover:shadow-lg"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-blue-700 hover:shadow-lg"
             >
               Review Answers
             </Button>

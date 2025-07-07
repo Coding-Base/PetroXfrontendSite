@@ -96,7 +96,7 @@ export default function CreateTest() {
         course: selectedCourse,
         question_count: Number(questionCount),
         duration_minutes: Number(duration),
-        scheduled_start: utcDate.toISOString(),
+        scheduled_start: new Date(scheduledStart).toISOString(),
         invitees: testType === 'group'
           ? invitees.map(email => email.trim()).filter(email => email !== '')
           : [],
@@ -110,9 +110,7 @@ export default function CreateTest() {
       );
 
       setTimeout(() => {
-        navigate(testType === 'personal'
-          ? `/dashboard//group-test/${testId}`
-          : `/dashboard/group-test/${testId}`);
+        navigate(`/dashboard/group-test/${testId}`);
       }, 1500);
     } catch (err) {
       console.error('Test creation failed:', err);
