@@ -100,11 +100,15 @@ export default function AppRouter() {
     {
       path: '/404',
       element: <NotFounds />
-    }
-    // {
-    //   path: '*',
-    //   element: <Navigate to="/404" replace />
-    // }
+    },
+    {
+      path: '*',
+      element: <Navigate to="/404" replace />
+    },
+    {
+    path: '/group-test/:testId', // <-- Add this line!
+    element: <GroupTestPage />
+  },
   ];
 
   const routes = useRoutes([...dashboardRoutes, ...publicRoutes]);

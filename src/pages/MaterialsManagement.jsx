@@ -73,7 +73,7 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     const formData = new FormData();
-    formData.append('course', selectedCourseId);
+    formData.append('course_id', selectedCourseId); // Changed from 'course' to 'course_id'
     formData.append('name', materialName.trim());
     formData.append('tags', tags.trim());
     formData.append('file', file);
@@ -93,6 +93,7 @@ export default function MaterialsManagement() {
       console.error('Upload error:', err);
       setError(
         err.response?.data?.error?.message || 
+        err.response?.data?.message || 
         'Failed to upload material. Please try again.'
       );
     } finally {
@@ -676,112 +677,115 @@ export default function MaterialsManagement() {
               </div>
             )}
 
-            {(mode === 'search-results' && searchResults.length > 0) || 
-            (mode === 'download' && downloadedMaterials.length > 0) ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-                {(mode === 'search-results'
-                  ? searchResults
-                  : downloadedMaterials
-                ).map((material) => {
-                  const isDownloaded = downloadedMaterials.some(
-                    item => item.id === material.id
-                  );
-                  
-                  return (
-                    <div
-                      key={material.id}
-                      className="flex flex-col overflow-hidden rounded-lg border border-indigo-100 bg-white transition-all hover:shadow-md md:rounded-2xl md:hover:shadow-lg"
-                    >
-                      <div className="flex justify-center bg-gradient-to-r from-indigo-50 to-purple-50 p-3 md:p-4">
-                        {getFileIcon(material.name)}
-                      </div>
-                      <div className="flex-grow p-3 md:p-4">
-                        <h4
-                          className="mb-1 truncate text-sm font-bold text-gray-800 md:text-base"
-                          title={material.name}
-                        >
-                          {material.name}
-                        </h4>
-                        <div className="mb-2 flex items-start gap-2 text-xs text-indigo-600 md:text-sm">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="mt-0.5 h-3 w-3 md:h-4 md:w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                            />
-                          </svg>
-                          <span className="truncate">
-                            {getCourseName(material.course)}
-                          </span>
+            {/* Scrollable container for mobile */}
+            <div className="max-h-[calc(100vh-300px)] overflow-y-auto md:max-h-none">
+              {(mode === 'search-results' && searchResults.length > 0) || 
+              (mode === 'download' && downloadedMaterials.length > 0) ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+                  {(mode === 'search-results'
+                    ? searchResults
+                    : downloadedMaterials
+                  ).map((material) => {
+                    const isDownloaded = downloadedMaterials.some(
+                      item => item.id === material.id
+                    );
+                    
+                    return (
+                      <div
+                        key={material.id}
+                        className="flex flex-col overflow-hidden rounded-lg border border-indigo-100 bg-white transition-all hover:shadow-md md:rounded-2xl md:hover:shadow-lg"
+                      >
+                        <div className="flex justify-center bg-gradient-to-r from-indigo-50 to-purple-50 p-3 md:p-4">
+                          {getFileIcon(material.name)}
                         </div>
-                        {material.tags && (
-                          <div className="mb-2 flex flex-wrap gap-1 md:mb-3">
-                            {material.tags.split(',').filter(tag => tag.trim()).map((tag, index) => (
-                              <span
-                                key={index}
-                                className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] text-indigo-700 md:px-2 md:py-1 md:text-xs"
-                              >
-                                {tag.trim()}
-                              </span>
-                            ))}
+                        <div className="flex-grow p-3 md:p-4">
+                          <h4
+                            className="mb-1 truncate text-sm font-bold text-gray-800 md:text-base"
+                            title={material.name}
+                          >
+                            {material.name}
+                          </h4>
+                          <div className="mb-2 flex items-start gap-2 text-xs text-indigo-600 md:text-sm">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mt-0.5 h-3 w-3 md:h-4 md:w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                              />
+                            </svg>
+                            <span className="truncate">
+                              {getCourseName(material.course)}
+                            </span>
                           </div>
-                        )}
-                        <p className="mt-1 flex items-center text-[10px] text-gray-500 md:mt-2 md:text-xs">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="mr-1 h-2.5 w-2.5 md:h-3 md:w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                          {material.tags && (
+                            <div className="mb-2 flex flex-wrap gap-1 md:mb-3">
+                              {material.tags.split(',').filter(tag => tag.trim()).map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] text-indigo-700 md:px-2 md:py-1 md:text-xs"
+                                >
+                                  {tag.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <p className="mt-1 flex items-center text-[10px] text-gray-500 md:mt-2 md:text-xs">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mr-1 h-2.5 w-2.5 md:h-3 md:w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            {new Date(material.uploaded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="px-3 pb-3 md:px-4 md:pb-4">
+                          <button
+                            onClick={() => handleDownload(material)}
+                            className={`flex w-full items-center justify-center rounded-lg px-3 py-1.5 text-sm text-white shadow-md transition-all hover:shadow-lg md:px-4 md:py-2 md:text-base ${
+                              isDownloaded 
+                                ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700' 
+                                : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
+                            }`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {new Date(material.uploaded_at).toLocaleDateString()}
-                        </p>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                            {isDownloaded ? 'Download Again' : 'Download'}
+                          </button>
+                        </div>
                       </div>
-                      <div className="px-3 pb-3 md:px-4 md:pb-4">
-                        <button
-                          onClick={() => handleDownload(material)}
-                          className={`flex w-full items-center justify-center rounded-lg px-3 py-1.5 text-sm text-white shadow-md transition-all hover:shadow-lg md:px-4 md:py-2 md:text-base ${
-                            isDownloaded 
-                              ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700' 
-                              : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
-                          }`}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                            />
-                          </svg>
-                          {isDownloaded ? 'Download Again' : 'Download'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

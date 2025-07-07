@@ -128,12 +128,51 @@ const UploadPassQuestions = () => {
       setMessage({ text: '', type: '' });
       
       try {
+        // Validate all questions are filled
+        const hasEmptyQuestions = parsedQuestions.some(q => {
+          if (!q.text) return true;
+          if (questionType === 'multichoice') {
+            return !q.A || !q.B || !q.C || !q.D || !q.answer;
+          }
+          return false;
+        });
+        
+        if (hasEmptyQuestions) {
+          setMessage({ 
+            text: 'Please fill all question fields and ensure answers are selected', 
+            type: 'error' 
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Format questions for backend
+        const formattedQuestions = parsedQuestions.map(q => {
+          const baseQuestion = {
+            text: q.text,
+            question_type: questionType
+          };
+          
+          if (questionType === 'multichoice') {
+            return {
+              ...baseQuestion,
+              optionA: q.A,
+              optionB: q.B,
+              optionC: q.C,
+              optionD: q.D,
+              correct_answer: q.answer
+            };
+          }
+          return baseQuestion;
+        });
+
         const response = await axios.post(
           'https://petroxtestbackend.onrender.com/api/upload-pass-questions/', 
           {
             course_id: selectedCourse,
             year: year,
-            questions: parsedQuestions
+            questions: formattedQuestions,
+            question_type: questionType
           },
           {
             headers: {
@@ -159,8 +198,17 @@ const UploadPassQuestions = () => {
         setYear('');
         setStep(1);
         setParsedQuestions([]);
-        document.querySelector('input[type="file"]').value = '';
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
       } catch (error) {
+        console.error('Submission error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          course_id: selectedCourse,
+          year: year,
+          question_count: parsedQuestions.length
+        });
+        
         if (error.response?.status === 409) {
           setMessage({ 
             text: error.response.data.error || 'Past questions for this year already exist', 
@@ -387,7 +435,7 @@ const UploadPassQuestions = () => {
                 >
                   <option value="">-- Select a course --</option>
                   {courses.map(course => (
-                    <option key={course.id} value={course.name}>
+                    <option key={course.id} value={course.id}>
                       {course.name}
                     </option>
                   ))}

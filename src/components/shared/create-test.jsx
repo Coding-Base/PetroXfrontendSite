@@ -111,7 +111,7 @@ export default function CreateTest() {
 
       setTimeout(() => {
         navigate(testType === 'personal'
-          ? `/dashboard/tests`
+          ? `/dashboard//group-test/${testId}`
           : `/dashboard/group-test/${testId}`);
       }, 1500);
     } catch (err) {
