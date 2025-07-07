@@ -314,7 +314,9 @@ const UploadPassQuestions = () => {
           </tbody>
         </table>
       </div>
-      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between">
+      {/* Button group: sticky on mobile */}
+      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between
+        fixed bottom-0 left-0 right-0 bg-white p-2 border-t border-gray-200 z-20 sm:static sm:bg-transparent sm:border-0 sm:p-0">
         <Button
           type="button"
           onClick={() => setStep(1)}
@@ -334,6 +336,8 @@ const UploadPassQuestions = () => {
           {isLoading ? 'Submitting...' : 'Submit Questions'}
         </Button>
       </div>
+      {/* Add padding to bottom so content is not hidden behind sticky buttons */}
+      <div className="h-20 sm:hidden" />
     </div>
   );
 
