@@ -6,7 +6,7 @@ import {
   fetchUserHistory,
   fetchUserRank,
   fetchUserUploadStats
-} from '@/api/index';
+} from '@/api';
 import Chat from '../pages/chat';
 import { Doughnut } from 'react-chartjs-2';
 import {

@@ -26,7 +26,6 @@ export default function MaterialsManagement() {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
-        // If your API returns { data: [...] }
         const courseArr = Array.isArray(response.data) ? response.data : response;
         setCourses(courseArr);
       } catch (err) {
@@ -46,7 +45,6 @@ export default function MaterialsManagement() {
     const savedDownloads = JSON.parse(
       localStorage.getItem('downloadedMaterials') || '[]'
     );
-    // Ensure it's always an array
     setDownloadedMaterials(Array.isArray(savedDownloads) ? savedDownloads : []);
   }, []);
 
@@ -73,7 +71,7 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     const formData = new FormData();
-    formData.append('course', parseInt(selectedCourseId, 10)); // <-- FIXED: use 'course'
+    formData.append('course', parseInt(selectedCourseId, 10));
     formData.append('name', materialName.trim());
     formData.append('tags', tags.trim());
     formData.append('file', file);
@@ -91,11 +89,38 @@ export default function MaterialsManagement() {
       setSuccessMsg('Material uploaded successfully!');
     } catch (err) {
       console.error('Upload error:', err);
-      setError(
-        err.response?.data?.error?.message || 
-        err.response?.data?.message || 
-        'Failed to upload material. Please try again.'
-      );
+      
+      // Enhanced error handling
+      let errorMsg = 'Failed to upload material. Please try again.';
+      
+      if (err.response) {
+        const { status, data } = err.response;
+        
+        if (status === 503) {
+          errorMsg = "Storage service unavailable. Please try again later.";
+        } 
+        else if (data.error === "storage_authentication_failed") {
+          errorMsg = "Storage system authentication failed. Please contact support.";
+        } 
+        else if (data.error && data.error.includes("JWT")) {
+          errorMsg = "Security token error. Please try again later.";
+        }
+        else if (data.message) {
+          errorMsg = data.message;
+        }
+        else {
+          errorMsg = data.error?.message || data.error || errorMsg;
+        }
+      } else if (err.request) {
+        // The request was made but no response was received
+        errorMsg = "No response from server. Please check your connection and try again.";
+      } else if (err.isTimeout) {
+        errorMsg = "Request timed out. Please try again.";
+      } else if (err.isNetworkError) {
+        errorMsg = "Network error. Please check your internet connection.";
+      }
+      
+      setError(errorMsg);
     } finally {
       setIsUploading(false);
     }
@@ -113,7 +138,6 @@ export default function MaterialsManagement() {
 
     try {
       const results = await searchMaterials(searchQuery.trim());
-      // Ensure results are always an array
       setSearchResults(Array.isArray(results) ? results : []);
       setMode('search-results');
       setShowMobileMenu(false);
@@ -166,14 +190,14 @@ export default function MaterialsManagement() {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4极16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
       );
     } else if (['pdf'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-red-100 text-red-600`}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/s极" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
@@ -255,7 +279,7 @@ export default function MaterialsManagement() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
+                d="M4 6h16M4 12极16M4 18h16"
               />
             </svg>
           </button>
@@ -456,7 +480,7 @@ export default function MaterialsManagement() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md极mb-2">
                   Material Name <span className="text-red-500">*</span>
                 </label>
                 <input

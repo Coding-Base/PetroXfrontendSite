@@ -57,7 +57,7 @@ export const useGetTest = id =>
 export const useGetTestSession = (sessionId, enabled) =>
   useQuery({
     queryKey: ['test-session', sessionId],
-    queryFn: () => getTestSession(sessionId).then(res => res),
+    queryFn: () => getTestSession(sessionId),
     enabled: enabled && Boolean(sessionId),
     staleTime: 5 * 60 * 1000,
     retry: 2,
@@ -70,7 +70,7 @@ export const useGetTestSession = (sessionId, enabled) =>
 export const useGetUserHistory = () =>
   useQuery({
     queryKey: ['history'],
-    queryFn: () => getUserHistory().then(res => res),
+    queryFn: () => getUserHistory(),
     staleTime: 5 * 60 * 1000,
     retry: 2,
     onError: err => {
@@ -94,7 +94,7 @@ export const useGetLeaderBoard = () =>
 export const useGetUserRank = () =>
   useQuery({
     queryKey: ['user-rank'],
-    queryFn: () => getUserHistory().then(res => res), // or a dedicated getUserRank()
+    queryFn: () => getUserHistory(), // Replace with getUserRank() if available
     staleTime: 5 * 60 * 1000,
     retry: 2,
     onError: err => {

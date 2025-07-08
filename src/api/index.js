@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 // Base URL for backend API
-const baseURL = 'https://petroxtestbackend.onrender.com';
+const baseURL = import.meta.env.VITE_SERVER_URL;
 
 // Create an Axios instance
 export const api = axios.create({
   baseURL,
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000, // 30 seconds global timeout
 });
 
 // Token helpers
@@ -30,6 +31,23 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
+    
+    // Handle timeouts and network errors
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject({
+        message: 'Request timed out. Please try again.',
+        isTimeout: true
+      });
+    }
+    
+    if (!error.response) {
+      return Promise.reject({
+        message: 'Network error. Please check your connection.',
+        isNetworkError: true
+      });
+    }
+    
+    // Handle token refresh
     if (
       error.response &&
       error.response.status === 401 &&
@@ -107,40 +125,37 @@ export const fetchUserRank       = () =>
 export const fetchUserUploadStats = () =>
   api.get('/api/user/upload-stats/');
 
-// MATERIALS endpoints
-export const uploadMaterial = (formData, signal) =>
-  api.post('/api/materials/upload/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    signal
+// MATERIALS endpoints with enhanced error handling
+export const uploadMaterial = (formData) => {
+  return api.post('/api/materials/upload/', formData, {
+    headers: { 
+      'Content-Type': 'multipart/form-data',
+      'X-Upload-Timeout': '60000' // 60 seconds for uploads
+    },
+    timeout: 60000 // 60 seconds timeout for uploads
   });
+};
 
-// ADDED: Search materials endpoint
 export const searchMaterials = (query) =>
   api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`);
 
-// ADDED: Download material endpoint
 export const downloadMaterial = (materialId) =>
   api.get(`/api/materials/download/${materialId}/`);
 
 // PAST QUESTIONS endpoints
-// ADDED: Preview past questions endpoint
 export const previewPassQuestions = (formData) =>
   api.post('/api/preview-pass-questions/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 
-// ADDED: Upload past questions endpoint
 export const uploadPassQuestions = (payload) =>
   api.post('/api/upload-pass-questions/', payload);
 
 // QUESTION APPROVAL endpoints
-// ADDED: Fetch pending questions
 export const fetchPendingQuestions = () =>
   api.get('/api/questions/pending/');
 
-// ADDED: Update question status
 export const updateQuestionStatus = (questionId, status) =>
   api.put(`/api/questions/${questionId}/status/`, { status });
 
 export default api;
-
