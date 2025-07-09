@@ -83,7 +83,7 @@ export const refreshToken = refresh =>
   api.post('/api/token/refresh/', { refresh });
 
 export const registerUser = (username, email, password) =>
-  api.post('/users/', { username, email, password });  // Fixed to use root /users/
+  api.post('/users/', { username, email, password });
 
 // ===================== COURSES ENDPOINTS =====================
 export const fetchCourses = () =>
@@ -106,6 +106,9 @@ export const fetchTestSession = sessionId =>
 // ===================== HISTORY ENDPOINTS =====================
 export const fetchHistory = () =>
   api.get('/api/history/');
+
+// Add this missing export
+export const fetchUserHistory = () => api.get('/api/history/');
 
 // ===================== GROUP TEST ENDPOINTS =====================
 export const createGroupTest = payload =>
