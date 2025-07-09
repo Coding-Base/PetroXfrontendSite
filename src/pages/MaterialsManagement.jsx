@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../components/ui/button';
 import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '@/api/index';
 
@@ -19,6 +19,40 @@ export default function MaterialsManagement() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const messageTimeout = useRef(null);
+
+  // Clear messages automatically after 5 seconds
+  useEffect(() => {
+    if (error || successMsg) {
+      // Clear any existing timeout
+      if (messageTimeout.current) {
+        clearTimeout(messageTimeout.current);
+      }
+      
+      // Set new timeout
+      messageTimeout.current = setTimeout(() => {
+        setError('');
+        setSuccessMsg('');
+      }, 5000);
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (messageTimeout.current) {
+        clearTimeout(messageTimeout.current);
+      }
+    };
+  }, [error, successMsg]);
+
+  // Clear messages manually
+  const clearMessages = () => {
+    setError('');
+    setSuccessMsg('');
+    if (messageTimeout.current) {
+      clearTimeout(messageTimeout.current);
+      messageTimeout.current = null;
+    }
+  };
 
   // Fetch courses on mount
   useEffect(() => {
@@ -61,7 +95,7 @@ export default function MaterialsManagement() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      if (selectedFile.size > 10 * 102 * 1024) {
         setError('File size exceeds 10MB limit');
       } else {
         setError('');
@@ -88,7 +122,7 @@ export default function MaterialsManagement() {
 
     try {
       const response = await uploadMaterial(formData);
-      setUploadedMaterials([response.data, ...uploadedMaterials]); // Use response.data
+      setUploadedMaterials([response.data, ...uploadedMaterials]);
       
       // Reset form
       setMaterialName('');
@@ -206,6 +240,8 @@ export default function MaterialsManagement() {
           JSON.stringify(newDownloaded)
         );
       }
+      
+      setSuccessMsg(`"${material.name}" downloaded successfully!`);
     } catch (err) {
       console.error('Download error:', err);
       setError('Failed to download file. Please try again.');
@@ -244,7 +280,7 @@ export default function MaterialsManagement() {
     } else if (['ppt', 'pptx'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-orange-100 text-orange-600`}>
-          <svg xmlns="http://www.w极.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
@@ -280,15 +316,36 @@ export default function MaterialsManagement() {
   return (
     <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden">
       <div className="mx-auto max-w-7xl">
-        {/* Error/Success messages */}
-        {error && (
-          <div className="mb-4 sm:mb-6 rounded-lg bg-red-100 p-2 sm:p-4 text-red-700 text-xs sm:text-base">
-            {error}
-          </div>
-        )}
-        {successMsg && (
-          <div className="mb-4 sm:mb-6 rounded-lg bg-green-100 p-2 sm:p-4 text-green-700 text-xs sm:text-base">
-            {successMsg}
+        {/* Floating error/success messages */}
+        {(error || successMsg) && (
+          <div className="fixed top-4 right-4 z-50 w-full max-w-md">
+            {error && (
+              <div className="mb-2 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg relative">
+                <button 
+                  onClick={clearMessages}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <div className="pr-6">{error}</div>
+              </div>
+            )}
+            
+            {successMsg && (
+              <div className="mb-2 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg relative">
+                <button 
+                  onClick={clearMessages}
+                  className="absolute top-2 right-2 text-green-500 hover:text-green-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <div className="pr-6">{successMsg}</div>
+              </div>
+            )}
           </div>
         )}
 
@@ -349,7 +406,7 @@ export default function MaterialsManagement() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  d="M21 21l-6-极m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
             </div>
@@ -455,7 +512,7 @@ export default function MaterialsManagement() {
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
             }`}
-            >
+          >
             My Materials
           </button>
           <button
@@ -624,7 +681,7 @@ export default function MaterialsManagement() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M7 极a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                       />
                     </svg>
                     Upload Material
@@ -684,7 +741,7 @@ export default function MaterialsManagement() {
                   className="mx-auto mb-3 h-16 w-16 text-indigo-300 md:mb-4 md:h-24 md:w-24"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="current极"
+                  stroke="currentColor"
                 >
                   <path
                     strokeLinecap="round"

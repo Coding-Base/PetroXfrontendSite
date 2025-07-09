@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-// Base URL for backend API
-const baseURL = import.meta.env.VITE_SERVER_URL;
+// Base URL for backend API - ensure no trailing slash
+const rawBaseURL = import.meta.env.VITE_SERVER_URL;
+const baseURL = rawBaseURL.endsWith('/') 
+  ? rawBaseURL.slice(0, -1) 
+  : rawBaseURL;
 
 // Create an Axios instance
 export const api = axios.create({
@@ -55,10 +58,9 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        const { data } = await axios.post(
-          `${baseURL}/api/token/refresh/`,
-          { refresh: getRefreshToken() },
-          { headers: { 'Content-Type': 'application/json' } }
+        const { data } = await api.post(
+          '/api/token/refresh/',
+          { refresh: getRefreshToken() }
         );
         localStorage.setItem('access_token', data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
@@ -73,59 +75,56 @@ api.interceptors.response.use(
   }
 );
 
-// AUTH endpoints
-export const loginUser    = (username, password) =>
+// ===================== AUTH ENDPOINTS =====================
+export const loginUser = (username, password) =>
   api.post('/api/token/', { username, password });
 
 export const refreshToken = refresh =>
   api.post('/api/token/refresh/', { refresh });
 
 export const registerUser = (username, email, password) =>
-  api.post('/api/users/', { username, email, password });
+  api.post('/users/', { username, email, password });  // Fixed to use root /users/
 
-// COURSES & TESTS endpoints
-export const fetchCourses     = () =>
+// ===================== COURSES ENDPOINTS =====================
+export const fetchCourses = () =>
   api.get('/api/courses/');
 
-export const startTest        = (courseId, questionCount, duration) =>
+// ===================== TEST ENDPOINTS =====================
+export const startTest = (courseId, questionCount, duration) =>
   api.post('/api/start-test/', {
-    course_id:      courseId,
+    course_id: courseId,
     question_count: questionCount,
     duration_minutes: duration
   });
 
-export const submitTest       = (sessionId, answers) =>
+export const submitTest = (sessionId, answers) =>
   api.post(`/api/submit-test/${sessionId}/`, { answers });
 
 export const fetchTestSession = sessionId =>
   api.get(`/api/test-session/${sessionId}/`);
 
-// HISTORY endpoints
+// ===================== HISTORY ENDPOINTS =====================
 export const fetchHistory = () =>
   api.get('/api/history/');
 
-// GROUP TEST endpoints
+// ===================== GROUP TEST ENDPOINTS =====================
 export const createGroupTest = payload =>
   api.post('/api/create-group-test/', payload);
 
-export const fetchGroupTestDetail = (testId) =>
+export const fetchGroupTestDetail = testId =>
   api.get(`/api/group-test/${testId}/`);
 
-// LEADERBOARD & RANK endpoints
-export const fetchLeaderboard    = () =>
+// ===================== LEADERBOARD ENDPOINTS =====================
+export const fetchLeaderboard = () =>
   api.get('/api/leaderboard/');
 
-export const fetchUserHistory    = () =>
-  api.get('/api/history/');
-
-export const fetchUserRank       = () =>
+export const fetchUserRank = () =>
   api.get('/api/user/rank/');
 
-// USER UPLOAD STATS
 export const fetchUserUploadStats = () =>
   api.get('/api/user/upload-stats/');
 
-// MATERIALS endpoints with enhanced error handling
+// ===================== MATERIALS ENDPOINTS =====================
 export const uploadMaterial = (formData) => {
   return api.post('/api/materials/upload/', formData, {
     headers: { 
@@ -137,12 +136,20 @@ export const uploadMaterial = (formData) => {
 };
 
 export const searchMaterials = (query) =>
-  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`);
+  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`)
+    .then(response => response.data);
 
 export const downloadMaterial = (materialId) =>
-  api.get(`/api/materials/download/${materialId}/`);
+  api.get(`/api/materials/download/${materialId}/`)
+    .then(response => response.data);
 
-// PAST QUESTIONS endpoints
+// ===================== QUESTION ENDPOINTS =====================
+export const fetchPendingQuestions = () =>
+  api.get('/api/questions/pending/');
+
+export const updateQuestionStatus = (questionId, status) =>
+  api.put(`/api/questions/${questionId}/status/`, { status });
+
 export const previewPassQuestions = (formData) =>
   api.post('/api/preview-pass-questions/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
@@ -150,12 +157,5 @@ export const previewPassQuestions = (formData) =>
 
 export const uploadPassQuestions = (payload) =>
   api.post('/api/upload-pass-questions/', payload);
-
-// QUESTION APPROVAL endpoints
-export const fetchPendingQuestions = () =>
-  api.get('/api/questions/pending/');
-
-export const updateQuestionStatus = (questionId, status) =>
-  api.put(`/api/questions/${questionId}/status/`, { status });
 
 export default api;
