@@ -136,11 +136,15 @@ export const uploadMaterial = (formData) => {
   });
 };
 
+// Updated searchMaterials to return data directly
 export const searchMaterials = (query) =>
-  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`);
+  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`)
+    .then(response => response.data); // Extract data from response
 
+// Updated downloadMaterial to return data directly
 export const downloadMaterial = (materialId) =>
-  api.get(`/api/materials/download/${materialId}/`);
+  api.get(`/api/materials/download/${materialId}/`)
+    .then(response => response.data); // Extract data from response
 
 // PAST QUESTIONS endpoints
 export const previewPassQuestions = (formData) =>

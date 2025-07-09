@@ -26,7 +26,17 @@ export default function MaterialsManagement() {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
-        const courseArr = Array.isArray(response.data) ? response.data : response;
+        
+        // Handle both array and object responses
+        let courseArr = [];
+        if (Array.isArray(response)) {
+          courseArr = response;
+        } else if (Array.isArray(response.data)) {
+          courseArr = response.data;
+        } else if (Array.isArray(response)) {
+          courseArr = response;
+        }
+        
         setCourses(courseArr);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
@@ -78,7 +88,7 @@ export default function MaterialsManagement() {
 
     try {
       const response = await uploadMaterial(formData);
-      setUploadedMaterials([response, ...uploadedMaterials]);
+      setUploadedMaterials([response.data, ...uploadedMaterials]); // Use response.data
       
       // Reset form
       setMaterialName('');
@@ -138,9 +148,23 @@ export default function MaterialsManagement() {
 
     try {
       const results = await searchMaterials(searchQuery.trim());
-      setSearchResults(Array.isArray(results) ? results : []);
+      
+      // Handle different response formats
+      let materialList = [];
+      if (Array.isArray(results)) {
+        materialList = results;
+      } else if (results && Array.isArray(results.data)) {
+        materialList = results.data;
+      } else if (results && Array.isArray(results.results)) {
+        materialList = results.results;
+      }
+      
+      setSearchResults(materialList);
       setMode('search-results');
       setShowMobileMenu(false);
+      
+      // Log for debugging
+      console.log('Search results:', materialList);
     } catch (error) {
       console.error('Search error:', error);
       setError('Failed to search materials. Please try again.');
@@ -154,9 +178,16 @@ export default function MaterialsManagement() {
     try {
       const downloadData = await downloadMaterial(material.id);
       
+      // Use either direct URL or API-provided URL
+      const downloadUrl = downloadData.download_url || material.file_url;
+      
+      if (!downloadUrl) {
+        throw new Error('No download URL available');
+      }
+
       // Create a temporary link to trigger download
       const link = document.createElement('a');
-      link.href = downloadData.download_url;
+      link.href = downloadUrl;
       link.setAttribute('download', material.name);
       document.body.appendChild(link);
       link.click();
@@ -190,14 +221,14 @@ export default function MaterialsManagement() {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4极16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
       );
     } else if (['pdf'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-red-100 text-red-600`}>
-          <svg xmlns="http://www.w3.org/2000/s极" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
@@ -213,7 +244,7 @@ export default function MaterialsManagement() {
     } else if (['ppt', 'pptx'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-orange-100 text-orange-600`}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w极.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
@@ -279,7 +310,7 @@ export default function MaterialsManagement() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12极16M4 18h16"
+                d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
           </button>
@@ -424,7 +455,7 @@ export default function MaterialsManagement() {
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
             }`}
-          >
+            >
             My Materials
           </button>
           <button
@@ -480,7 +511,7 @@ export default function MaterialsManagement() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-indigo-700 md极mb-2">
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
                   Material Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -593,7 +624,7 @@ export default function MaterialsManagement() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        d="M7 极a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                       />
                     </svg>
                     Upload Material
@@ -653,7 +684,7 @@ export default function MaterialsManagement() {
                   className="mx-auto mb-3 h-16 w-16 text-indigo-300 md:mb-4 md:h-24 md:w-24"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  stroke="current极"
                 >
                   <path
                     strokeLinecap="round"
@@ -714,6 +745,9 @@ export default function MaterialsManagement() {
                     const isDownloaded = downloadedMaterials.some(
                       item => item.id === material.id
                     );
+                    
+                    // Get file URL from material object
+                    const fileUrl = material.file_url || material.url;
                     
                     return (
                       <div
@@ -804,6 +838,18 @@ export default function MaterialsManagement() {
                             </svg>
                             {isDownloaded ? 'Download Again' : 'Download'}
                           </button>
+                          
+                          {/* Direct link fallback */}
+                          {fileUrl && (
+                            <a 
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 block text-center text-xs text-indigo-600 underline"
+                            >
+                              Open in new tab
+                            </a>
+                          )}
                         </div>
                       </div>
                     );
