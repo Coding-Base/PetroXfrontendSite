@@ -72,7 +72,7 @@ export default function CreateGroupTest() {
 
       const { data } = await api.post('/api/create-group-test/', payload);
       setSuccessMsg('Group test created successfully! Redirecting…');
-      setTimeout(() => navigate(`/group-test/${data.id}`), 1000);
+      setTimeout(() => navigate(`/dashboard/group-test/${data.id}`), 1000);
     } catch (err) {
       console.error(err);
       setError(

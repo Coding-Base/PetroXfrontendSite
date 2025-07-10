@@ -7,8 +7,7 @@ import {
   createTest,
   getTestSession,
   getUserHistory,
-  getLeaderBoard,
-  getUserRank
+  getLeaderBoard
 } from '@/services/test.service';
 import { toast } from 'sonner';
 
@@ -95,10 +94,11 @@ export const useGetLeaderBoard = () =>
 export const useGetUserRank = () =>
   useQuery({
     queryKey: ['user-rank'],
-    queryFn: () => getUserRank(),
+    queryFn: () => getUserHistory(), // Replace with getUserRank() if available
     staleTime: 5 * 60 * 1000,
     retry: 2,
     onError: err => {
       toast.error('Failed to load your rank');
     }
   });
+

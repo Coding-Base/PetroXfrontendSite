@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { fetchTestSession } from '@/api/index';
+import axios from 'axios';
 
 const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
   const [testDetails, setTestDetails] = useState(null);
@@ -16,7 +16,14 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
     const fetchResults = async () => {
       try {
         setLoading(true);
-        const response = await fetchTestSession(sessionId);
+        const token = localStorage.getItem('access_token');
+        const response = await axios.get(
+          `https://petroxtestbackend.onrender.com/api/test-session/${sessionId}/`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
         setTestDetails(response.data);
         setError('');
       } catch (err) {

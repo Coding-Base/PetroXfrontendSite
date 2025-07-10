@@ -1,7 +1,8 @@
 // src/components/GroupTestPage.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { submitTest, fetchGroupTestDetail, api } from '@/api/index';
+import axios from 'axios';
+import { submitTest } from '@/api/index';
 import { FaCopy, FaShareAlt } from 'react-icons/fa';
 import ReviewPage from './ReviewPage';
 import { Button } from '../components/ui/button';
@@ -36,8 +37,12 @@ export default function GroupTestPage() {
 
   // Fetch group test details
   const fetchTest = useCallback(async () => {
+    const token = localStorage.getItem('access_token');
     try {
-      const response = await fetchGroupTestDetail(testId);
+      const response = await axios.get(
+        `https://petroxtestbackend.onrender.com/api/group-test/${testId}/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       const data = response.data;
       setGroupTest(data);
       setQuestions(data.questions || []);
@@ -78,7 +83,6 @@ export default function GroupTestPage() {
       }
       setIsLoading(false);
     } catch (err) {
-      console.error('Error fetching group test:', err);
       setError('Failed to load test: ' + (err.response?.data?.error || err.message));
       setIsLoading(false);
     }
@@ -193,9 +197,12 @@ export default function GroupTestPage() {
       setScore(null);
       localStorage.removeItem(`testEndTime_${testId}`);
       localStorage.removeItem(`testAnswers_${testId}`);
-      // This seems to be for starting a new individual test, not retaking a group one.
-      // Using the central `api` instance to ensure token handling.
-      const response = await api.post('/api/start-test/', { course: groupTest.course.id });
+      const token = localStorage.getItem('access_token');
+      const response = await axios.post(
+        'https://petroxtestbackend.onrender.com/api/start-test/',
+        { course: groupTest.course.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setGroupTest((prev) => ({
         ...prev,
         session_id: response.data.session_id
