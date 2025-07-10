@@ -1,5 +1,4 @@
 import axios from 'axios';
-
 // Base URL for backend API - ensure no trailing slash
 const rawBaseURL = import.meta.env.VITE_SERVER_URL;
 const baseURL = rawBaseURL.endsWith('/') 
@@ -44,11 +43,12 @@ api.interceptors.response.use(
     }
     
     if (!error.response) {
-      // Mobile-friendly network error detection
-      const isOnline = window.navigator.onLine;
+      // Use navigator.onLine for accurate online status
+      const onlineStatus = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      
       return Promise.reject({
-        message: isOnline 
-          ? 'Server connection failed. Please try again.' 
+        message: onlineStatus 
+          ? 'Server connection failed. Please try again later.' 
           : 'Network error. Please check your internet connection.',
         isNetworkError: true
       });
@@ -136,9 +136,9 @@ export const uploadMaterial = (formData) => {
   return api.post('/api/materials/upload/', formData, {
     headers: { 
       'Content-Type': 'multipart/form-data',
-      'X-Upload-Timeout': '60000' // 60 seconds for uploads
+      'X-Upload-Timeout': '120000' // 120 seconds for uploads
     },
-    timeout: 60000 // 60 seconds timeout for uploads
+    timeout: 120000 // 120 seconds timeout for uploads
   });
 };
 

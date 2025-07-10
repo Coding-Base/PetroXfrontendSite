@@ -19,27 +19,50 @@ export default function MaterialsManagement() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isOnline, setIsOnline] = useState(true);
   const messageTimeout = useRef(null);
+
+  // Check online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Initial check
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Clear messages automatically after 5 seconds
   useEffect(() => {
+    let timeoutId;
+    
     if (error || successMsg) {
       // Clear any existing timeout
       if (messageTimeout.current) {
         clearTimeout(messageTimeout.current);
+        messageTimeout.current = null;
       }
       
       // Set new timeout
-      messageTimeout.current = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setError('');
         setSuccessMsg('');
       }, 5000);
+      
+      messageTimeout.current = timeoutId;
     }
     
-    // Cleanup on unmount
+    // Cleanup
     return () => {
-      if (messageTimeout.current) {
-        clearTimeout(messageTimeout.current);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
     };
   }, [error, successMsg]);
@@ -68,7 +91,7 @@ export default function MaterialsManagement() {
         } else if (Array.isArray(response.data)) {
           courseArr = response.data;
         } else if (Array.isArray(response)) {
-          courseArr = response;
+          course极Arr = response;
         }
         
         setCourses(courseArr);
@@ -95,7 +118,6 @@ export default function MaterialsManagement() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      // FIXED: Use correct calculation (1024 instead of 102)
       if (selectedFile.size > 10 * 1024 * 1024) {
         setError('File size exceeds 10MB limit');
       } else {
@@ -108,6 +130,12 @@ export default function MaterialsManagement() {
   const handleUpload = async () => {
     if (!selectedCourseId || !materialName.trim() || !file) {
       setError('Please fill all required fields');
+      return;
+    }
+
+    // Check online status before upload
+    if (!isOnline) {
+      setError('You are offline. Please connect to the internet to upload materials.');
       return;
     }
 
@@ -135,7 +163,7 @@ export default function MaterialsManagement() {
     } catch (err) {
       console.error('Upload error:', err);
       
-      // Enhanced error handling with mobile-specific improvements
+      // Enhanced error handling
       let errorMsg = 'Failed to upload material. Please try again.';
       
       if (err.response) {
@@ -162,9 +190,8 @@ export default function MaterialsManagement() {
       } else if (err.isTimeout) {
         errorMsg = "Request timed out. Please try again.";
       } else if (err.isNetworkError) {
-        // Mobile-specific network error handling
-        errorMsg = window.navigator.onLine 
-          ? "Server connection failed. Please try again." 
+        errorMsg = isOnline 
+          ? "Server connection failed. Please try again later." 
           : "Network error. Please check your internet connection.";
       }
       
@@ -200,9 +227,6 @@ export default function MaterialsManagement() {
       setSearchResults(materialList);
       setMode('search-results');
       setShowMobileMenu(false);
-      
-      // Log for debugging
-      console.log('Search results:', materialList);
     } catch (error) {
       console.error('Search error:', error);
       setError('Failed to search materials. Please try again.');
@@ -276,8 +300,8 @@ export default function MaterialsManagement() {
     } else if (['doc', 'docx'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg xmlns="http://www.w3.org/2000/s极vg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2极h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
       );
@@ -285,7 +309,7 @@ export default function MaterialsManagement() {
       return (
         <div className={`${iconClasses} bg-orange-100 text-orange-600`}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="极round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
       );
@@ -344,7 +368,7 @@ export default function MaterialsManagement() {
                   className="absolute top-2 right-2 text-green-500 hover:text-green-700"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 极0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </button>
                 <div className="pr-6">{successMsg}</div>
@@ -551,7 +575,7 @@ export default function MaterialsManagement() {
               Upload New Material
             </h2>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6">
+            <div className="mb-4 grid grid-cols-1 gap-4 md:mb极-6 md:gap-6">
               <div>
                 <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
                   Course <span className="text-red-500">*</span>
@@ -745,7 +769,7 @@ export default function MaterialsManagement() {
                   className="mx-auto mb-3 h-16 w-16 text-indigo-300 md:mb-4 md:h-24 md:w-24"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="current极Color"
+                  stroke="currentColor"
                 >
                   <path
                     strokeLinecap="round"
