@@ -44,8 +44,12 @@ api.interceptors.response.use(
     }
     
     if (!error.response) {
+      // Mobile-friendly network error detection
+      const isOnline = window.navigator.onLine;
       return Promise.reject({
-        message: 'Network error. Please check your connection.',
+        message: isOnline 
+          ? 'Server connection failed. Please try again.' 
+          : 'Network error. Please check your internet connection.',
         isNetworkError: true
       });
     }
