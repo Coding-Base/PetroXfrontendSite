@@ -13,7 +13,7 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const next = searchParams.get('next') || '/login';
+  const next = searchParams.get('next') || '/dashboard';
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +22,7 @@ export default function SignUp() {
     
     try {
       await registerUser(username, email, password);
-      navigate(`/login?next=${next}`);
+      navigate(`/login?next=${encodeURIComponent(next)}`);
     } catch (err) {
       const msg = err.response?.data?.detail || 'Unexpected error. Please try again.';
       setError(msg);
