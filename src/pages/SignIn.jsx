@@ -1,39 +1,19 @@
 // src/components/SignIn.jsx
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { loginUser } from '../api/index';
 import image from '../images/finallogo.png';
 import { Button } from '../components/ui/button';
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const nextUrl = searchParams.get('next') || '/dashboard';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Clear any residual tokens on component mount
-  useEffect(() => {
-    // Clear all authentication-related data
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userId');
-    
-    // Clear session storage
-    sessionStorage.clear();
-    
-    // Clear cookies (if any)
-    document.cookie.split(';').forEach(cookie => {
-      const [name] = cookie.split('=');
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    });
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,38 +22,16 @@ export default function SignIn() {
 
     try {
       const { data } = await loginUser(username.trim(), password);
-      
-      // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      
-      // Get username from response or fallback to input
       const actualUsername = data.user?.username || username.trim();
       localStorage.setItem('username', actualUsername);
-      
-      // Store user ID if available in response
-      if (data.user?.id) {
-        localStorage.setItem('userId', data.user.id);
-      }
-
-      // Redirect to dashboard or requested page
       navigate(nextUrl, { replace: true });
     } catch (err) {
-      console.error(err);
-      
-      // Handle token expiration specifically
-      if (err.response?.status === 401) {
-        setError('Your session has expired. Please login again.');
-      } else {
-        setError(
-          err.response?.data?.detail ||
-          'Invalid credentials. Please try again.'
-        );
-      }
-      
-      // Clear tokens on login failure
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      setError(
+        err.response?.data?.detail ||
+        'Invalid credentials. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +66,6 @@ export default function SignIn() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Username */}
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
@@ -132,7 +89,6 @@ export default function SignIn() {
             </div>
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
@@ -156,7 +112,6 @@ export default function SignIn() {
             </div>
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             disabled={isLoading}
