@@ -1,6 +1,6 @@
 // src/components/SignIn.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { loginUser } from '../api/index';
 import image from '../images/finallogo.png';
@@ -17,6 +17,24 @@ export default function SignIn() {
   const [error, setError]       = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Clear any residual tokens on component mount
+  useEffect(() => {
+    // Clear all authentication-related data
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userId');
+    
+    // Clear session storage
+    sessionStorage.clear();
+    
+    // Clear cookies (if any)
+    document.cookie.split(';').forEach(cookie => {
+      const [name] = cookie.split('=');
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    });
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -24,22 +42,38 @@ export default function SignIn() {
 
     try {
       const { data } = await loginUser(username.trim(), password);
-      // store tokens
+      
+      // Store tokens and user data
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      // now pull the actual username from the response payload if available
-      // fallback to the input username
+      
+      // Get username from response or fallback to input
       const actualUsername = data.user?.username || username.trim();
       localStorage.setItem('username', actualUsername);
+      
+      // Store user ID if available in response
+      if (data.user?.id) {
+        localStorage.setItem('userId', data.user.id);
+      }
 
-      // redirect
+      // Redirect to dashboard or requested page
       navigate(nextUrl, { replace: true });
     } catch (err) {
       console.error(err);
-      setError(
-        err.response?.data?.detail ||
-        'Invalid credentials. Please try again.'
-      );
+      
+      // Handle token expiration specifically
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please login again.');
+      } else {
+        setError(
+          err.response?.data?.detail ||
+          'Invalid credentials. Please try again.'
+        );
+      }
+      
+      // Clear tokens on login failure
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
     } finally {
       setIsLoading(false);
     }
