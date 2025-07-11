@@ -1,3 +1,4 @@
+// Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -5,7 +6,8 @@ import {
   fetchLeaderboard,
   fetchUserHistory,
   fetchUserRank,
-  fetchUserUploadStats
+  fetchUserUploadStats,
+  logoutUser  // Import the new logout function
 } from '@/api';
 import Chat from '../pages/chat';
 import { Doughnut } from 'react-chartjs-2';
@@ -262,20 +264,25 @@ export default function Dashboard() {
       .catch(err => alert('Error starting test'));
   };
 
-  const handleLogout = () => {
-    // Clear all authentication-related data
-    localStorage.removeItem('token'); // Clear the auth token
-    localStorage.removeItem('username'); // Clear username
-    localStorage.removeItem('userId'); // Clear user ID if exists
-    
-    // Clear any other user-related data
-    sessionStorage.clear(); // Clear session storage too
-    
-    // Redirect to login page
-    navigate('/login');
-    
-    // Force a full page refresh to reset application state
-    window.location.reload();
+  // Updated logout function with token blacklisting
+  const handleLogout = async () => {
+    try {
+      // Attempt to blacklist the refresh token
+      await logoutUser();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear all tokens and user data
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userId');
+      sessionStorage.clear();
+      
+      // Redirect to login and force reload
+      navigate('/login');
+      window.location.reload();
+    }
   };
 
   // Doughnut chart options
