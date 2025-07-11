@@ -1,4 +1,6 @@
+// api/index.js
 import axios from 'axios';
+
 // Base URL for backend API - ensure no trailing slash
 const rawBaseURL = import.meta.env.VITE_SERVER_URL;
 const baseURL = rawBaseURL.endsWith('/') 
@@ -70,7 +72,11 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
       } catch (e) {
-        localStorage.clear();
+        // If refresh fails, log user out
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userId');
         window.location.href = '/login';
         return Promise.reject(e);
       }
@@ -85,6 +91,10 @@ export const loginUser = (username, password) =>
 
 export const refreshToken = refresh =>
   api.post('/api/token/refresh/', { refresh });
+
+// NEW: Logout endpoint to blacklist token
+export const logoutUser = () => 
+  api.post('/api/token/blacklist/', { refresh: getRefreshToken() });
 
 export const registerUser = (username, email, password) =>
   api.post('/users/', { username, email, password });
@@ -111,7 +121,6 @@ export const fetchTestSession = sessionId =>
 export const fetchHistory = () =>
   api.get('/api/history/');
 
-// Add this missing export
 export const fetchUserHistory = () => api.get('/api/history/');
 
 // ===================== GROUP TEST ENDPOINTS =====================
