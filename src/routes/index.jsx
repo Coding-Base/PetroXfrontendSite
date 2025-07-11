@@ -1,7 +1,6 @@
 import NotFound from '../pages/NotFound';
 import { Suspense, lazy } from 'react';
 import { Navigate, Outlet, useRoutes } from 'react-router-dom';
-import PrivateRoute from '../Layouts/PrivateRoute';
 
 const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
@@ -11,8 +10,9 @@ const DashboardPage = lazy(() => import('../Layouts/dashboard'));
 const Chat = lazy(() => import('../pages/chat'));
 const CreateGroupTest = lazy(() => import('../pages/CreateGroupTest'));
 const GroupTestPage = lazy(() => import('../pages/GroupTestPage'));
-const MyTests = lazy(() => import('../pages/MyTests'));
+const MyTest = lazy(() => import('../pages/MyTests'));
 const Test = lazy(() => import('../pages/Test'));
+const GroupTest = lazy(() => import('../pages/GroupTestPage'));
 const PastQuestions = lazy(() => import('../pages/PastQuestions'));
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PetroMarkAI = lazy(() => import('../pages/Petromark'));
@@ -22,66 +22,96 @@ const NotFounds = lazy(() => import('../pages/NotFound'));
 // ----------------------------------------------------------------------
 
 export default function AppRouter() {
-  const routes = useRoutes([
-    // Public routes that don't need authentication
+  const dashboardRoutes = [
+    {
+      path: '/dashboard',
+      element: (
+        <NewDashboardLayout>
+          <Suspense>
+            <Outlet />
+          </Suspense>
+        </NewDashboardLayout>
+      ),
+      children: [
+        {
+          element: <DashboardPage />,
+          index: true
+        },
+        {
+          path: 'group-test/:testId',
+          element: <GroupTestPage />
+        },
+        {
+          path: 'past-questions',
+          element: <PastQuestions />
+        },
+        {
+          path: 'my-tests',
+          element: <MyTest />
+        },
+        {
+          path: 'tests',
+          element: <Test />
+        },
+        {
+          path: 'materials-management',
+          element: <MaterialsManagement />
+        },
+        {
+          path: 'create-group-test',
+          element: <CreateGroupTest />
+        },
+        {
+          path: 'petromark-ai',
+          element: <PetroMarkAI />
+        },
+        {
+          path: 'tools',
+          element: <Tools/>
+        },
+        {
+          path: 'chat',
+          element: <Chat />
+        },
+        {
+          path: 'settings',
+          element: <Settings />
+        }
+      ]
+    }
+  ];
+
+  const publicRoutes = [
     {
       path: '/',
       element: <LandingPage />,
+      index: true
     },
     {
       path: '/login',
       element: <SignIn />,
+      index: true
     },
     {
       path: '/signup',
       element: <SignUp />,
+      index: true
     },
     {
       path: '/404',
       element: <NotFounds />
     },
-    // Protected routes
-    {
-      element: <PrivateRoute />, // This component wraps all protected routes
-      children: [
-        {
-          path: 'dashboard',
-          element: (
-            <NewDashboardLayout>
-              <Suspense>
-                <Outlet />
-              </Suspense>
-            </NewDashboardLayout>
-          ),
-          children: [
-            { element: <DashboardPage />, index: true },
-            { path: 'past-questions', element: <PastQuestions /> },
-            { path: 'my-tests', element: <MyTests /> },
-            { path: 'materials-management', element: <MaterialsManagement /> },
-            { path: 'create-group-test', element: <CreateGroupTest /> },
-            { path: 'petromark-ai', element: <PetroMarkAI /> },
-            { path: 'tools', element: <Tools /> },
-            { path: 'chat', element: <Chat /> },
-            { path: 'settings', element: <Settings /> },
-          ],
-        },
-        // Standalone protected routes (without the main dashboard layout)
-        {
-          path: 'test/:testId',
-          element: <Test />,
-        },
-        {
-          path: 'group-test/:testId',
-          element: <GroupTestPage />,
-        },
-      ],
-    },
-    // Catch-all for not found routes
     {
       path: '*',
       element: <Navigate to="/404" replace />
     },
-  ]);
+    {
+    path: '/group-test/:testId', // <-- Add this line!
+    element: <GroupTestPage />
+  },
+  ];
+
+  const routes = useRoutes([...dashboardRoutes, ...publicRoutes]);
 
   return routes;
 }
