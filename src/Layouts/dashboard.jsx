@@ -192,7 +192,7 @@ export default function Dashboard() {
     };
   }, [showMobileMenu]);
 
-  // FIX: Set username unconditionally on component mount
+  // Set username unconditionally on component mount
   useEffect(() => {
     // Set username from localStorage immediately
     const storedName = localStorage.getItem('username') || 'User';
@@ -263,8 +263,19 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    // Clear all authentication-related data
+    localStorage.removeItem('token'); // Clear the auth token
+    localStorage.removeItem('username'); // Clear username
+    localStorage.removeItem('userId'); // Clear user ID if exists
+    
+    // Clear any other user-related data
+    sessionStorage.clear(); // Clear session storage too
+    
+    // Redirect to login page
     navigate('/login');
+    
+    // Force a full page refresh to reset application state
+    window.location.reload();
   };
 
   // Doughnut chart options
