@@ -1,6 +1,6 @@
 // src/pages/CampusCompass.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop, FaChevronDown, FaChevronUp, FaWalking, FaBicycle, FaCar } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } from '@react-google-maps/api';
 
 // Get API key from environment variables
@@ -74,17 +74,69 @@ const FloorPlan = ({ indoorMaps }) => {
     );
 };
 
+// Direction Step Component
+const DirectionStep = ({ step }) => {
+    return (
+        <div className="flex items-start py-2 border-b border-gray-100">
+            <div className="mr-3 mt-1 text-blue-500">
+                {step.maneuver === 'turn-right' && '→'}
+                {step.maneuver === 'turn-left' && '←'}
+                {step.maneuver === 'straight' && '↑'}
+                {step.maneuver === 'merge' && '⇗'}
+                {!['turn-right', 'turn-left', 'straight', 'merge'].includes(step.maneuver) && '•'}
+            </div>
+            <div>
+                <div className="font-medium">{step.instructions.replace(/<[^>]+>/g, '')}</div>
+                <div className="text-xs text-gray-500">{step.distance.text} • {step.duration.text}</div>
+            </div>
+        </div>
+    );
+};
+
+// Travel Mode Selector
+const TravelModeSelector = ({ onSelectMode }) => {
+    return (
+        <div className="flex justify-between space-x-2 mb-4">
+            <button 
+                onClick={() => onSelectMode('WALKING')}
+                className="flex-1 flex flex-col items-center p-3 border rounded-lg hover:bg-blue-50 transition-colors"
+            >
+                <FaWalking className="text-blue-600 text-xl mb-1" />
+                <span>Walk</span>
+            </button>
+            <button 
+                onClick={() => onSelectMode('BICYCLING')}
+                className="flex-1 flex flex-col items-center p-3 border rounded-lg hover:bg-blue-50 transition-colors"
+            >
+                <FaBicycle className="text-blue-600 text-xl mb-1" />
+                <span>Bike</span>
+            </button>
+            <button 
+                onClick={() => onSelectMode('DRIVING')}
+                className="flex-1 flex flex-col items-center p-3 border rounded-lg hover:bg-blue-50 transition-colors"
+            >
+                <FaCar className="text-blue-600 text-xl mb-1" />
+                <span>Drive</span>
+            </button>
+        </div>
+    );
+};
+
 // Bottom Sheet Component for Mobile
 const BottomSheet = ({ 
   location, 
   isNavigating, 
   distance, 
-  duration, 
+  duration,
+  travelMode,
+  onSelectMode,
   onStartNavigation, 
   onStopNavigation, 
   onClose,
   onToggleExpand,
-  isExpanded
+  isExpanded,
+  navigationSteps,
+  currentStepIndex
 }) => {
   if (!location) return null;
   
@@ -128,35 +180,70 @@ const BottomSheet = ({
         {/* Expanded content */}
         {isExpanded && (
           <div className="mt-3 overflow-y-auto h-[calc(70vh-140px)]">
-            {location.hours && (
-              <p className="text-sm mb-2">
-                <span className="font-medium">Hours:</span> {location.hours}
-              </p>
+            {!isNavigating && (
+              <TravelModeSelector onSelectMode={onSelectMode} />
             )}
-            {location.popularTimes && (
-              <div className="mb-2">
-                <p className="font-medium text-sm mb-1">Popular Times:</p>
-                <ul className="text-xs space-y-1">
-                  {location.popularTimes.map((t, i) => (
-                    <li key={i} className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
+            
+            {isNavigating && navigationSteps.length > 0 && (
+              <div className="mb-4">
+                <div className="font-bold text-blue-700 mb-2">Current Step:</div>
+                {currentStepIndex >= 0 && currentStepIndex < navigationSteps.length && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <DirectionStep step={navigationSteps[currentStepIndex]} />
+                  </div>
+                )}
               </div>
             )}
-            {location.floorPlan && (
-              <a 
-                href={location.floorPlan} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="inline-block mt-2 text-blue-600 hover:underline text-sm"
-              >
-                View Floor Plan
-              </a>
+            
+            {!isNavigating && (
+              <>
+                {location.hours && (
+                  <p className="text-sm mb-2">
+                    <span className="font-medium">Hours:</span> {location.hours}
+                  </p>
+                )}
+                {location.popularTimes && (
+                  <div className="mb-2">
+                    <p className="font-medium text-sm mb-1">Popular Times:</p>
+                    <ul className="text-xs space-y-1">
+                      {location.popularTimes.map((t, i) => (
+                        <li key={i} className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {location.floorPlan && (
+                  <a 
+                    href={location.floorPlan} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="inline-block mt-2 text-blue-600 hover:underline text-sm"
+                  >
+                    View Floor Plan
+                  </a>
+                )}
+                {location.indoorMaps && <FloorPlan indoorMaps={location.indoorMaps} />}
+              </>
             )}
-            {location.indoorMaps && <FloorPlan indoorMaps={location.indoorMaps} />}
+            
+            {/* Directions list */}
+            {isNavigating && navigationSteps.length > 0 && (
+              <div className="mt-3">
+                <div className="font-bold text-blue-700 mb-2">Full Directions:</div>
+                <div className="max-h-40 overflow-y-auto">
+                  {navigationSteps.map((step, index) => (
+                    <DirectionStep 
+                      key={index} 
+                      step={step} 
+                      isCurrent={index === currentStepIndex}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
         
@@ -209,9 +296,14 @@ const CampusCompass = () => {
     const [duration, setDuration] = useState('');
     const [activeDestination, setActiveDestination] = useState(null);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+    const [travelMode, setTravelMode] = useState('WALKING');
+    const [navigationSteps, setNavigationSteps] = useState([]);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [nextInstruction, setNextInstruction] = useState('');
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
     const watchIdRef = useRef(null);
+    const speechSynthesisRef = useRef(null);
 
     // Get university center safely
     const getCenter = useCallback(() => {
@@ -249,6 +341,9 @@ const CampusCompass = () => {
             if (watchIdRef.current) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
             }
+            if (speechSynthesisRef.current) {
+                window.speechSynthesis.cancel();
+            }
         };
     }, [getCenter]);
 
@@ -267,6 +362,58 @@ const CampusCompass = () => {
                     if (activeDestination && isNavigating) {
                         calculateRoute(newPos, activeDestination.position);
                     }
+                    
+                    // Update current step based on position
+                    if (directions && directions.routes[0] && directions.routes[0].legs[0]) {
+                        const leg = directions.routes[0].legs[0];
+                        const steps = leg.steps;
+                        
+                        // Find the closest step to the user's current position
+                        let closestStepIndex = 0;
+                        let minDistance = Number.MAX_VALUE;
+                        
+                        steps.forEach((step, index) => {
+                            const stepStart = step.start_location;
+                            const stepEnd = step.end_location;
+                            
+                            // Calculate distance to step start and end
+                            const d1 = Math.sqrt(
+                                Math.pow(stepStart.lat() - newPos.lat, 2) +
+                                Math.pow(stepStart.lng() - newPos.lng, 2)
+                            );
+                            
+                            const d2 = Math.sqrt(
+                                Math.pow(stepEnd.lat() - newPos.lat, 2) +
+                                Math.pow(stepEnd.lng() - newPos.lng, 2)
+                            );
+                            
+                            const stepDistance = Math.min(d1, d2);
+                            
+                            if (stepDistance < minDistance) {
+                                minDistance = stepDistance;
+                                closestStepIndex = index;
+                            }
+                        });
+                        
+                        if (closestStepIndex !== currentStepIndex) {
+                            setCurrentStepIndex(closestStepIndex);
+                            
+                            // Announce next instruction
+                            if (closestStepIndex < steps.length - 1) {
+                                const nextStep = steps[closestStepIndex + 1];
+                                const instruction = nextStep.instructions.replace(/<[^>]+>/g, '');
+                                setNextInstruction(instruction);
+                                
+                                // Use text-to-speech for navigation instructions
+                                if ('speechSynthesis' in window) {
+                                    window.speechSynthesis.cancel();
+                                    const utterance = new SpeechSynthesisUtterance(instruction);
+                                    speechSynthesisRef.current = utterance;
+                                    window.speechSynthesis.speak(utterance);
+                                }
+                            }
+                        }
+                    }
                 },
                 (error) => {
                     console.error("Error watching position:", error);
@@ -278,13 +425,16 @@ const CampusCompass = () => {
                 }
             );
         }
-    }, [activeDestination, isNavigating]);
+    }, [activeDestination, isNavigating, directions, currentStepIndex]);
 
     // Stop real-time position tracking
     const stopPositionTracking = useCallback(() => {
         if (watchIdRef.current) {
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
+        }
+        if (speechSynthesisRef.current) {
+            window.speechSynthesis.cancel();
         }
     }, []);
 
@@ -356,7 +506,7 @@ const CampusCompass = () => {
                 { 
                     origin, 
                     destination, 
-                    travelMode: 'WALKING',
+                    travelMode: travelMode,
                     provideRouteAlternatives: false
                 },
                 (res, status) => {
@@ -367,6 +517,19 @@ const CampusCompass = () => {
                         if (res.routes[0] && res.routes[0].legs[0]) {
                             setDistance(res.routes[0].legs[0].distance.text);
                             setDuration(res.routes[0].legs[0].duration.text);
+                            
+                            // Extract steps for navigation instructions
+                            const steps = [];
+                            res.routes[0].legs[0].steps.forEach(step => {
+                                steps.push({
+                                    instructions: step.instructions,
+                                    distance: step.distance,
+                                    duration: step.duration,
+                                    maneuver: step.maneuver || 'straight'
+                                });
+                            });
+                            setNavigationSteps(steps);
+                            setCurrentStepIndex(0);
                         }
                     } else {
                         console.error('Directions request failed:', status);
@@ -377,7 +540,7 @@ const CampusCompass = () => {
         } else {
             setIsLoading(false);
         }
-    }, []);
+    }, [travelMode]);
 
     // Handle location selection
     const handleLocationSelect = useCallback((loc) => {
@@ -411,8 +574,15 @@ const CampusCompass = () => {
         setIsNavigating(false);
         setActiveDestination(null);
         setDirections(null);
+        setNavigationSteps([]);
+        setCurrentStepIndex(0);
         stopPositionTracking();
     }, [stopPositionTracking]);
+
+    // Select travel mode
+    const handleSelectTravelMode = useCallback((mode) => {
+        setTravelMode(mode);
+    }, []);
 
     const toggleFavorite = (id, e) => {
         e.stopPropagation();
@@ -710,85 +880,15 @@ const CampusCompass = () => {
                             </>
                         )}
 
-                        {/* Campus markers and InfoWindows */}
-                        {locations.map(loc => (
-                            <React.Fragment key={loc.id}>
-                                <Marker 
-                                    position={loc.position} 
-                                    onClick={() => handleLocationSelect(loc)}
-                                    icon={{
-                                        url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
-                                    }}
-                                />
-                                {!isMobile && selectedLocation?.id === loc.id && (
-                                    <InfoWindow 
-                                        position={loc.position} 
-                                        onCloseClick={() => {
-                                            closeLocationDetails();
-                                        }}
-                                    >
-                                        <div className="max-w-xs">
-                                            <h3 className="font-bold text-blue-700 mb-1">{loc.name}</h3>
-                                            <p className="text-sm text-gray-600 mb-2">{loc.description}</p>
-                                            {loc.hours && (
-                                                <p className="text-sm mb-1">
-                                                    <span className="font-medium">Hours:</span> {loc.hours}
-                                                </p>
-                                            )}
-                                            {loc.popularTimes && (
-                                                <div className="mt-2">
-                                                    <p className="font-medium text-sm mb-1">Popular Times:</p>
-                                                    <ul className="text-xs space-y-1">
-                                                        {loc.popularTimes.map((t, i) => (
-                                                            <li key={i} className="flex items-center">
-                                                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                                                                {t}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                            {loc.floorPlan && (
-                                                <a 
-                                                    href={loc.floorPlan} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="inline-block mt-2 text-blue-600 hover:underline text-sm"
-                                                >
-                                                    View Floor Plan
-                                                </a>
-                                            )}
-                                            {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
-                                            {userPosition && (
-                                                <div className="mt-3 space-y-2">
-                                                    {isNavigating && activeDestination?.id === loc.id ? (
-                                                        <div className="bg-green-50 p-2 rounded-lg">
-                                                            <div className="flex justify-between text-xs mb-1">
-                                                                <span>Distance: {distance}</span>
-                                                                <span>Time: {duration}</span>
-                                                            </div>
-                                                            <button
-                                                                onClick={stopNavigation}
-                                                                className="w-full flex items-center justify-center bg-red-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-red-700 transition-colors"
-                                                            >
-                                                                <FaStop className="mr-2" /> Stop Navigation
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={startNavigation}
-                                                            className="w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                                                        >
-                                                            <FaDirections className="mr-2" /> Start Navigation
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </InfoWindow>
-                                )}
-                            </React.Fragment>
-                        ))}
+                        {/* Destination marker */}
+                        {activeDestination && (
+                            <Marker 
+                                position={activeDestination.position} 
+                                icon={{
+                                    url: `https://maps.google.com/mapfiles/ms/icons/red-dot.png`
+                                }}
+                            />
+                        )}
 
                         {/* Directions */}
                         {directions && <DirectionsRenderer 
@@ -799,13 +899,40 @@ const CampusCompass = () => {
                                     strokeOpacity: 0.8,
                                     strokeWeight: 6
                                 },
-                                markerOptions: {
-                                    visible: false
-                                }
+                                suppressMarkers: true
                             }}
                         />}
                     </GoogleMap>
                 </LoadScript>
+
+                {/* Navigation Header */}
+                {isNavigating && activeDestination && (
+                    <div className="absolute top-4 left-0 right-0 mx-auto bg-white p-3 rounded-lg shadow-lg max-w-md z-10">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <div className="font-bold text-blue-700">Navigating to {activeDestination.name}</div>
+                                <div className="text-sm text-gray-600">
+                                    {distance} • {duration} • {travelMode === 'WALKING' ? 'Walking' : 
+                                      travelMode === 'BICYCLING' ? 'Biking' : 'Driving'}
+                                </div>
+                            </div>
+                            <button 
+                                onClick={stopNavigation}
+                                className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
+                            >
+                                <FaStop />
+                            </button>
+                        </div>
+                        
+                        {/* Next instruction */}
+                        {nextInstruction && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+                                <div className="font-medium">Next:</div>
+                                <div className="text-sm">{nextInstruction}</div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Mobile Bottom Sheet */}
                 {isMobile && selectedLocation && (
@@ -814,11 +941,15 @@ const CampusCompass = () => {
                         isNavigating={isNavigating && activeDestination?.id === selectedLocation.id}
                         distance={distance}
                         duration={duration}
+                        travelMode={travelMode}
+                        onSelectMode={handleSelectTravelMode}
                         onStartNavigation={startNavigation}
                         onStopNavigation={stopNavigation}
                         onClose={closeLocationDetails}
                         onToggleExpand={() => setIsBottomSheetExpanded(!isBottomSheetExpanded)}
                         isExpanded={isBottomSheetExpanded}
+                        navigationSteps={navigationSteps}
+                        currentStepIndex={currentStepIndex}
                     />
                 )}
 
@@ -829,24 +960,6 @@ const CampusCompass = () => {
                             <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mr-3"></div>
                             <span className="text-gray-700">Calculating route...</span>
                         </div>
-                    </div>
-                )}
-
-                {/* Navigation status bar */}
-                {isNavigating && activeDestination && !isMobile && (
-                    <div className="absolute bottom-4 left-0 right-0 mx-auto bg-white p-3 rounded-lg shadow-lg max-w-md z-10 flex justify-between items-center">
-                        <div>
-                            <div className="font-medium">Navigating to {activeDestination.name}</div>
-                            <div className="text-sm text-gray-600">
-                                {distance} • {duration} • Walking
-                            </div>
-                        </div>
-                        <button 
-                            onClick={stopNavigation}
-                            className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
-                        >
-                            <FaStop />
-                        </button>
                     </div>
                 )}
 
