@@ -1,13 +1,13 @@
 // src/pages/CampusCompass.jsx
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
-
-// Dynamically import Google Maps components to fix build issues
-const GoogleMap = lazy(() => import('@react-google-maps/api').then(module => ({ default: module.GoogleMap })));
-const LoadScript = lazy(() => import('@react-google-maps/api').then(module => ({ default: module.LoadScript })));
-const Marker = lazy(() => import('@react-google-maps/api').then(module => ({ default: module.Marker })));
-const DirectionsRenderer = lazy(() => import('@react-google-maps/api').then(module => ({ default: module.DirectionsRenderer })));
-const InfoWindow = lazy(() => import('@react-google-maps/api').then(module => ({ default: module.InfoWindow })));
+import { 
+  GoogleMap, 
+  LoadScript, 
+  Marker, 
+  DirectionsRenderer, 
+  InfoWindow 
+} from '@react-google-maps/api';
 
 // Get API key from environment variables
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -521,177 +521,170 @@ const CampusCompass = () => {
         </div>
         
         <div className="w-full md:w-2/3 bg-white rounded-lg shadow-md overflow-hidden">
-          <Suspense fallback={
-            <div className="h-full flex flex-col items-center justify-center bg-gray-100">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p>Loading map components...</p>
-            </div>
-          }>
-            {mapError ? (
-              <div className="h-full flex flex-col items-center justify-center bg-red-50 p-4">
-                <div className="text-red-500 text-5xl mb-4">⚠️</div>
-                <h3 className="text-lg font-bold mb-2">Map Loading Error</h3>
-                <p className="text-center mb-4">
-                  Failed to load Google Maps. Please check your API key and network connection.
-                </p>
-                <button 
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload Page
-                </button>
-              </div>
-            ) : (
-              <LoadScript 
-                googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-                loadingElement={<div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>}
-                onLoad={() => setMapLoaded(true)}
-                onError={() => setMapError(true)}
+          {mapError ? (
+            <div className="h-full flex flex-col items-center justify-center bg-red-50 p-4">
+              <div className="text-red-500 text-5xl mb-4">⚠️</div>
+              <h3 className="text-lg font-bold mb-2">Map Loading Error</h3>
+              <p className="text-center mb-4">
+                Failed to load Google Maps. Please check your API key and network connection.
+              </p>
+              <button 
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                onClick={() => window.location.reload()}
               >
-                <GoogleMap
-                  mapContainerStyle={containerStyle}
-                  center={getCenter()}
-                  zoom={16}
-                  options={{
-                    streetViewControl: true,
-                    mapTypeControl: false,
-                    fullscreenControl: true,
-                    styles: [
-                      {
-                        "featureType": "poi",
-                        "elementType": "labels",
-                        "stylers": [{ "visibility": "off" }]
-                      },
-                      {
-                        "featureType": "transit",
-                        "elementType": "labels",
-                        "stylers": [{ "visibility": "off" }]
-                      },
-                      {
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#f5f5f5" }]
-                      },
-                      {
-                        "elementType": "labels.icon",
-                        "stylers": [{ "visibility": "off" }]
-                      }
-                    ],
-                    backgroundColor: '#f0f0f0'
-                  }}
-                >
-                  {/* User Location Marker */}
-                  {userPosition && (
-                    <Marker 
-                      position={userPosition}
-                      icon={{
-                        path: window.google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: "#4285F4",
-                        fillOpacity: 1,
-                        strokeColor: "#FFFFFF",
-                        strokeWeight: 2
-                      }}
-                    >
-                      <InfoWindow>
-                        <div className="p-2">
-                          <h3 className="font-bold">Your Location</h3>
-                          <p className="text-sm">You are here</p>
-                        </div>
-                      </InfoWindow>
-                    </Marker>
-                  )}
-                  
-                  {/* University Locations */}
-                  {locations.map(location => (
-                    <Marker
-                      key={location.id}
-                      position={location.position}
-                      onClick={() => handleLocationSelect(location)}
-                      icon={{
-                        url: `https://maps.google.com/mapfiles/ms/icons/${
-                          location.category === 'Lecture Halls' ? 'blue' : 
-                          location.category === 'Administration' ? 'red' : 
-                          location.category === 'Services' ? 'green' : 'orange'
-                        }-dot.png`,
-                        scaledSize: new window.google.maps.Size(32, 32)
-                      }}
-                    />
-                  ))}
-                  
-                  {/* Selected Location Info */}
-                  {selectedLocation && (
-                    <InfoWindow
-                      position={selectedLocation.position}
-                      onCloseClick={() => setSelectedLocation(null)}
-                    >
-                      <div className="p-2 max-w-xs">
-                        <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
-                        <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
-                        
-                        <div className="mb-2">
-                          <p className="font-medium text-sm">Hours:</p>
-                          <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
-                        </div>
-                        
-                        {selectedLocation.popularTimes && (
-                          <div className="mb-2">
-                            <p className="font-medium text-sm">Popular Times:</p>
-                            <div className="space-y-1 mt-1">
-                              {selectedLocation.popularTimes.map((time, i) => (
-                                <div key={i} className="flex items-center">
-                                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                                    time.includes('Busy') ? 'bg-red-500' : 
-                                    time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
-                                  }`}></div>
-                                  <span className="text-sm">{time}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {selectedLocation.floorPlan && (
-                          <div className="mb-2">
-                            <p className="font-medium text-sm">Floor Plan:</p>
-                            <a 
-                              href={selectedLocation.floorPlan} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="text-blue-600 text-sm hover:underline"
-                            >
-                              View Map
-                            </a>
-                          </div>
-                        )}
-                        
-                        {selectedLocation.indoorMaps && (
-                          <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
-                        )}
-                        
-                        {selectedLocation.addedBy && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Added by: {selectedLocation.addedBy}
-                          </p>
-                        )}
-                        
-                        <button 
-                          className="mt-2 text-blue-600 hover:underline text-sm"
-                          onClick={() => handleLocationSelect(selectedLocation)}
-                        >
-                          Get Directions
-                        </button>
+                Reload Page
+              </button>
+            </div>
+          ) : (
+            <LoadScript 
+              googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+              loadingElement={<div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>}
+              onLoad={() => setMapLoaded(true)}
+              onError={() => setMapError(true)}
+            >
+              <GoogleMap
+                mapContainerStyle={containerStyle}
+                center={getCenter()}
+                zoom={16}
+                options={{
+                  streetViewControl: true,
+                  mapTypeControl: false,
+                  fullscreenControl: true,
+                  styles: [
+                    {
+                      "featureType": "poi",
+                      "elementType": "labels",
+                      "stylers": [{ "visibility": "off" }]
+                    },
+                    {
+                      "featureType": "transit",
+                      "elementType": "labels",
+                      "stylers": [{ "visibility": "off" }]
+                    },
+                    {
+                      "elementType": "geometry",
+                      "stylers": [{ "color": "#f5f5f5" }]
+                    },
+                    {
+                      "elementType": "labels.icon",
+                      "stylers": [{ "visibility": "off" }]
+                    }
+                  ],
+                  backgroundColor: '#f0f0f0'
+                }}
+              >
+                {/* User Location Marker */}
+                {userPosition && (
+                  <Marker 
+                    position={userPosition}
+                    icon={{
+                      path: window.google.maps.SymbolPath.CIRCLE,
+                      scale: 8,
+                      fillColor: "#4285F4",
+                      fillOpacity: 1,
+                      strokeColor: "#FFFFFF",
+                      strokeWeight: 2
+                    }}
+                  >
+                    <InfoWindow>
+                      <div className="p-2">
+                        <h3 className="font-bold">Your Location</h3>
+                        <p className="text-sm">You are here</p>
                       </div>
                     </InfoWindow>
-                  )}
-                  
-                  {/* Directions */}
-                  {directions && (
-                    <DirectionsRenderer directions={directions} />
-                  )}
-                </GoogleMap>
-              </LoadScript>
-            )}
-          </Suspense>
+                  </Marker>
+                )}
+                
+                {/* University Locations */}
+                {locations.map(location => (
+                  <Marker
+                    key={location.id}
+                    position={location.position}
+                    onClick={() => handleLocationSelect(location)}
+                    icon={{
+                      url: `https://maps.google.com/mapfiles/ms/icons/${
+                        location.category === 'Lecture Halls' ? 'blue' : 
+                        location.category === 'Administration' ? 'red' : 
+                        location.category === 'Services' ? 'green' : 'orange'
+                      }-dot.png`,
+                      scaledSize: new window.google.maps.Size(32, 32)
+                    }}
+                  />
+                ))}
+                
+                {/* Selected Location Info */}
+                {selectedLocation && (
+                  <InfoWindow
+                    position={selectedLocation.position}
+                    onCloseClick={() => setSelectedLocation(null)}
+                  >
+                    <div className="p-2 max-w-xs">
+                      <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
+                      <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
+                      
+                      <div className="mb-2">
+                        <p className="font-medium text-sm">Hours:</p>
+                        <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
+                      </div>
+                      
+                      {selectedLocation.popularTimes && (
+                        <div className="mb-2">
+                          <p className="font-medium text-sm">Popular Times:</p>
+                          <div className="space-y-1 mt-1">
+                            {selectedLocation.popularTimes.map((time, i) => (
+                              <div key={i} className="flex items-center">
+                                <div className={`w-3 h-3 rounded-full mr-2 ${
+                                  time.includes('Busy') ? 'bg-red-500' : 
+                                  time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
+                                }`}></div>
+                                <span className="text-sm">{time}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedLocation.floorPlan && (
+                        <div className="mb-2">
+                          <p className="font-medium text-sm">Floor Plan:</p>
+                          <a 
+                            href={selectedLocation.floorPlan} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-blue-600 text-sm hover:underline"
+                          >
+                            View Map
+                          </a>
+                        </div>
+                      )}
+                      
+                      {selectedLocation.indoorMaps && (
+                        <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
+                      )}
+                      
+                      {selectedLocation.addedBy && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Added by: {selectedLocation.addedBy}
+                        </p>
+                      )}
+                      
+                      <button 
+                        className="mt-2 text-blue-600 hover:underline text-sm"
+                        onClick={() => handleLocationSelect(selectedLocation)}
+                      >
+                        Get Directions
+                      </button>
+                    </div>
+                  </InfoWindow>
+                )}
+                
+                {/* Directions */}
+                {directions && (
+                  <DirectionsRenderer directions={directions} />
+                )}
+              </GoogleMap>
+            </LoadScript>
+          )}
           
           <div className="p-4 border-t bg-gray-50">
             <h3 className="font-medium mb-2 text-sm">Legend:</h3>
