@@ -1,6 +1,6 @@
 // src/pages/CampusCompass.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } from '@react-google-maps/api';
 
 // Get API key from environment variables
@@ -89,8 +89,12 @@ const CampusCompass = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showMap, setShowMap] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [distance, setDistance] = useState('');
+    const [duration, setDuration] = useState('');
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
+    const watchIdRef = useRef(null);
 
     // Get university center safely
     const getCenter = useCallback(() => {
@@ -122,7 +126,50 @@ const CampusCompass = () => {
         } else {
             setUserPosition(getCenter());
         }
+        
+        // Cleanup on unmount
+        return () => {
+            if (watchIdRef.current) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+        };
     }, [getCenter]);
+
+    // Start real-time position tracking during navigation
+    const startPositionTracking = useCallback(() => {
+        if (navigator.geolocation) {
+            watchIdRef.current = navigator.geolocation.watchPosition(
+                (position) => {
+                    const newPos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    setUserPosition(newPos);
+                    
+                    // Recalculate route when position changes
+                    if (selectedLocation && isNavigating) {
+                        calculateRoute(newPos, selectedLocation.position);
+                    }
+                },
+                (error) => {
+                    console.error("Error watching position:", error);
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 5000, 
+                    maximumAge: 0 
+                }
+            );
+        }
+    }, [selectedLocation, isNavigating]);
+
+    // Stop real-time position tracking
+    const stopPositionTracking = useCallback(() => {
+        if (watchIdRef.current) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
+        }
+    }, []);
 
     // Favorites localStorage
     useEffect(() => {
@@ -143,8 +190,10 @@ const CampusCompass = () => {
             setSearchQuery('');
             setSelectedLocation(null);
             setDirections(null);
+            setIsNavigating(false);
+            stopPositionTracking();
         }
-    }, [selectedUniversity]);
+    }, [selectedUniversity, stopPositionTracking]);
 
     // Filter by category
     useEffect(() => {
@@ -173,46 +222,68 @@ const CampusCompass = () => {
         }
     }, [searchQuery, selectedUniversity]);
 
-    // Handle location selection and directions
+    // Calculate route with distance and duration
+    const calculateRoute = useCallback((origin, destination) => {
+        if (!window.google) return;
+        
+        setIsLoading(true);
+        
+        // Initialize directions service
+        if (!directionsServiceRef.current) {
+            directionsServiceRef.current = new window.google.maps.DirectionsService();
+        }
+        
+        if (directionsServiceRef.current) {
+            directionsServiceRef.current.route(
+                { 
+                    origin, 
+                    destination, 
+                    travelMode: 'WALKING',
+                    provideRouteAlternatives: false
+                },
+                (res, status) => {
+                    if (status === 'OK') {
+                        setDirections(res);
+                        
+                        // Extract distance and duration
+                        if (res.routes[0] && res.routes[0].legs[0]) {
+                            setDistance(res.routes[0].legs[0].distance.text);
+                            setDuration(res.routes[0].legs[0].duration.text);
+                        }
+                    } else {
+                        console.error('Directions request failed:', status);
+                    }
+                    setIsLoading(false);
+                }
+            );
+        } else {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Handle location selection
     const handleLocationSelect = useCallback((loc) => {
         setSelectedLocation(loc);
-        if (userPosition) {
-            setIsLoading(true);
-            setDirections(null);
-            
-            // Initialize directions service
-            if (!directionsServiceRef.current && window.google) {
-                directionsServiceRef.current = new window.google.maps.DirectionsService();
-            }
-            
-            if (directionsServiceRef.current) {
-                directionsServiceRef.current.route(
-                    { 
-                        origin: userPosition, 
-                        destination: loc.position, 
-                        travelMode: 'WALKING' 
-                    },
-                    (res, status) => {
-                        if (status === 'OK') {
-                            setDirections(res);
-                        } else {
-                            console.error('Directions request failed:', status);
-                        }
-                        setIsLoading(false);
-                    }
-                );
-            } else {
-                setIsLoading(false);
-            }
-        }
-    }, [userPosition]);
+        setIsNavigating(false);
+        setDirections(null);
+        stopPositionTracking();
+    }, [stopPositionTracking]);
 
-    // Calculate directions on button click
-    const handleGetDirections = useCallback(() => {
-        if (selectedLocation) {
-            handleLocationSelect(selectedLocation);
+    // Start navigation
+    const startNavigation = useCallback(() => {
+        if (selectedLocation && userPosition) {
+            setIsNavigating(true);
+            calculateRoute(userPosition, selectedLocation.position);
+            startPositionTracking();
         }
-    }, [selectedLocation, handleLocationSelect]);
+    }, [selectedLocation, userPosition, calculateRoute, startPositionTracking]);
+
+    // Stop navigation
+    const stopNavigation = useCallback(() => {
+        setIsNavigating(false);
+        setDirections(null);
+        stopPositionTracking();
+    }, [stopPositionTracking]);
 
     const toggleFavorite = (id, e) => {
         e.stopPropagation();
@@ -346,7 +417,12 @@ const CampusCompass = () => {
                             <FaPlus className="mr-2" /> Add Location
                         </button>
                         <button
-                            onClick={() => { setSelectedCategory(''); setSearchQuery(''); }}
+                            onClick={() => { 
+                                setSelectedCategory(''); 
+                                setSearchQuery('');
+                                setSelectedLocation(null);
+                                stopNavigation();
+                            }}
                             className="flex-1 p-2.5 border rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
                         >
                             Reset
@@ -510,7 +586,10 @@ const CampusCompass = () => {
                                 {selectedLocation?.id === loc.id && (
                                     <InfoWindow 
                                         position={loc.position} 
-                                        onCloseClick={() => setSelectedLocation(null)}
+                                        onCloseClick={() => {
+                                            setSelectedLocation(null);
+                                            stopNavigation();
+                                        }}
                                     >
                                         <div className="max-w-xs">
                                             <h3 className="font-bold text-blue-700 mb-1">{loc.name}</h3>
@@ -545,12 +624,29 @@ const CampusCompass = () => {
                                             )}
                                             {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
                                             {userPosition && (
-                                                <button
-                                                    onClick={handleGetDirections}
-                                                    className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                                                >
-                                                    <FaDirections className="mr-2" /> Get Directions
-                                                </button>
+                                                <div className="mt-3 space-y-2">
+                                                    {isNavigating ? (
+                                                        <div className="bg-green-50 p-2 rounded-lg text-center">
+                                                            <div className="flex justify-between text-xs mb-1">
+                                                                <span>Distance: {distance}</span>
+                                                                <span>Time: {duration}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={stopNavigation}
+                                                                className="w-full flex items-center justify-center bg-red-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-red-700 transition-colors"
+                                                            >
+                                                                <FaStop className="mr-2" /> Stop Navigation
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={startNavigation}
+                                                            className="w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                                                        >
+                                                            <FaDirections className="mr-2" /> Start Navigation
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </InfoWindow>
@@ -559,7 +655,19 @@ const CampusCompass = () => {
                         ))}
 
                         {/* Directions */}
-                        {directions && <DirectionsRenderer directions={directions} />}
+                        {directions && <DirectionsRenderer 
+                            directions={directions}
+                            options={{
+                                polylineOptions: {
+                                    strokeColor: '#4285F4',
+                                    strokeOpacity: 0.8,
+                                    strokeWeight: 6
+                                },
+                                markerOptions: {
+                                    visible: false
+                                }
+                            }}
+                        />}
                     </GoogleMap>
                 </LoadScript>
 
@@ -570,6 +678,24 @@ const CampusCompass = () => {
                             <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mr-3"></div>
                             <span className="text-gray-700">Calculating route...</span>
                         </div>
+                    </div>
+                )}
+
+                {/* Navigation status bar */}
+                {isNavigating && (
+                    <div className="absolute bottom-4 left-0 right-0 mx-auto bg-white p-3 rounded-lg shadow-lg max-w-md z-10 flex justify-between items-center">
+                        <div>
+                            <div className="font-medium">Navigating to {selectedLocation?.name}</div>
+                            <div className="text-sm text-gray-600">
+                                {distance} • {duration} • Walking
+                            </div>
+                        </div>
+                        <button 
+                            onClick={stopNavigation}
+                            className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
+                        >
+                            <FaStop />
+                        </button>
                     </div>
                 )}
 
