@@ -10,6 +10,7 @@ const DashboardPage = lazy(() => import('../Layouts/dashboard'));
 const Chat = lazy(() => import('../pages/chat'));
 const CreateGroupTest = lazy(() => import('../pages/CreateGroupTest'));
 const GroupTestPage = lazy(() => import('../pages/GroupTestPage'));
+const CampusNavigator = lazy(() => import('../pages/CampusCompass'));
 const MyTest = lazy(() => import('../pages/MyTests'));
 const Test = lazy(() => import('../pages/Test'));
 const GroupTest = lazy(() => import('../pages/GroupTestPage'));
@@ -72,6 +73,10 @@ export default function AppRouter() {
         {
           path: 'chat',
           element: <Chat />
+        },
+        {
+          path: "/campus-navigator",
+          element: <CampusCompass />,
         },
         {
           path: 'settings',
