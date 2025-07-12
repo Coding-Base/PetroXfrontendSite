@@ -1,13 +1,6 @@
 // src/pages/CampusCompass.jsx
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
-import { 
-  GoogleMap,
-  useJsApiLoader,
-  Marker,
-  DirectionsRenderer,
-  InfoWindow
-} from 'react-google-maps/api';
 
 // Get API key from environment variables
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -160,6 +153,241 @@ const FloorPlan = ({ indoorMaps }) => {
   );
 };
 
+// Map Component with dynamic imports
+const MapComponent = ({ 
+  locations, 
+  userPosition, 
+  selectedLocation, 
+  directions, 
+  handleLocationSelect,
+  getCenter
+}) => {
+  const [mapComponents, setMapComponents] = useState(null);
+  const [mapError, setMapError] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadMapComponents = async () => {
+      try {
+        const { 
+          GoogleMap, 
+          LoadScript, 
+          Marker, 
+          DirectionsRenderer, 
+          InfoWindow 
+        } = await import('@react-google-maps/api');
+        
+        setMapComponents({
+          GoogleMap,
+          LoadScript,
+          Marker,
+          DirectionsRenderer,
+          InfoWindow
+        });
+      } catch (error) {
+        console.error('Failed to load map components:', error);
+        setMapError(true);
+      }
+    };
+
+    loadMapComponents();
+  }, []);
+
+  const containerStyle = {
+    width: '100%',
+    height: '70vh',
+    minHeight: '400px'
+  };
+
+  // Safe marker icon definition
+  const getMarkerIcon = (category) => {
+    if (typeof google === 'undefined' || !google.maps) return null;
+    
+    return {
+      url: `https://maps.google.com/mapfiles/ms/icons/${
+        category === 'Lecture Halls' ? 'blue' : 
+        category === 'Administration' ? 'red' : 
+        category === 'Services' ? 'green' : 'orange'
+      }-dot.png`,
+      scaledSize: new google.maps.Size(32, 32)
+    };
+  };
+
+  if (mapError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-red-50 p-4">
+        <div className="text-red-500 text-5xl mb-4">⚠️</div>
+        <h3 className="text-lg font-bold mb-2">Map Loading Error</h3>
+        <p className="text-center mb-4">
+          Failed to load Google Maps. Please check your network connection.
+        </p>
+        <button 
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          onClick={() => window.location.reload()}
+        >
+          Reload Page
+        </button>
+      </div>
+    );
+  }
+
+  if (!mapComponents) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  const { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } = mapComponents;
+
+  return (
+    <LoadScript 
+      googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+      loadingElement={<div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>}
+      onLoad={() => setMapLoaded(true)}
+      onError={() => setMapError(true)}
+    >
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={getCenter()}
+        zoom={16}
+        options={{
+          streetViewControl: true,
+          mapTypeControl: false,
+          fullscreenControl: true,
+          styles: [
+            {
+              "featureType": "poi",
+              "elementType": "labels",
+              "stylers": [{ "visibility": "off" }]
+            },
+            {
+              "featureType": "transit",
+              "elementType": "labels",
+              "stylers": [{ "visibility": "off" }]
+            },
+            {
+              "elementType": "geometry",
+              "stylers": [{ "color": "#f5f5f5" }]
+            },
+            {
+              "elementType": "labels.icon",
+              "stylers": [{ "visibility": "off" }]
+            }
+          ],
+          backgroundColor: '#f0f0f0'
+        }}
+      >
+        {/* User Location Marker */}
+        {userPosition && (
+          <Marker 
+            position={userPosition}
+            icon={mapLoaded ? {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: "#4285F4",
+              fillOpacity: 1,
+              strokeColor: "#FFFFFF",
+              strokeWeight: 2
+            } : undefined}
+          >
+            {mapLoaded && (
+              <InfoWindow>
+                <div className="p-2">
+                  <h3 className="font-bold">Your Location</h3>
+                  <p className="text-sm">You are here</p>
+                </div>
+              </InfoWindow>
+            )}
+          </Marker>
+        )}
+        
+        {/* University Locations */}
+        {locations.map(location => (
+          <Marker
+            key={location.id}
+            position={location.position}
+            onClick={() => handleLocationSelect(location)}
+            icon={getMarkerIcon(location.category)}
+          />
+        ))}
+        
+        {/* Selected Location Info */}
+        {selectedLocation && mapLoaded && (
+          <InfoWindow
+            position={selectedLocation.position}
+            onCloseClick={() => handleLocationSelect(null)}
+          >
+            <div className="p-2 max-w-xs">
+              <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
+              <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
+              
+              <div className="mb-2">
+                <p className="font-medium text-sm">Hours:</p>
+                <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
+              </div>
+              
+              {selectedLocation.popularTimes && (
+                <div className="mb-2">
+                  <p className="font-medium text-sm">Popular Times:</p>
+                  <div className="space-y-1 mt-1">
+                    {selectedLocation.popularTimes.map((time, i) => (
+                      <div key={i} className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${
+                          time.includes('Busy') ? 'bg-red-500' : 
+                          time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}></div>
+                        <span className="text-sm">{time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {selectedLocation.floorPlan && (
+                <div className="mb-2">
+                  <p className="font-medium text-sm">Floor Plan:</p>
+                  <a 
+                    href={selectedLocation.floorPlan} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-blue-600 text-sm hover:underline"
+                  >
+                    View Map
+                  </a>
+                </div>
+              )}
+              
+              {selectedLocation.indoorMaps && (
+                <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
+              )}
+              
+              {selectedLocation.addedBy && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Added by: {selectedLocation.addedBy}
+                </p>
+              )}
+              
+              <button 
+                className="mt-2 text-blue-600 hover:underline text-sm"
+                onClick={() => handleLocationSelect(selectedLocation)}
+              >
+                Get Directions
+              </button>
+            </div>
+          </InfoWindow>
+        )}
+        
+        {/* Directions */}
+        {directions && mapLoaded && (
+          <DirectionsRenderer directions={directions} />
+        )}
+      </GoogleMap>
+    </LoadScript>
+  );
+};
+
 const CampusCompass = () => {
   const [selectedUniversity, setSelectedUniversity] = useState('futo');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -179,11 +407,7 @@ const CampusCompass = () => {
     hours: '',
     floorPlan: ''
   });
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
-
+  
   // Get user location
   useEffect(() => {
     if (navigator.geolocation) {
@@ -259,19 +483,19 @@ const CampusCompass = () => {
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
     
-    if (userPosition && window.google && window.google.maps) {
+    if (userPosition && typeof google !== 'undefined' && google.maps) {
       setIsLoading(true);
       
       setTimeout(() => {
-        const directionsService = new window.google.maps.DirectionsService();
+        const directionsService = new google.maps.DirectionsService();
         directionsService.route(
           {
             origin: userPosition,
             destination: location.position,
-            travelMode: window.google.maps.TravelMode.WALKING
+            travelMode: google.maps.TravelMode.WALKING
           },
           (result, status) => {
-            if (status === window.google.maps.DirectionsStatus.OK) {
+            if (status === google.maps.DirectionsStatus.OK) {
               setDirections(result);
             } else {
               console.error(`Directions request failed: ${status}`);
@@ -329,40 +553,20 @@ const CampusCompass = () => {
     return { lat: 5.3875, lng: 7.0353 }; // Default to FUTO
   };
 
-  const containerStyle = {
-    width: '100%',
-    height: '70vh',
-    minHeight: '400px'
-  };
-
-  // Safe marker icon definition
-  const getMarkerIcon = (category) => {
-    if (!window.google || !window.google.maps) return null;
-    
-    return {
-      url: `https://maps.google.com/mapfiles/ms/icons/${
-        category === 'Lecture Halls' ? 'blue' : 
-        category === 'Administration' ? 'red' : 
-        category === 'Services' ? 'green' : 'orange'
-      }-dot.png`,
-      scaledSize: new window.google.maps.Size(32, 32)
-    };
-  };
-
   return (
-    <div className="flex flex-col h-full p-4 md:p-6 bg-gray-50">
+    <div className="flex flex-col h-screen p-4 md:p-6 bg-gray-50">
       <div className="mb-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Campus Compass</h1>
         <p className="text-gray-600">Navigate FUTO Owerri and other campuses with ease</p>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-4 mb-4 flex-shrink-0">
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="w-full md:w-1/3">
           <label className="block text-sm font-medium mb-1">Select University</label>
           <select
             value={selectedUniversity}
             onChange={(e) => setSelectedUniversity(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {universities.map(uni => (
               <option key={uni.id} value={uni.id}>{uni.name}</option>
@@ -375,7 +579,7 @@ const CampusCompass = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
@@ -392,7 +596,7 @@ const CampusCompass = () => {
               placeholder="Search by name or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg pl-10 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className="w-full p-2 border border-gray-300 rounded-lg pl-10 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
           </div>
@@ -400,7 +604,7 @@ const CampusCompass = () => {
       </div>
       
       <div className="flex flex-col md:flex-row flex-1 gap-4">
-        <div className="w-full md:w-1/3 bg-white rounded-lg shadow-md p-4 overflow-y-auto h-[70vh] md:h-auto">
+        <div className="w-full md:w-1/3 bg-white rounded-lg shadow-md p-4 overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
               {selectedCategory ? `${selectedCategory} (${locations.length})` : 'All Locations'}
@@ -537,160 +741,14 @@ const CampusCompass = () => {
         </div>
         
         <div className="w-full md:w-2/3 bg-white rounded-lg shadow-md overflow-hidden">
-          {loadError ? (
-            <div className="h-full flex flex-col items-center justify-center bg-red-50 p-4">
-              <div className="text-red-500 text-5xl mb-4">⚠️</div>
-              <h3 className="text-lg font-bold mb-2">Map Loading Error</h3>
-              <p className="text-center mb-4">
-                Failed to load Google Maps. Please check your API key and network connection.
-              </p>
-              <button 
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={() => window.location.reload()}
-              >
-                Reload Page
-              </button>
-            </div>
-          ) : !isLoaded ? (
-            <div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>
-          ) : (
-              <GoogleMap
-                mapContainerStyle={containerStyle}
-                center={getCenter()}
-                zoom={16}
-                options={{
-                  streetViewControl: true,
-                  mapTypeControl: false,
-                  fullscreenControl: true,
-                  styles: [
-                    {
-                      "featureType": "poi",
-                      "elementType": "labels",
-                      "stylers": [{ "visibility": "off" }]
-                    },
-                    {
-                      "featureType": "transit",
-                      "elementType": "labels",
-                      "stylers": [{ "visibility": "off" }]
-                    },
-                    {
-                      "elementType": "geometry",
-                      "stylers": [{ "color": "#f5f5f5" }]
-                    },
-                    {
-                      "elementType": "labels.icon",
-                      "stylers": [{ "visibility": "off" }]
-                    }
-                  ],
-                  backgroundColor: '#f0f0f0'
-                }}
-              >
-                {/* User Location Marker */}
-                {userPosition && (
-                  <Marker 
-                    position={userPosition}
-                    icon={window.google?.maps ? {
-                      path: window.google.maps.SymbolPath.CIRCLE,
-                      scale: 8,
-                      fillColor: "#4285F4",
-                      fillOpacity: 1,
-                      strokeColor: "#FFFFFF",
-                      strokeWeight: 2
-                    } : undefined}
-                  >
-                    {window.google?.maps && (
-                      <InfoWindow>
-                        <div className="p-2">
-                          <h3 className="font-bold">Your Location</h3>
-                          <p className="text-sm">You are here</p>
-                        </div>
-                      </InfoWindow>
-                    )}
-                  </Marker>
-                )}
-                
-                {/* University Locations */}
-                {locations.map(location => (
-                  <Marker
-                    key={location.id}
-                    position={location.position}
-                    onClick={() => handleLocationSelect(location)}
-                    icon={getMarkerIcon(location.category)}
-                  />
-                ))}
-                
-                {/* Selected Location Info */}
-                {selectedLocation && window.google?.maps && (
-                  <InfoWindow
-                    position={selectedLocation.position}
-                    onCloseClick={() => setSelectedLocation(null)}
-                  >
-                    <div className="p-2 max-w-xs">
-                      <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
-                      <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
-                      
-                      <div className="mb-2">
-                        <p className="font-medium text-sm">Hours:</p>
-                        <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
-                      </div>
-                      
-                      {selectedLocation.popularTimes && (
-                        <div className="mb-2">
-                          <p className="font-medium text-sm">Popular Times:</p>
-                          <div className="space-y-1 mt-1">
-                            {selectedLocation.popularTimes.map((time, i) => (
-                              <div key={i} className="flex items-center">
-                                <div className={`w-3 h-3 rounded-full mr-2 ${
-                                  time.includes('Busy') ? 'bg-red-500' : 
-                                  time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
-                                }`}></div>
-                                <span className="text-sm">{time}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {selectedLocation.floorPlan && (
-                        <div className="mb-2">
-                          <p className="font-medium text-sm">Floor Plan:</p>
-                          <a 
-                            href={selectedLocation.floorPlan} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="text-blue-600 text-sm hover:underline"
-                          >
-                            View Map
-                          </a>
-                        </div>
-                      )}
-                      
-                      {selectedLocation.indoorMaps && (
-                        <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
-                      )}
-                      
-                      {selectedLocation.addedBy && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Added by: {selectedLocation.addedBy}
-                        </p>
-                      )}
-                      
-                      <button 
-                        className="mt-2 text-blue-600 hover:underline text-sm"
-                        onClick={() => handleLocationSelect(selectedLocation)}
-                      >
-                        Get Directions
-                      </button>
-                    </div>
-                  </InfoWindow>
-                )}
-                
-                {/* Directions */}
-                {directions && window.google?.maps && (
-                  <DirectionsRenderer directions={directions} />
-                )}
-              </GoogleMap>
-          )}
+          <MapComponent 
+            locations={locations}
+            userPosition={userPosition}
+            selectedLocation={selectedLocation}
+            directions={directions}
+            handleLocationSelect={handleLocationSelect}
+            getCenter={getCenter}
+          />
           
           <div className="p-4 border-t bg-gray-50">
             <h3 className="font-medium mb-2 text-sm">Legend:</h3>
@@ -731,4 +789,5 @@ const CampusCompass = () => {
     </div>
   );
 };
+
 export default CampusCompass;
