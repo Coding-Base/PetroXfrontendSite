@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
 import { 
-  GoogleMap, 
-  LoadScript, 
-  Marker, 
-  DirectionsRenderer, 
-  InfoWindow 
+  GoogleMap,
+  useJsApiLoader,
+  Marker,
+  DirectionsRenderer,
+  InfoWindow
 } from '@react-google-maps/api';
 
 // Get API key from environment variables
@@ -179,9 +179,11 @@ const CampusCompass = () => {
     hours: '',
     floorPlan: ''
   });
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState(false);
-  
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
   // Get user location
   useEffect(() => {
     if (navigator.geolocation) {
@@ -348,19 +350,19 @@ const CampusCompass = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen p-4 md:p-6 bg-gray-50">
+    <div className="flex flex-col h-full p-4 md:p-6 bg-gray-50">
       <div className="mb-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Campus Compass</h1>
         <p className="text-gray-600">Navigate FUTO Owerri and other campuses with ease</p>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="flex flex-col md:flex-row gap-4 mb-4 flex-shrink-0">
         <div className="w-full md:w-1/3">
           <label className="block text-sm font-medium mb-1">Select University</label>
           <select
             value={selectedUniversity}
             onChange={(e) => setSelectedUniversity(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
             {universities.map(uni => (
               <option key={uni.id} value={uni.id}>{uni.name}</option>
@@ -373,7 +375,7 @@ const CampusCompass = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
@@ -390,7 +392,7 @@ const CampusCompass = () => {
               placeholder="Search by name or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg pl-10 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 border border-gray-300 rounded-lg pl-10 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
           </div>
@@ -398,7 +400,7 @@ const CampusCompass = () => {
       </div>
       
       <div className="flex flex-col md:flex-row flex-1 gap-4">
-        <div className="w-full md:w-1/3 bg-white rounded-lg shadow-md p-4 overflow-y-auto">
+        <div className="w-full md:w-1/3 bg-white rounded-lg shadow-md p-4 overflow-y-auto h-[70vh] md:h-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
               {selectedCategory ? `${selectedCategory} (${locations.length})` : 'All Locations'}
@@ -535,7 +537,7 @@ const CampusCompass = () => {
         </div>
         
         <div className="w-full md:w-2/3 bg-white rounded-lg shadow-md overflow-hidden">
-          {mapError ? (
+          {loadError ? (
             <div className="h-full flex flex-col items-center justify-center bg-red-50 p-4">
               <div className="text-red-500 text-5xl mb-4">⚠️</div>
               <h3 className="text-lg font-bold mb-2">Map Loading Error</h3>
@@ -549,13 +551,9 @@ const CampusCompass = () => {
                 Reload Page
               </button>
             </div>
+          ) : !isLoaded ? (
+            <div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>
           ) : (
-            <LoadScript 
-              googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-              loadingElement={<div className="h-full flex items-center justify-center bg-gray-100">Loading Google Maps...</div>}
-              onLoad={() => setMapLoaded(true)}
-              onError={() => setMapError(true)}
-            >
               <GoogleMap
                 mapContainerStyle={containerStyle}
                 center={getCenter()}
@@ -692,7 +690,6 @@ const CampusCompass = () => {
                   <DirectionsRenderer directions={directions} />
                 )}
               </GoogleMap>
-            </LoadScript>
           )}
           
           <div className="p-4 border-t bg-gray-50">
@@ -734,5 +731,4 @@ const CampusCompass = () => {
     </div>
   );
 };
-
 export default CampusCompass;
