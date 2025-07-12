@@ -117,7 +117,7 @@ const CampusCompass = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 pos => setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => setUserPosition(getCenter()),
+                () => setUserPosition(getCenter()),   // Fallback to university center
                 { enableHighAccuracy: true, timeout: 5000 }
             );
         } else {
@@ -219,10 +219,35 @@ const CampusCompass = () => {
 
     // Calculate directions on button click
     const handleGetDirections = useCallback(() => {
-        if (selectedLocation) {
-            handleLocationSelect(selectedLocation);
+        if (selectedLocation && userPosition) {
+            setIsLoading(true);
+            setDirections(null);
+            
+            if (!directionsServiceRef.current && window.google) {
+                directionsServiceRef.current = new window.google.maps.DirectionsService();
+            }
+            
+            if (directionsServiceRef.current) {
+                directionsServiceRef.current.route(
+                    { 
+                        origin: userPosition, 
+                        destination: selectedLocation.position, 
+                        travelMode: 'WALKING' 
+                    },
+                    (res, status) => {
+                        if (status === 'OK') {
+                            setDirections(res);
+                        } else {
+                            console.error('Directions request failed:', status);
+                        }
+                        setIsLoading(false);
+                    }
+                );
+            } else {
+                setIsLoading(false);
+            }
         }
-    }, [selectedLocation, handleLocationSelect]);
+    }, [selectedLocation, userPosition]);
 
     const toggleFavorite = (id, e) => {
         e.stopPropagation();
