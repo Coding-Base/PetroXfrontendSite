@@ -7,7 +7,7 @@ import {
   Marker,
   DirectionsRenderer,
   InfoWindow
-} from '@react-google-maps/api';
+} from 'react-google-maps/api';
 
 // Get API key from environment variables
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
