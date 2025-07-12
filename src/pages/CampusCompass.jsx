@@ -95,6 +95,124 @@ const futoLocations = [
     description: 'Sports facilities and fields',
     hours: 'Mon-Sat: 6am-8pm',
     popularTimes: ['4-6pm: Very Busy']
+  },
+  // New locations added here
+  {
+    id: 'futo-cafe',
+    name: 'FUTO Café',
+    position: { lat: 5.3870, lng: 7.0365 },
+    category: 'Food & Drink',
+    description: 'Popular student hangout for coffee and light meals',
+    hours: 'Mon-Sun: 8am–10pm',
+    popularTimes: ['3–5pm: Busy', '7–9pm: Busy']
+  },
+  {
+    id: 'sops-theatre',
+    name: 'School of Physical Sciences Theatre',
+    position: { lat: 5.3892, lng: 7.0348 },
+    category: 'Lecture Halls',
+    description: 'Lecture theatre for Physics, Chemistry, maths seminars',
+    hours: 'Mon-Fri: 8am–6pm',
+    popularTimes: ['10–12pm: Busy', '2–4pm: Moderate']
+  },
+  {
+    id: 'saat-auditorium',
+    name: 'SAAT Auditorium',
+    position: { lat: 5.3900, lng: 7.0339 },
+    category: 'Lecture Halls',
+    description: 'School of Agriculture & Agricultural Technology auditorium',
+    hours: 'Mon-Fri: 8am–5pm',
+    popularTimes: ['9–11am: Busy']
+  },
+  {
+    id: 'hostel-a',
+    name: 'Hostel A (Male)',
+    position: { lat: 5.3885, lng: 7.0350 },
+    category: 'Accommodation',
+    description: 'Undergraduate male residence block A',
+    hours: '24/7',
+    popularTimes: ['Evenings: Full']
+  },
+  {
+    id: 'hostel-b',
+    name: 'Hostel B (Male)',
+    position: { lat: 5.3887, lng: 7.0352 },
+    category: 'Accommodation',
+    description: 'Undergraduate male residence block B',
+    hours: '24/7',
+    popularTimes: ['Evenings: Full']
+  },
+  {
+    id: 'hostel-c',
+    name: 'Hostel C (Female)',
+    position: { lat: 5.3890, lng: 7.0355 },
+    category: 'Accommodation',
+    description: 'Undergraduate female residence block C',
+    hours: '24/7',
+    popularTimes: ['Evenings: Full']
+  },
+  {
+    id: 'hostel-d',
+    name: 'Hostel D (Female)',
+    position: { lat: 5.3893, lng: 7.0358 },
+    category: 'Accommodation',
+    description: 'Undergraduate female residence block D',
+    hours: '24/7',
+    popularTimes: ['Evenings: Full']
+  },
+  {
+    id: 'access-bank-futo',
+    name: 'Access Bank (FUTO Branch)',
+    position: { lat: 5.3869, lng: 7.0370 },
+    category: 'Services',
+    description: 'On‑campus ATM and banking services',
+    hours: 'Mon-Fri: 9am–4pm',
+    popularTimes: ['12–1pm: Very Busy']
+  },
+  {
+    id: 'pmf-hall',
+    name: 'Paul Martins Foundation Hall',
+    position: { lat: 5.3880, lng: 7.0362 },
+    category: 'Lecture Halls',
+    description: 'Multi‑purpose hall for conferences and lectures',
+    hours: 'Mon-Fri: 8am–6pm',
+    popularTimes: ['10–12pm: Busy', '2–4pm: Moderate']
+  },
+  {
+    id: 'hall-of-mercy',
+    name: 'Hall of Mercy',
+    position: { lat: 5.3876, lng: 7.0344 },
+    category: 'Administration',
+    description: 'Ceremonial hall for convocations',
+    hours: 'Mon-Fri: 8am–5pm',
+    popularTimes: ['9–11am: Busy']
+  },
+  {
+    id: 'school-of-health-hall',
+    name: 'School of Health Hall',
+    position: { lat: 5.3883, lng: 7.0340 },
+    category: 'Lecture Halls',
+    description: 'Lecture theatre for health sciences',
+    hours: 'Mon-Fri: 8am–6pm',
+    popularTimes: ['10–12pm: Busy']
+  },
+  {
+    id: 'seet-roundabout',
+    name: 'SEET Roundabout',
+    position: { lat: 5.3872, lng: 7.0368 },
+    category: 'Landmarks',
+    description: 'Main traffic circle near School of Engineering & Engineering Tech',
+    hours: 'Open area',
+    popularTimes: ['All day']
+  },
+  {
+    id: 'sug-resources',
+    name: 'SUG Resource Centre',
+    position: { lat: 5.3879, lng: 7.0359 },
+    category: 'Services',
+    description: 'Student Union Government office & resource centre',
+    hours: 'Mon-Fri: 9am–5pm',
+    popularTimes: ['11–1pm: Busy']
   }
 ];
 
@@ -117,6 +235,21 @@ const universities = [
         category: 'Lecture Halls',
         description: 'Main university auditorium',
         hours: 'Mon-Fri: 8am-6pm'
+      }
+    ]
+  },
+  {
+    id: 'ui',
+    name: 'University of Ibadan',
+    location: { lat: 7.4459, lng: 3.8969 },
+    locations: [
+      {
+        id: 'ui-main-gate',
+        name: 'UI Main Gate',
+        position: { lat: 7.4465, lng: 3.8975 },
+        category: 'Landmarks',
+        description: 'Main entrance to University of Ibadan',
+        hours: '24/7'
       }
     ]
   }
@@ -205,9 +338,12 @@ const MapComponent = ({
     
     return {
       url: `https://maps.google.com/mapfiles/ms/icons/${
-        category === 'Lecture Halls' ? 'blue' : 
+        category === 'Lecture Halls' || category === 'Academic' ? 'blue' : 
         category === 'Administration' ? 'red' : 
-        category === 'Services' ? 'green' : 'orange'
+        category === 'Services' ? 'green' : 
+        category === 'Recreation' ? 'orange' :
+        category === 'Accommodation' ? 'purple' :
+        category === 'Food & Drink' ? 'yellow' : 'orange'
       }-dot.png`,
       scaledSize: new google.maps.Size(32, 32)
     };
@@ -313,10 +449,10 @@ const MapComponent = ({
           />
         ))}
         
-        {/* Selected Location Info */}
-        {selectedLocation && mapLoaded && (
+        {/* Selected Location Info - FIXED: Added position prop */}
+        {selectedLocation && mapLoaded && selectedLocation.position && (
           <InfoWindow
-            position={selectedLocation.position}
+            position={selectedLocation.position} // This is required
             onCloseClick={() => handleLocationSelect(null)}
           >
             <div className="p-2 max-w-xs">
@@ -755,7 +891,7 @@ const CampusCompass = () => {
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
-                <span className="text-sm">Lecture Halls</span>
+                <span className="text-sm">Lecture Halls/Academic</span>
               </div>
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
@@ -771,6 +907,14 @@ const CampusCompass = () => {
               </div>
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-purple-500 rounded-full mr-2"></div>
+                <span className="text-sm">Accommodation</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
+                <span className="text-sm">Food & Drink</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-gray-500 rounded-full mr-2"></div>
                 <span className="text-sm">Landmarks</span>
               </div>
             </div>
