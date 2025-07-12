@@ -7,12 +7,32 @@ import path from 'path';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      // Fix for @react-google-maps/api
+      external: [
+        '@react-google-maps/api',
+        'react',
+        'react-dom'
+      ],
+      output: {
+        globals: {
+          'react': 'React',
+          'react-dom': 'ReactDOM',
+          '@react-google-maps/api': 'ReactGoogleMapsApi'
+        }
+      }
+    }
   },
   resolve: {
     alias: {
-      // Remove the trailing slash
       '@': path.resolve(__dirname, 'src')
     }
+  },
+  optimizeDeps: {
+    // Add this to fix the Google Maps API import
+    include: [
+      '@react-google-maps/api'
+    ]
   }
 });

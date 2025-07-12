@@ -1,4 +1,7 @@
 // src/components/CampusCompass.jsx
+if (typeof window !== 'undefined') {
+  window.ReactGoogleMapsApi = require('@react-google-maps/api');
+}
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } from '@react-google-maps/api';
 
