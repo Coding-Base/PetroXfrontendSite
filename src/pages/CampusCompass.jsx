@@ -1,6 +1,6 @@
 // src/pages/CampusCompass.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } from '@react-google-maps/api';
 
 // Get API key from environment variables
@@ -74,6 +74,121 @@ const FloorPlan = ({ indoorMaps }) => {
     );
 };
 
+// Bottom Sheet Component for Mobile
+const BottomSheet = ({ 
+  location, 
+  isNavigating, 
+  distance, 
+  duration, 
+  onStartNavigation, 
+  onStopNavigation, 
+  onClose,
+  onToggleExpand,
+  isExpanded
+}) => {
+  if (!location) return null;
+  
+  return (
+    <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-lg z-20 transition-all duration-300 ${
+      isExpanded ? 'h-[70vh]' : 'h-[140px]'
+    }`}>
+      <div className="p-4">
+        {/* Drag handle */}
+        <div 
+          className="flex justify-center mb-2"
+          onClick={onToggleExpand}
+        >
+          <div className="w-12 h-1 bg-gray-300 rounded-full cursor-pointer"></div>
+        </div>
+        
+        {/* Header */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-bold text-lg">{location.name}</h3>
+            <p className="text-sm text-gray-600 truncate">{location.description}</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        
+        {/* Expand/collapse button */}
+        <div className="flex justify-center mt-1">
+          <button 
+            onClick={onToggleExpand}
+            className="text-gray-500"
+          >
+            {isExpanded ? <FaChevronDown /> : <FaChevronUp />}
+          </button>
+        </div>
+        
+        {/* Expanded content */}
+        {isExpanded && (
+          <div className="mt-3 overflow-y-auto h-[calc(70vh-140px)]">
+            {location.hours && (
+              <p className="text-sm mb-2">
+                <span className="font-medium">Hours:</span> {location.hours}
+              </p>
+            )}
+            {location.popularTimes && (
+              <div className="mb-2">
+                <p className="font-medium text-sm mb-1">Popular Times:</p>
+                <ul className="text-xs space-y-1">
+                  {location.popularTimes.map((t, i) => (
+                    <li key={i} className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {location.floorPlan && (
+              <a 
+                href={location.floorPlan} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="inline-block mt-2 text-blue-600 hover:underline text-sm"
+              >
+                View Floor Plan
+              </a>
+            )}
+            {location.indoorMaps && <FloorPlan indoorMaps={location.indoorMaps} />}
+          </div>
+        )}
+        
+        {/* Navigation controls */}
+        <div className="mt-3">
+          {isNavigating ? (
+            <div className="bg-green-50 p-3 rounded-lg">
+              <div className="flex justify-between text-sm mb-2">
+                <span>Distance: {distance}</span>
+                <span>Time: {duration}</span>
+              </div>
+              <button
+                onClick={onStopNavigation}
+                className="w-full flex items-center justify-center bg-red-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-700 transition-colors"
+              >
+                <FaStop className="mr-2" /> Stop Navigation
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onStartNavigation}
+              className="w-full flex items-center justify-center bg-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+            >
+              <FaDirections className="mr-2" /> Start Navigation
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CampusCompass = () => {
     const [selectedUniversity, setSelectedUniversity] = useState('futo');
     const [categories, setCategories] = useState([]);
@@ -92,6 +207,8 @@ const CampusCompass = () => {
     const [isNavigating, setIsNavigating] = useState(false);
     const [distance, setDistance] = useState('');
     const [duration, setDuration] = useState('');
+    const [activeDestination, setActiveDestination] = useState(null);
+    const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
     const watchIdRef = useRef(null);
@@ -147,8 +264,8 @@ const CampusCompass = () => {
                     setUserPosition(newPos);
                     
                     // Recalculate route when position changes
-                    if (selectedLocation && isNavigating) {
-                        calculateRoute(newPos, selectedLocation.position);
+                    if (activeDestination && isNavigating) {
+                        calculateRoute(newPos, activeDestination.position);
                     }
                 },
                 (error) => {
@@ -161,7 +278,7 @@ const CampusCompass = () => {
                 }
             );
         }
-    }, [selectedLocation, isNavigating]);
+    }, [activeDestination, isNavigating]);
 
     // Stop real-time position tracking
     const stopPositionTracking = useCallback(() => {
@@ -191,6 +308,7 @@ const CampusCompass = () => {
             setSelectedLocation(null);
             setDirections(null);
             setIsNavigating(false);
+            setActiveDestination(null);
             stopPositionTracking();
         }
     }, [selectedUniversity, stopPositionTracking]);
@@ -264,15 +382,25 @@ const CampusCompass = () => {
     // Handle location selection
     const handleLocationSelect = useCallback((loc) => {
         setSelectedLocation(loc);
+        setIsBottomSheetExpanded(false);
+        
+        // If we're already navigating to this location, keep it active
+        if (isNavigating && activeDestination?.id === loc.id) {
+            return;
+        }
+        
+        // Otherwise, reset navigation state
         setIsNavigating(false);
         setDirections(null);
+        setActiveDestination(null);
         stopPositionTracking();
-    }, [stopPositionTracking]);
+    }, [isNavigating, activeDestination, stopPositionTracking]);
 
     // Start navigation
     const startNavigation = useCallback(() => {
         if (selectedLocation && userPosition) {
             setIsNavigating(true);
+            setActiveDestination(selectedLocation);
             calculateRoute(userPosition, selectedLocation.position);
             startPositionTracking();
         }
@@ -281,6 +409,7 @@ const CampusCompass = () => {
     // Stop navigation
     const stopNavigation = useCallback(() => {
         setIsNavigating(false);
+        setActiveDestination(null);
         setDirections(null);
         stopPositionTracking();
     }, [stopPositionTracking]);
@@ -325,6 +454,12 @@ const CampusCompass = () => {
                 window.google.maps.event.trigger(mapRef.current, 'resize');
             }
         }, 100);
+    }, []);
+
+    // Close location details without stopping navigation
+    const closeLocationDetails = useCallback(() => {
+        setSelectedLocation(null);
+        setIsBottomSheetExpanded(false);
     }, []);
 
     return (
@@ -567,9 +702,11 @@ const CampusCompass = () => {
                                         strokeWeight: 2
                                     }}
                                 />
-                                <InfoWindow position={userPosition}>
-                                    <div className="font-medium text-blue-700">Your Location</div>
-                                </InfoWindow>
+                                {!isMobile && (
+                                  <InfoWindow position={userPosition}>
+                                      <div className="font-medium text-blue-700">Your Location</div>
+                                  </InfoWindow>
+                                )}
                             </>
                         )}
 
@@ -583,12 +720,11 @@ const CampusCompass = () => {
                                         url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
                                     }}
                                 />
-                                {selectedLocation?.id === loc.id && (
+                                {!isMobile && selectedLocation?.id === loc.id && (
                                     <InfoWindow 
                                         position={loc.position} 
                                         onCloseClick={() => {
-                                            setSelectedLocation(null);
-                                            stopNavigation();
+                                            closeLocationDetails();
                                         }}
                                     >
                                         <div className="max-w-xs">
@@ -625,8 +761,8 @@ const CampusCompass = () => {
                                             {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
                                             {userPosition && (
                                                 <div className="mt-3 space-y-2">
-                                                    {isNavigating ? (
-                                                        <div className="bg-green-50 p-2 rounded-lg text-center">
+                                                    {isNavigating && activeDestination?.id === loc.id ? (
+                                                        <div className="bg-green-50 p-2 rounded-lg">
                                                             <div className="flex justify-between text-xs mb-1">
                                                                 <span>Distance: {distance}</span>
                                                                 <span>Time: {duration}</span>
@@ -671,6 +807,21 @@ const CampusCompass = () => {
                     </GoogleMap>
                 </LoadScript>
 
+                {/* Mobile Bottom Sheet */}
+                {isMobile && selectedLocation && (
+                    <BottomSheet 
+                        location={selectedLocation}
+                        isNavigating={isNavigating && activeDestination?.id === selectedLocation.id}
+                        distance={distance}
+                        duration={duration}
+                        onStartNavigation={startNavigation}
+                        onStopNavigation={stopNavigation}
+                        onClose={closeLocationDetails}
+                        onToggleExpand={() => setIsBottomSheetExpanded(!isBottomSheetExpanded)}
+                        isExpanded={isBottomSheetExpanded}
+                    />
+                )}
+
                 {/* Loading overlay */}
                 {isLoading && (
                     <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
@@ -682,10 +833,10 @@ const CampusCompass = () => {
                 )}
 
                 {/* Navigation status bar */}
-                {isNavigating && (
+                {isNavigating && activeDestination && !isMobile && (
                     <div className="absolute bottom-4 left-0 right-0 mx-auto bg-white p-3 rounded-lg shadow-lg max-w-md z-10 flex justify-between items-center">
                         <div>
-                            <div className="font-medium">Navigating to {selectedLocation?.name}</div>
+                            <div className="font-medium">Navigating to {activeDestination.name}</div>
                             <div className="text-sm text-gray-600">
                                 {distance} • {duration} • Walking
                             </div>
@@ -700,7 +851,7 @@ const CampusCompass = () => {
                 )}
 
                 {/* Mobile view toggle button */}
-                {isMobile && showMap && (
+                {isMobile && showMap && !selectedLocation && (
                     <button
                         onClick={() => setShowMap(false)}
                         className="absolute top-4 left-4 bg-white p-3 rounded-full shadow-md z-10 text-blue-600 hover:bg-gray-50"
