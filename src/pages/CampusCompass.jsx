@@ -89,6 +89,7 @@ const CampusCompass = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showMap, setShowMap] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [mapPadding, setMapPadding] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
 
@@ -172,6 +173,15 @@ const CampusCompass = () => {
             );
         }
     }, [searchQuery, selectedUniversity]);
+
+    // Update map padding when selected location changes
+    useEffect(() => {
+        if (isMobile && selectedLocation) {
+            setMapPadding({ top: 0, right: 0, bottom: 200, left: 0 }); // Add bottom padding for mobile
+        } else {
+            setMapPadding({ top: 0, right: 0, bottom: 0, left: 0 }); // Reset padding
+        }
+    }, [selectedLocation, isMobile]);
 
     // Handle location selection and directions
     const handleLocationSelect = useCallback((loc) => {
@@ -473,7 +483,8 @@ const CampusCompass = () => {
                                     elementType: "labels",
                                     stylers: [{ visibility: "off" }]
                                 }
-                            ]
+                            ],
+                            padding: mapPadding // Added padding for mobile view
                         }}
                         onLoad={onMapLoad}
                     >
@@ -507,7 +518,7 @@ const CampusCompass = () => {
                                         url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
                                     }}
                                 />
-                                {selectedLocation?.id === loc.id && (
+                                {selectedLocation?.id === loc.id && !isMobile && (
                                     <InfoWindow 
                                         position={loc.position} 
                                         onCloseClick={() => setSelectedLocation(null)}
@@ -562,6 +573,59 @@ const CampusCompass = () => {
                         {directions && <DirectionsRenderer directions={directions} />}
                     </GoogleMap>
                 </LoadScript>
+
+                {/* Mobile Location Card */}
+                {isMobile && selectedLocation && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-2xl p-4 z-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-bold text-blue-700">{selectedLocation.name}</h3>
+                            <button 
+                                onClick={() => setSelectedLocation(null)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{selectedLocation.description}</p>
+                        {selectedLocation.hours && (
+                            <p className="text-sm mb-1">
+                                <span className="font-medium">Hours:</span> {selectedLocation.hours}
+                            </p>
+                        )}
+                        {selectedLocation.popularTimes && (
+                            <div className="mt-2">
+                                <p className="font-medium text-sm mb-1">Popular Times:</p>
+                                <ul className="text-xs space-y-1">
+                                    {selectedLocation.popularTimes.map((t, i) => (
+                                        <li key={i} className="flex items-center">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                            {t}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {selectedLocation.floorPlan && (
+                            <a 
+                                href={selectedLocation.floorPlan} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="inline-block mt-2 text-blue-600 hover:underline text-sm"
+                            >
+                                View Floor Plan
+                            </a>
+                        )}
+                        {selectedLocation.indoorMaps && <FloorPlan indoorMaps={selectedLocation.indoorMaps} />}
+                        {userPosition && (
+                            <button
+                                onClick={handleGetDirections}
+                                className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                            >
+                                <FaDirections className="mr-2" /> Get Directions
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Loading overlay */}
                 {isLoading && (
