@@ -1,6 +1,6 @@
 // src/pages/CampusCompass.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections, FaStop } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaSearch, FaPlus, FaTimes, FaMap, FaList, FaDirections } from 'react-icons/fa';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer, InfoWindow } from '@react-google-maps/api';
 
 // Get API key from environment variables
@@ -89,8 +89,6 @@ const CampusCompass = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showMap, setShowMap] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [isNavigating, setIsNavigating] = useState(false);
-    const [travelMode, setTravelMode] = useState('WALKING');
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
 
@@ -145,7 +143,6 @@ const CampusCompass = () => {
             setSearchQuery('');
             setSelectedLocation(null);
             setDirections(null);
-            setIsNavigating(false);
         }
     }, [selectedUniversity]);
 
@@ -179,12 +176,12 @@ const CampusCompass = () => {
     // Handle location selection and directions
     const handleLocationSelect = useCallback((loc) => {
         setSelectedLocation(loc);
-        if (userPosition && window.google) {
+        if (userPosition) {
             setIsLoading(true);
             setDirections(null);
             
             // Initialize directions service
-            if (!directionsServiceRef.current) {
+            if (!directionsServiceRef.current && window.google) {
                 directionsServiceRef.current = new window.google.maps.DirectionsService();
             }
             
@@ -196,7 +193,11 @@ const CampusCompass = () => {
                         travelMode: 'WALKING' 
                     },
                     (res, status) => {
-                        if (status === 'OK') setDirections(res);
+                        if (status === 'OK') {
+                            setDirections(res);
+                        } else {
+                            console.error('Directions request failed:', status);
+                        }
                         setIsLoading(false);
                     }
                 );
@@ -206,21 +207,12 @@ const CampusCompass = () => {
         }
     }, [userPosition]);
 
-    // Start navigation
-    const startNavigation = useCallback(() => {
-        if (selectedLocation && userPosition) {
-            setIsNavigating(true);
-            if (isMobile) {
-                setShowMap(true);
-            }
+    // Calculate directions on button click
+    const handleGetDirections = useCallback(() => {
+        if (selectedLocation) {
+            handleLocationSelect(selectedLocation);
         }
-    }, [selectedLocation, userPosition, isMobile]);
-
-    // Stop navigation
-    const stopNavigation = useCallback(() => {
-        setIsNavigating(false);
-        setDirections(null);
-    }, []);
+    }, [selectedLocation, handleLocationSelect]);
 
     const toggleFavorite = (id, e) => {
         e.stopPropagation();
@@ -345,27 +337,6 @@ const CampusCompass = () => {
                         </div>
                     </div>
                     
-                    {/* Travel mode selector - Only show when location is selected */}
-                    {selectedLocation && (
-                        <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">Travel Mode</label>
-                            <div className="flex gap-2">
-                                <button 
-                                    onClick={() => setTravelMode('WALKING')}
-                                    className={`flex-1 p-2 border rounded-lg text-center ${travelMode === 'WALKING' ? 'bg-blue-100 border-blue-500' : 'bg-gray-100'}`}
-                                >
-                                    Walking
-                                </button>
-                                <button 
-                                    onClick={() => setTravelMode('DRIVING')}
-                                    className={`flex-1 p-2 border rounded-lg text-center ${travelMode === 'DRIVING' ? 'bg-blue-100 border-blue-500' : 'bg-gray-100'}`}
-                                >
-                                    Driving
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                    
                     {/* Add & Reset */}
                     <div className="flex gap-3">
                         <button
@@ -375,12 +346,7 @@ const CampusCompass = () => {
                             <FaPlus className="mr-2" /> Add Location
                         </button>
                         <button
-                            onClick={() => { 
-                                setSelectedCategory(''); 
-                                setSearchQuery('');
-                                setSelectedLocation(null);
-                                stopNavigation();
-                            }}
+                            onClick={() => { setSelectedCategory(''); setSearchQuery(''); }}
                             className="flex-1 p-2.5 border rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
                         >
                             Reset
@@ -517,7 +483,7 @@ const CampusCompass = () => {
                                 <Marker
                                     position={userPosition}
                                     icon={{
-                                        path: window.google?.maps?.SymbolPath?.CIRCLE || '',
+                                        path: window.google && window.google.maps.SymbolPath.CIRCLE,
                                         scale: 8,
                                         fillColor: '#4285F4',
                                         fillOpacity: 1,
@@ -525,84 +491,77 @@ const CampusCompass = () => {
                                         strokeWeight: 2
                                     }}
                                 />
-                                {!isMobile && (
-                                  <InfoWindow position={userPosition}>
-                                      <div className="font-medium text-blue-700">Your Location</div>
-                                  </InfoWindow>
-                                )}
+                                <InfoWindow position={userPosition}>
+                                    <div className="font-medium text-blue-700">Your Location</div>
+                                </InfoWindow>
                             </>
                         )}
 
-                        {/* Destination marker */}
-                        {selectedLocation && (
-                            <Marker 
-                                position={selectedLocation.position} 
-                                icon={{
-                                    url: `https://maps.google.com/mapfiles/ms/icons/red-dot.png`
-                                }}
-                            />
-                        )}
+                        {/* Campus markers and InfoWindows */}
+                        {locations.map(loc => (
+                            <React.Fragment key={loc.id}>
+                                <Marker 
+                                    position={loc.position} 
+                                    onClick={() => handleLocationSelect(loc)}
+                                    icon={{
+                                        url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
+                                    }}
+                                />
+                                {selectedLocation?.id === loc.id && (
+                                    <InfoWindow 
+                                        position={loc.position} 
+                                        onCloseClick={() => setSelectedLocation(null)}
+                                    >
+                                        <div className="max-w-xs">
+                                            <h3 className="font-bold text-blue-700 mb-1">{loc.name}</h3>
+                                            <p className="text-sm text-gray-600 mb-2">{loc.description}</p>
+                                            {loc.hours && (
+                                                <p className="text-sm mb-1">
+                                                    <span className="font-medium">Hours:</span> {loc.hours}
+                                                </p>
+                                            )}
+                                            {loc.popularTimes && (
+                                                <div className="mt-2">
+                                                    <p className="font-medium text-sm mb-1">Popular Times:</p>
+                                                    <ul className="text-xs space-y-1">
+                                                        {loc.popularTimes.map((t, i) => (
+                                                            <li key={i} className="flex items-center">
+                                                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                                                {t}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {loc.floorPlan && (
+                                                <a 
+                                                    href={loc.floorPlan} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="inline-block mt-2 text-blue-600 hover:underline text-sm"
+                                                >
+                                                    View Floor Plan
+                                                </a>
+                                            )}
+                                            {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
+                                            {userPosition && (
+                                                <button
+                                                    onClick={handleGetDirections}
+                                                    className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                                                >
+                                                    <FaDirections className="mr-2" /> Get Directions
+                                                </button>
+                                            )}
+                                        </div>
+                                    </InfoWindow>
+                                )}
+                            </React.Fragment>
+                        ))}
 
                         {/* Directions */}
-                        {directions && <DirectionsRenderer 
-                            directions={directions}
-                            options={{
-                                polylineOptions: {
-                                    strokeColor: '#4285F4',
-                                    strokeOpacity: 0.8,
-                                    strokeWeight: 6
-                                },
-                                suppressMarkers: true
-                            }}
-                        />}
+                        {directions && <DirectionsRenderer directions={directions} />}
                     </GoogleMap>
                 </LoadScript>
-
-                {/* Navigation controls */}
-                {selectedLocation && !isNavigating && (
-                    <div className="absolute bottom-4 left-0 right-0 mx-auto bg-white p-4 rounded-lg shadow-lg max-w-md z-10">
-                        <div className="flex justify-between items-center mb-3">
-                            <div>
-                                <h3 className="font-bold">{selectedLocation.name}</h3>
-                                <p className="text-sm text-gray-600">Select travel mode and start navigation</p>
-                            </div>
-                            <button 
-                                onClick={() => setSelectedLocation(null)}
-                                className="text-gray-500 hover:text-gray-700"
-                            >
-                                <FaTimes />
-                            </button>
-                        </div>
-                        <button
-                            onClick={startNavigation}
-                            className="w-full flex items-center justify-center bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            <FaDirections className="mr-2" /> Start Navigation ({travelMode})
-                        </button>
-                    </div>
-                )}
-
-                {/* Active navigation panel */}
-                {isNavigating && selectedLocation && (
-                    <div className="absolute bottom-4 left-0 right-0 mx-auto bg-white p-4 rounded-lg shadow-lg max-w-md z-10">
-                        <div className="flex justify-between items-center mb-3">
-                            <div>
-                                <h3 className="font-bold">Navigating to {selectedLocation.name}</h3>
-                                <p className="text-sm text-gray-600">Follow the blue line on the map</p>
-                            </div>
-                            <button 
-                                onClick={stopNavigation}
-                                className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
-                            >
-                                <FaStop />
-                            </button>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg text-center">
-                            <div className="font-medium text-blue-700">Keep following the route</div>
-                            <div className="text-sm mt-1">The blue line shows your path</div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Loading overlay */}
                 {isLoading && (
@@ -615,7 +574,7 @@ const CampusCompass = () => {
                 )}
 
                 {/* Mobile view toggle button */}
-                {isMobile && showMap && !selectedLocation && (
+                {isMobile && showMap && (
                     <button
                         onClick={() => setShowMap(false)}
                         className="absolute top-4 left-4 bg-white p-3 rounded-full shadow-md z-10 text-blue-600 hover:bg-gray-50"
