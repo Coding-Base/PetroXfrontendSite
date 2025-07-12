@@ -76,7 +76,7 @@ export default function AppRouter() {
         },
         {
           path: "/campus-navigator",
-          element: <CampusCompass />,
+          element: <CampusNavigator />,
         },
         {
           path: 'settings',
