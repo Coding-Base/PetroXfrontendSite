@@ -607,9 +607,9 @@ const CampusCompass = () => {
                     </GoogleMap>
                 </LoadScript>
 
-                {/* Mobile Location Card */}
+                {/* Mobile Location Card - Get Directions button at top */}
                 {isMobile && selectedLocation && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-2xl p-4 z-10">
+                    <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-2xl p-4 z-10 max-h-[80vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="font-bold text-blue-700">{selectedLocation.name}</h3>
                             <button 
@@ -619,6 +619,31 @@ const CampusCompass = () => {
                                 <FaTimes />
                             </button>
                         </div>
+                        
+                        {/* Get Directions button at the top */}
+                        {userPosition && (
+                            <button
+                                onClick={handleGetDirections}
+                                className="mt-2 mb-3 w-full flex items-center justify-center bg-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <span className="flex items-center">
+                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                        Calculating...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center">
+                                        <FaDirections className="mr-2" /> Get Directions
+                                    </span>
+                                )}
+                            </button>
+                        )}
+                        
+                        {directionsError && (
+                            <p className="text-red-500 text-xs mb-3 text-center">{directionsError}</p>
+                        )}
+                        
                         <p className="text-sm text-gray-600 mb-2">{selectedLocation.description}</p>
                         {selectedLocation.hours && (
                             <p className="text-sm mb-1">
@@ -649,27 +674,6 @@ const CampusCompass = () => {
                             </a>
                         )}
                         {selectedLocation.indoorMaps && <FloorPlan indoorMaps={selectedLocation.indoorMaps} />}
-                        {userPosition && (
-                            <button
-                                onClick={handleGetDirections}
-                                className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <span className="flex items-center">
-                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                        Calculating...
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center">
-                                        <FaDirections className="mr-2" /> Get Directions
-                                    </span>
-                                )}
-                            </button>
-                        )}
-                        {directionsError && (
-                            <p className="text-red-500 text-xs mt-2 text-center">{directionsError}</p>
-                        )}
                     </div>
                 )}
 
