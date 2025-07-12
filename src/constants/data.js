@@ -8,7 +8,7 @@ export const navItems = [
   {
     title: "Campus Navigator",
     icon: "Compass",
-    href: "/campus-navigator",
+    href: "/dashboard/campus-navigator",
     disabled: false,
   },
   {

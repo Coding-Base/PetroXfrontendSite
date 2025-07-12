@@ -75,7 +75,7 @@ export default function AppRouter() {
           element: <Chat />
         },
         {
-          path: "/campus-navigator",
+          path: "campus-navigator",
           element: <CampusNavigator />,
         },
         {
