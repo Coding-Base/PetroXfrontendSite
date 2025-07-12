@@ -216,8 +216,10 @@ const futoLocations = [
   }
 ];
 
+
 const universities = [
-  {
+  // ... (all your universities including UI)
+   {
     id: 'futo',
     name: 'Federal University of Technology Owerri (FUTO)',
     location: { lat: 5.3875, lng: 7.0353 },
@@ -415,7 +417,7 @@ const MapComponent = ({
           backgroundColor: '#f0f0f0'
         }}
       >
-        {/* User Location Marker */}
+        {/* User Location Marker with fixed InfoWindow */}
         {userPosition && (
           <Marker 
             position={userPosition}
@@ -447,7 +449,6 @@ const MapComponent = ({
             onClick={() => handleLocationSelect(location)}
             icon={getMarkerIcon(location.category)}
           >
-            {/* InfoWindow attached directly to Marker */}
             {selectedLocation && selectedLocation.id === location.id && mapLoaded && (
               <InfoWindow onCloseClick={() => handleLocationSelect(null)}>
                 <div className="p-2 max-w-xs">
@@ -541,27 +542,33 @@ const CampusCompass = () => {
     floorPlan: ''
   });
   
-  // Get user location
+  // Get user location - fixed with proper error handling
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserPosition({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          // Default to FUTO position if location access denied
-          setUserPosition({ lat: 5.3875, lng: 7.0353 });
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      // Default to FUTO position if geolocation not supported
-      setUserPosition({ lat: 5.3875, lng: 7.0353 });
-    }
+    const getUserLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserPosition({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            // Default to FUTO position if location access denied
+            setUserPosition({ lat: 5.3875, lng: 7.0353 });
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        // Default to FUTO position if geolocation not supported
+        setUserPosition({ lat: 5.3875, lng: 7.0353 });
+      }
+    };
+
+    // Add a slight delay to ensure components are mounted
+    const locationTimer = setTimeout(getUserLocation, 500);
+    return () => clearTimeout(locationTimer);
   }, []);
 
   // Load favorites from localStorage
@@ -616,19 +623,20 @@ const CampusCompass = () => {
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
     
-    if (userPosition && typeof google !== 'undefined' && google.maps) {
+    // Only calculate directions if user position is available and maps are loaded
+    if (userPosition && window.google && window.google.maps) {
       setIsLoading(true);
       
       setTimeout(() => {
-        const directionsService = new google.maps.DirectionsService();
+        const directionsService = new window.google.maps.DirectionsService();
         directionsService.route(
           {
             origin: userPosition,
             destination: location.position,
-            travelMode: google.maps.TravelMode.WALKING
+            travelMode: window.google.maps.TravelMode.WALKING
           },
           (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
+            if (status === window.google.maps.DirectionsStatus.OK) {
               setDirections(result);
             } else {
               console.error(`Directions request failed: ${status}`);
