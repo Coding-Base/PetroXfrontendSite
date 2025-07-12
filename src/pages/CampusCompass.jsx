@@ -446,74 +446,73 @@ const MapComponent = ({
             position={location.position}
             onClick={() => handleLocationSelect(location)}
             icon={getMarkerIcon(location.category)}
-          />
-        ))}
-        
-        {/* Selected Location Info - FIXED: Added position prop */}
-        {selectedLocation && mapLoaded && selectedLocation.position && (
-          <InfoWindow
-            position={selectedLocation.position} // This is required
-            onCloseClick={() => handleLocationSelect(null)}
           >
-            <div className="p-2 max-w-xs">
-              <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
-              <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
-              
-              <div className="mb-2">
-                <p className="font-medium text-sm">Hours:</p>
-                <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
-              </div>
-              
-              {selectedLocation.popularTimes && (
-                <div className="mb-2">
-                  <p className="font-medium text-sm">Popular Times:</p>
-                  <div className="space-y-1 mt-1">
-                    {selectedLocation.popularTimes.map((time, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-2 ${
-                          time.includes('Busy') ? 'bg-red-500' : 
-                          time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
-                        }`}></div>
-                        <span className="text-sm">{time}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {selectedLocation.floorPlan && (
-                <div className="mb-2">
-                  <p className="font-medium text-sm">Floor Plan:</p>
-                  <a 
-                    href={selectedLocation.floorPlan} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-blue-600 text-sm hover:underline"
-                  >
-                    View Map
-                  </a>
-                </div>
-              )}
-              
-              {selectedLocation.indoorMaps && (
-                <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
-              )}
-              
-              {selectedLocation.addedBy && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Added by: {selectedLocation.addedBy}
-                </p>
-              )}
-              
-              <button 
-                className="mt-2 text-blue-600 hover:underline text-sm"
-                onClick={() => handleLocationSelect(selectedLocation)}
+            {/* Selected Location Info Window */}
+            {selectedLocation && selectedLocation.id === location.id && mapLoaded && (
+              <InfoWindow
+                onCloseClick={() => handleLocationSelect(null)}
               >
-                Get Directions
-              </button>
-            </div>
-          </InfoWindow>
-        )}
+                <div className="p-2 max-w-xs">
+                  <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
+                  <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
+                  
+                  <div className="mb-2">
+                    <p className="font-medium text-sm">Hours:</p>
+                    <p className="text-sm">{selectedLocation.hours || 'Not specified'}</p>
+                  </div>
+                  
+                  {selectedLocation.popularTimes && (
+                    <div className="mb-2">
+                      <p className="font-medium text-sm">Popular Times:</p>
+                      <div className="space-y-1 mt-1">
+                        {selectedLocation.popularTimes.map((time, i) => (
+                          <div key={i} className="flex items-center">
+                            <div className={`w-3 h-3 rounded-full mr-2 ${
+                              time.includes('Busy') ? 'bg-red-500' : 
+                              time.includes('Moderate') ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}></div>
+                            <span className="text-sm">{time}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedLocation.floorPlan && (
+                    <div className="mb-2">
+                      <p className="font-medium text-sm">Floor Plan:</p>
+                      <a 
+                        href={selectedLocation.floorPlan} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-blue-600 text-sm hover:underline"
+                      >
+                        View Map
+                      </a>
+                    </div>
+                  )}
+                  
+                  {selectedLocation.indoorMaps && (
+                    <FloorPlan indoorMaps={selectedLocation.indoorMaps} />
+                  )}
+                  
+                  {selectedLocation.addedBy && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Added by: {selectedLocation.addedBy}
+                    </p>
+                  )}
+                  
+                  <button 
+                    className="mt-2 text-blue-600 hover:underline text-sm"
+                    onClick={() => handleLocationSelect(selectedLocation)}
+                  >
+                    Get Directions
+                  </button>
+                </div>
+              </InfoWindow>
+            )}
+          </Marker>
+        ))}
         
         {/* Directions */}
         {directions && mapLoaded && (
