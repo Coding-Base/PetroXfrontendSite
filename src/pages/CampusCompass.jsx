@@ -96,7 +96,7 @@ const futoLocations = [
     hours: 'Mon-Sat: 6am-8pm',
     popularTimes: ['4-6pm: Very Busy']
   },
-  // New locations added here
+  // New locations
   {
     id: 'futo-cafe',
     name: 'FUTO Café',
@@ -439,7 +439,7 @@ const MapComponent = ({
           </Marker>
         )}
         
-        {/* University Locations */}
+        {/* University Locations with InfoWindows */}
         {locations.map(location => (
           <Marker
             key={location.id}
@@ -447,11 +447,9 @@ const MapComponent = ({
             onClick={() => handleLocationSelect(location)}
             icon={getMarkerIcon(location.category)}
           >
-            {/* Selected Location Info Window */}
+            {/* InfoWindow attached directly to Marker */}
             {selectedLocation && selectedLocation.id === location.id && mapLoaded && (
-              <InfoWindow
-                onCloseClick={() => handleLocationSelect(null)}
-              >
+              <InfoWindow onCloseClick={() => handleLocationSelect(null)}>
                 <div className="p-2 max-w-xs">
                   <h3 className="font-bold text-lg text-gray-800">{selectedLocation.name}</h3>
                   <p className="text-gray-700 mb-2">{selectedLocation.description}</p>
