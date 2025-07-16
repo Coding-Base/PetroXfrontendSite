@@ -108,7 +108,7 @@ export default function ToolsPage({ onBack }) {
           </div>
           <div className="overflow-auto" style={{ height: 'calc(100vh - 200px)' }}>
             <iframe
-              src="https://wordgame-70j8.onrender.com/"
+              src="https://wordgame-70j8.onrender.com/game"
               title="Word Game"
               className="w-full h-full min-h-[500px] border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
