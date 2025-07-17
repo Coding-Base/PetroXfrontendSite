@@ -18,7 +18,7 @@ const ErrorFallback = ({ error }) => {
       role="alert"
     >
       <h2 className="text-2xl font-semibold">
-        Ooops, something went wrong :({' '}
+        Ooops, something went wrong :({' '})
       </h2>
       <pre className="text-2xl font-bold">{error.message}</pre>
       <pre>{error.stack}</pre>

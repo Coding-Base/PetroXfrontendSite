@@ -91,7 +91,6 @@ const CampusCompass = () => {
     const [isMobile, setIsMobile] = useState(false);
     const [mapPadding, setMapPadding] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
     const [directionsError, setDirectionsError] = useState(null);
-    const [mapLoaded, setMapLoaded] = useState(false); // Track if map is loaded
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
 
@@ -200,7 +199,6 @@ const CampusCompass = () => {
     // Initialize directions service when map loads
     const onMapLoad = useCallback((map) => {
         mapRef.current = map;
-        setMapLoaded(true); // Mark map as loaded
         if (window.google) {
             directionsServiceRef.current = new window.google.maps.DirectionsService();
             
@@ -211,7 +209,7 @@ const CampusCompass = () => {
         }
     }, []);
 
-    // Calculate directions - FIXED: Ensure service is available
+    // Calculate directions
     const calculateDirections = useCallback((destination) => {
         if (!userPosition || !destination) return;
         
@@ -219,53 +217,36 @@ const CampusCompass = () => {
         setDirections(null);
         setDirectionsError(null);
         
-        // Ensure the directions service is available
-        if (window.google && window.google.maps) {
-            // Create service if not exists
-            if (!directionsServiceRef.current) {
-                directionsServiceRef.current = new window.google.maps.DirectionsService();
-            }
-            
-            if (directionsServiceRef.current) {
-                directionsServiceRef.current.route(
-                    { 
-                        origin: userPosition, 
-                        destination: destination.position, 
-                        travelMode: 'WALKING' 
-                    },
-                    (res, status) => {
-                        setIsLoading(false);
-                        if (status === 'OK') {
-                            setDirections(res);
-                        } else {
-                            console.error('Directions request failed:', status);
-                            setDirectionsError('Could not calculate directions. Please try again.');
-                        }
-                    }
-                );
-            } else {
-                setIsLoading(false);
-                setDirectionsError('Directions service not available');
-            }
-        } else {
+        if (!directionsServiceRef.current) {
             setIsLoading(false);
-            setDirectionsError('Google Maps not loaded. Please wait and try again.');
+            setDirectionsError('Directions service not available');
+            return;
         }
+
+        directionsServiceRef.current.route(
+            { 
+                origin: userPosition, 
+                destination: destination.position, 
+                travelMode: 'WALKING' 
+            },
+            (res, status) => {
+                setIsLoading(false);
+                if (status === 'OK') {
+                    setDirections(res);
+                } else {
+                    console.error('Directions request failed:', status);
+                    setDirectionsError('Could not calculate directions. Please try again.');
+                }
+            }
+        );
     }, [userPosition]);
 
-    // Handle location selection - FIXED: Only calculate if map is loaded
+    // Handle location selection
     const handleLocationSelect = useCallback((loc) => {
         setSelectedLocation(loc);
         if (isMobile) setShowMap(true);
-        
-        // Only calculate directions if map is loaded
-        if (mapLoaded) {
-            calculateDirections(loc);
-        } else {
-            // If map isn't loaded, set a small delay to allow loading
-            setTimeout(() => calculateDirections(loc), 500);
-        }
-    }, [calculateDirections, isMobile, mapLoaded]);
+        calculateDirections(loc);
+    }, [calculateDirections, isMobile]);
 
     // Handle get directions button click
     const handleGetDirections = useCallback(() => {

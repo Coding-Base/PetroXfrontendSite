@@ -1,6 +1,7 @@
 import NotFound from '../pages/NotFound';
-import { Suspense, lazy } from 'react';
-import { Navigate, Outlet, useRoutes } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
+import { Navigate, Outlet, useRoutes, useLocation } from 'react-router-dom';
+import { logPageView } from '../utils/analytics'; // Import logPageView
 
 const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
@@ -22,6 +23,17 @@ const Tools = lazy(() => import('../Layouts/ToolPage'));
 const NotFounds = lazy(() => import('../pages/NotFound'));
 // ----------------------------------------------------------------------
 
+// Create a component to track page views
+function TrackPageViews() {
+  const location = useLocation();
+
+  useEffect(() => {
+    logPageView();
+  }, [location]);
+
+  return null; // This component doesn't render anything
+}
+
 export default function AppRouter() {
   const dashboardRoutes = [
     {
@@ -29,6 +41,7 @@ export default function AppRouter() {
       element: (
         <NewDashboardLayout>
           <Suspense>
+            <TrackPageViews /> {/* Add tracker here */}
             <Outlet />
           </Suspense>
         </NewDashboardLayout>
@@ -89,17 +102,32 @@ export default function AppRouter() {
   const publicRoutes = [
     {
       path: '/',
-      element: <LandingPage />,
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here too */}
+          <LandingPage />
+        </>
+      ),
       index: true
     },
     {
       path: '/login',
-      element: <SignIn />,
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here */}
+          <SignIn />
+        </>
+      ),
       index: true
     },
     {
       path: '/signup',
-      element: <SignUp />,
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here */}
+          <SignUp />
+        </>
+      ),
       index: true
     },
     {
@@ -111,9 +139,14 @@ export default function AppRouter() {
       element: <Navigate to="/404" replace />
     },
     {
-    path: '/group-test/:testId', // <-- Add this line!
-    element: <GroupTestPage />
-  },
+      path: '/group-test/:testId',
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here */}
+          <GroupTestPage />
+        </>
+      )
+    },
   ];
 
   const routes = useRoutes([...dashboardRoutes, ...publicRoutes]);
