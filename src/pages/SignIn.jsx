@@ -24,31 +24,59 @@ export default function SignIn() {
       setError('');
       
       try {
+        console.log("Google auth code received:", codeResponse.code);
+        
         // Send code to your backend
         const response = await fetch('/api/auth/google/', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'  // Important for Django
           },
           body: JSON.stringify({ code: codeResponse.code })
         });
 
-        const data = await response.json();
+        console.log("Google auth response status:", response.status);
         
-        if (response.ok) {
-          handleLoginSuccess(data);
-        } else {
-          throw new Error(data.detail || 'Google authentication failed');
+        // Handle empty responses
+        const responseText = await response.text();
+        console.log("Raw response text:", responseText);
+        
+        if (!responseText) {
+          throw new Error('Server returned empty response');
         }
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error(`Invalid JSON response: ${e.message}`);
+        }
+        
+        if (!response.ok) {
+          const errorMessage = data.message || 
+                               data.detail || 
+                               data.error ||
+                               `Google authentication failed (${response.status})`;
+          throw new Error(errorMessage);
+        }
+
+        // Ensure we have the expected data structure
+        if (!data.access || !data.user) {
+          throw new Error('Invalid response structure from server');
+        }
+
+        handleLoginSuccess(data);
       } catch (err) {
+        console.error("Google login error:", err);
         setError(err.message || 'Failed to authenticate with Google');
       } finally {
         setIsGoogleLoading(false);
       }
     },
     onError: (errorResponse) => {
+      console.error("Google login error:", errorResponse);
       setError('Google login failed. Please try again.');
-      console.error('Google Login Error:', errorResponse);
     }
   });
 
