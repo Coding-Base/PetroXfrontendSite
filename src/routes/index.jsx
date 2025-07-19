@@ -21,6 +21,9 @@ const PetroMarkAI = lazy(() => import('../pages/Petromark'));
 const MaterialsManagement = lazy(() => import('../pages/MaterialsManagement'));
 const Tools = lazy(() => import('../Layouts/ToolPage'));
 const NotFounds = lazy(() => import('../pages/NotFound'));
+const AboutPage = lazy(() => import('../pages/AboutPage'));
+const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
+
 // ----------------------------------------------------------------------
 
 // Create a component to track page views
@@ -106,6 +109,26 @@ export default function AppRouter() {
         <>
           <TrackPageViews /> {/* Add tracker here too */}
           <LandingPage />
+        </>
+      ),
+      index: true
+    },
+     {
+      path: '/about',
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here too */}
+          <AboutPage />
+        </>
+      ),
+      index: true
+    },
+     {
+      path: '/policies',
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here too */}
+          <PoliciesPage />
         </>
       ),
       index: true

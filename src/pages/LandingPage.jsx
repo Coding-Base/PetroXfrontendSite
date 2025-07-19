@@ -1,4 +1,3 @@
-// src/components/LandingPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -8,38 +7,51 @@ import {
   FaCalculator,
   FaFileUpload,
   FaGraduationCap,
-  FaRobot
+  FaRobot,
+  FaCompass,
+  FaClipboardList,
+  FaDownload,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 import image1 from '../images/land1.png';
 import image2 from '../images/land2.png';
+
 const LandingPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [stats, setStats] = useState({ users: 0, questions: 0, downloads: 0 });
   const observer = useRef(null);
 
   const slides = [
     {
-      title: 'Elevate Your Academic Journey',
-      subtitle: 'Access premium study materials and collaborative tools',
-      image: image1
+      title: 'Navigate Your Academic Journey',
+      subtitle: 'Campus compass, study resources, and AI-powered learning',
+      image: 'https://wordinblack.com/wp-content/uploads/2024/09/GettyImages-2172168002-scaled.jpg'
     },
     {
       title: 'Master Your Subjects',
       subtitle: 'Personalized learning with PetroMark AI assistant',
-      image: image2
+      image: 'https://plus.unsplash.com/premium_photo-1683135216954-ab7130031b44?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmxhY2slMjBzdHVkZW50c3xlbnwwfHwwfHx8MA%3D%3D'
     },
     {
-      title: 'Collaborate & Succeed',
-      subtitle: 'Create group tests and study with peers',
-      image: image1
+      title: 'Access 482+ Past Questions',
+      subtitle: 'Comprehensive exam preparation resources',
+      image: 'https://www.shutterstock.com/image-photo/waist-portrait-female-africaamerican-student-600nw-2026190900.jpg'
     }
   ];
+  
   // Preloader effect
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
+      // Simulate loading stats
+      setStats({
+        users: 80,
+        questions: 482,
+        downloads: 14
+      });
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -162,6 +174,18 @@ const LandingPage = () => {
             >
               Testimonials
             </a>
+            <Link
+              to="/about"
+              className="text-gray-200 transition-colors hover:text-white"
+            >
+              About
+            </Link>
+            <Link
+              to="/policies"
+              className="text-gray-200 transition-colors hover:text-white"
+            >
+              Policies
+            </Link>
           </div>
 
           <div>
@@ -177,7 +201,7 @@ const LandingPage = () => {
         {/* Hero Content */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
           <div className="max-w-4xl">
-            <h1 className="mb-6 text-4xl leading-tight font-bold text-white md:text-5xl">
+            <h1 className="mb-6 text-4xl font-bold leading-tight text-white md:text-5xl">
               {slides[currentSlide].title}
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-xl text-gray-200">
@@ -216,6 +240,32 @@ const LandingPage = () => {
           ))}
         </div>
       </header>
+
+      {/* Stats Section */}
+      <section className="bg-gradient-to-r from-indigo-600 to-indigo-800 py-12 text-white">
+        <div className="mx-auto max-w-6xl px-6 md:px-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="text-center">
+              <div className="text-4xl font-bold md:text-5xl">
+                {stats.users.toLocaleString()}+
+              </div>
+              <div className="mt-2 text-lg font-medium">Active Students</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold md:text-5xl">
+                {stats.questions.toLocaleString()}+
+              </div>
+              <div className="mt-2 text-lg font-medium">Past Questions</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold md:text-5xl">
+                {stats.downloads.toLocaleString()}+
+              </div>
+              <div className="mt-2 text-lg font-medium">Resources Downloaded</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Features Section */}
       <section
@@ -330,6 +380,85 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Academic Resources Section */}
+      <section className="bg-white px-6 py-20 md:px-12">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-3xl font-bold text-gray-800 md:text-4xl">
+              Academic Resources
+            </h2>
+            <p className="mx-auto max-w-2xl text-gray-600">
+              Comprehensive tools for exam preparation and campus navigation
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <FaCompass className="text-2xl" />
+              </div>
+              <h3 className="mb-4 text-xl font-bold text-gray-800">Campus Compass</h3>
+              <p className="mb-6 text-gray-600">
+                Never get lost on campus again. Our interactive campus map helps you find classrooms, libraries, and facilities with ease.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Navigation
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Real-time
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Interactive Map
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <FaClipboardList className="text-2xl" />
+              </div>
+              <h3 className="mb-4 text-xl font-bold text-gray-800">Online Tests</h3>
+              <p className="mb-6 text-gray-600">
+                Create and take timed exams, invite friends to join, and get instant results with detailed performance analytics.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Timed Exams
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Collaborate
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  Analytics
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <FaDownload className="text-2xl" />
+              </div>
+              <h3 className="mb-4 text-xl font-bold text-gray-800">Resource Library</h3>
+              <p className="mb-6 text-gray-600">
+                Access our collection of 482+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  PDF Downloads
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  482+ Resources
+                </span>
+                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  All Subjects
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section
         id="testimonials"
@@ -388,7 +517,7 @@ const LandingPage = () => {
             <div className="lg:w-1/2">
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="mb-6 flex items-center">
-                  <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                  <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
                     <FaRobot className="text-xl" />
                   </div>
                   <div>
@@ -526,18 +655,40 @@ const LandingPage = () => {
             </div>
 
             <div>
-              <h4 className="mb-4 text-lg font-bold text-gray-200">Features</h4>
+              <h4 className="mb-4 text-lg font-bold text-gray-200">Legal</h4>
               <ul className="space-y-2">
-                {featureLinks.map((feature, index) => (
-                  <li key={index}>
-                    <a
-                      href={feature.url}
-                      className="text-gray-400 transition-colors hover:text-white"
-                    >
-                      {feature.name}
-                    </a>
-                  </li>
-                ))}
+                <li>
+                  <Link
+                    to="/policies"
+                    className="text-gray-400 transition-colors hover:text-white"
+                  >
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/policies"
+                    className="text-gray-400 transition-colors hover:text-white"
+                  >
+                    Terms & Conditions
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/about"
+                    className="text-gray-400 transition-colors hover:text-white"
+                  >
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/about#contact"
+                    className="text-gray-400 transition-colors hover:text-white"
+                  >
+                    Contact
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -596,11 +747,11 @@ const features = [
     tags: ['Real-time', 'Study Groups', 'Collaboration']
   },
   {
-    icon: <FaCalculator />,
-    title: 'GP Calculator',
+    icon: <FaCompass />,
+    title: 'Campus Compass',
     description:
-      'Calculate your GPA and CGPA instantly with our academic calculator.',
-    tags: ['GPA', 'CGPA', 'Tracking']
+      'Navigate campus with our interactive map and location services.',
+    tags: ['Navigation', 'Maps', 'Location']
   },
   {
     icon: <FaFileUpload />,
@@ -612,7 +763,7 @@ const features = [
   {
     icon: <FaGraduationCap />,
     title: 'Past Questions',
-    description: 'Access past exam questions with solutions and analytics.',
+    description: 'Access 482+ past exam questions with solutions and analytics.',
     tags: ['Exams', 'Solutions', 'Analytics']
   }
 ];
@@ -631,6 +782,10 @@ const steps = [
     description: 'Connect with peers and create collaborative sessions'
   },
   {
+    title: 'Take Tests & Download',
+    description: 'Complete exams and download resources'
+  },
+  {
     title: 'Track Progress',
     description: 'Use our tools to monitor your academic journey'
   }
@@ -641,19 +796,26 @@ const testimonials = [
     name: 'Sarah Johnson',
     role: 'Medical Student',
     quote:
-      'PetroX transformed how I prepare for exams. The group tests feature helped me collaborate effectively.'
+      'The campus compass saved me so much time finding my classes. PetroX transformed how I navigate campus and prepare for exams.'
   },
   {
     name: 'David Chen',
     role: 'Engineering Student',
     quote:
-      'The GP calculator and PetroMark AI have been game-changers. Improved my GPA significantly.'
+      'I downloaded 42 past questions last semester. The GP calculator and PetroMark AI helped me improve my GPA significantly.'
   },
   {
     name: 'Amanda Rodriguez',
     role: 'Law Student',
     quote:
-      'Finding quality study materials used to take hours. With PetroX, everything is in one place.'
+      'Creating group tests with friends made studying enjoyable. Finding quality study materials used to take hours. With PetroX, everything is in one place.'
+  },
+  {
+    name: 'GIDEON OJUMIRAYO A.',
+    role: 'Geology Student',
+    quote:
+      'The website is an excellent resource for students, especially those in 100 level. The tests provided are well-structured, engaging, and highly beneficial for academic growth. I truly appreciate the platform — its a great tool that supports learning and helps students prepare effectively, especially for 100L students'
+
   }
 ];
 
@@ -663,7 +825,9 @@ const aiFeatures = [
   'Study Planning',
   'Practice Questions',
   'Research Assistance',
-  'Exam Preparation'
+  'Exam Preparation',
+  'Essay Feedback',
+  'Concept Mapping'
 ];
 
 const aiBenefits = [
@@ -671,29 +835,24 @@ const aiBenefits = [
   'Instant answers to complex questions',
   'Adaptive learning paths based on progress',
   'Comprehensive explanations with examples',
-  'Study recommendations based on syllabus'
+  'Study recommendations based on syllabus',
+  'Exam preparation strategies'
 ];
 
 const socialLinks = [
-  { name: 'Facebook', icon: 'FB', url: '#' },
-  { name: 'Twitter', icon: 'TW', url: '#' },
-  { name: 'Instagram', icon: 'IG', url: '#' },
-  { name: 'LinkedIn', icon: 'IN', url: '#' }
+  { name: 'Facebook', icon: 'FB', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Twitter', icon: 'TW', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Instagram', icon: 'IG', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'LinkedIn', icon: 'IN', url: 'https://petrox-test-frontend.onrender.com/login' }
 ];
 
 const resources = [
-  { name: 'Blog', url: '#' },
-  { name: 'Help Center', url: '#' },
-  { name: 'Community', url: '#' },
-  { name: 'Study Guides', url: '#' }
-];
-
-const featureLinks = [
-  { name: 'Study Materials', url: '#' },
-  { name: 'Group Tests', url: '#' },
-  { name: 'Live Chat', url: '#' },
-  { name: 'GP Calculator', url: '#' },
-  { name: 'PetroMark AI', url: '#' }
+  { name: 'Blog', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Help Center', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Community', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Study Guides', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Past Questions', url: 'https://petrox-test-frontend.onrender.com/login' },
+  { name: 'Campus Map', url: 'https://petrox-test-frontend.onrender.com/login' }
 ];
 
 export default LandingPage;
