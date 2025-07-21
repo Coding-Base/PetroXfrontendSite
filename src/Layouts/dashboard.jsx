@@ -642,8 +642,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+         <AffiliateDeals />
       </div>
-      <AffiliateDeals />
+     
     </div>
   );
 }
