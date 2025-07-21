@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fa';
 import image1 from '../images/land1.png';
 import image2 from '../images/land2.png';
+import Affilate from './AffilateDeals';
 
 const LandingPage = () => {
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ const LandingPage = () => {
     {
       title: 'Access 482+ Past Questions',
       subtitle: 'Comprehensive exam preparation resources',
-      image: 'https://www.shutterstock.com/image-photo/waist-portrait-female-africaamerican-student-600nw-2026190900.jpg'
+      image: image1,
     }
   ];
   
@@ -266,7 +267,7 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
+<Affilate/>
       {/* Features Section */}
       <section
         style={{ marginTop: '-900px' }}

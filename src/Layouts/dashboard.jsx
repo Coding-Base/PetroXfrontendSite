@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AboutPage from '@/pages/AboutPage';
 import { 
   startTest, 
   fetchLeaderboard,
@@ -22,6 +23,7 @@ import {
 } from 'chart.js';
 import logo from "../images/whitelogo.png";
 import {Button} from '../components/ui/button'
+import AffiliateDeals from '@/pages/AffilateDeals';
 
 // Register chart components
 ChartJS.register(
@@ -641,6 +643,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      <AffiliateDeals />
     </div>
   );
 }

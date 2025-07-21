@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { motion } from 'framer-motion';
 import { X, Plus, ArrowLeft } from 'lucide-react';
-
+import AffiliateDeals from '@/pages/AffilateDeals';
 export default function ToolsPage({ onBack }) {
   const [showGame, setShowGame] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -282,6 +282,7 @@ export default function ToolsPage({ onBack }) {
           <p>More utilities coming soon...</p>
         </div>
       )}
+      <AffiliateDeals />
     </div>
   );
 }
