@@ -119,6 +119,9 @@ const LandingPage = () => {
   }
 
   return (
+    <head>
+      <meta name='impact-site-verification' value='a977c1e2-6cce-4e01-87f7-601ec5a7f8f2'>
+    </head>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="relative h-[90vh] overflow-hidden">
