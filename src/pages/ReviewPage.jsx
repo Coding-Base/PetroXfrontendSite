@@ -228,7 +228,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                         }}
                         className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
                       >
-                        Retake Test
+                       
                       </button>
                       <button
                         onClick={onClose}
