@@ -221,7 +221,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                       >
                         View Answers
                       </button>
-                      <button
+{/*                       <button
                         onClick={() => {
                           onClose();
                           onRetake();
@@ -229,7 +229,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                         className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
                       >
                        
-                      </button>
+                      </button> */}
                       <button
                         onClick={onClose}
                         className="px-5 py-2.5 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
@@ -338,7 +338,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                       >
                         Close Review
                       </button>
-                      <button
+{/*                       <button
                         type="button"
                         className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:opacity-90 font-medium"
                         onClick={() => {
@@ -347,7 +347,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                         }}
                       >
                         Retake Test
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 )}
