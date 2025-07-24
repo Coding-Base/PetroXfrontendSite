@@ -219,7 +219,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                         onClick={() => setActiveView('detailed')}
                         className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
                       >
-                        Review Answers
+                        View Answers
                       </button>
                       <button
                         onClick={() => {
