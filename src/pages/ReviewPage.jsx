@@ -1,4 +1,3 @@
-// ReviewPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -8,6 +7,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
   const [testDetails, setTestDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeView, setActiveView] = useState('summary'); // 'summary' or 'detailed'
 
   // Fetch test results when modal opens
   useEffect(() => {
@@ -40,6 +40,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
   const questions = testDetails?.questions || [];
   const score = testDetails?.score || 0;
   const totalQuestions = testDetails?.question_count || questions.length;
+  const scorePercentage = Math.round((score / totalQuestions) * 100);
 
   // Find option text by key
   const getOptionText = (question, optionKey) => {
@@ -48,6 +49,31 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
     const field = `option_${key.toLowerCase()}`;
     return question[field] || `Option ${key}`;
   };
+
+  // Group questions by section
+  const sections = testDetails?.sections || [];
+  const sectionMap = {};
+  sections.forEach(section => {
+    sectionMap[section.id] = {
+      name: section.name,
+      questions: [],
+      correctCount: 0
+    };
+  });
+
+  questions.forEach((question, index) => {
+    if (sectionMap[question.section]) {
+      sectionMap[question.section].questions.push({
+        ...question,
+        number: index + 1
+      });
+      if (question.is_correct) {
+        sectionMap[question.section].correctCount++;
+      }
+    }
+  });
+
+  const sectionResults = Object.values(sectionMap).filter(section => section.questions.length > 0);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -82,7 +108,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                 >
                   Test Review
                   <p className="mt-1 text-sm font-normal text-gray-500">
-                    Reviewing all questions
+                    {activeView === 'summary' ? 'Performance summary' : 'Reviewing all questions'}
                   </p>
                 </Dialog.Title>
 
@@ -121,25 +147,129 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                       Close
                     </button>
                   </div>
+                ) : activeView === 'summary' ? (
+                  <div className="mt-6">
+                    {/* Overall Score Section */}
+                    <div className="text-center mb-8">
+                      <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                        Overall Score
+                      </h2>
+                      <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-4 mb-3">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full" 
+                          style={{ width: `${scorePercentage}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-lg font-semibold text-gray-700">
+                        You scored: <span className="text-green-600">{scorePercentage}%</span>
+                      </p>
+                      <p className="text-gray-600">
+                        ({score} out of {totalQuestions} questions correct)
+                      </p>
+                    </div>
+
+                    {/* Sections Breakdown */}
+                    <div className="space-y-6">
+                      {sectionResults.map((section, index) => {
+                        const sectionScore = Math.round((section.correctCount / section.questions.length) * 100);
+                        
+                        return (
+                          <div key={index} className="border rounded-lg p-5">
+                            <div className="flex flex-wrap justify-between items-center mb-4">
+                              <h3 className="text-lg font-semibold text-gray-800">{section.name}</h3>
+                              <p className="text-base font-medium">
+                                <span className="text-green-600">{section.correctCount}</span>
+                                <span className="text-gray-600">/{section.questions.length}</span>
+                                <span className="ml-2 text-gray-700">({sectionScore}%)</span>
+                              </p>
+                            </div>
+                            
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                              <div 
+                                className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full" 
+                                style={{ width: `${sectionScore}%` }}
+                              ></div>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium text-gray-700 mb-3">Questions:</h4>
+                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                {section.questions.map(question => (
+                                  <div 
+                                    key={question.id}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                      question.is_correct 
+                                        ? 'bg-gradient-to-br from-green-400 to-green-600' 
+                                        : 'bg-gradient-to-br from-red-400 to-red-600'
+                                    } text-white font-medium shadow-sm`}
+                                  >
+                                    {question.number}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-8 flex flex-wrap justify-center gap-3">
+                      <button
+                        onClick={() => setActiveView('detailed')}
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                      >
+                        Review Answers
+                      </button>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onRetake();
+                        }}
+                        className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                      >
+                        Retake Test
+                      </button>
+                      <button
+                        onClick={onClose}
+                        className="px-5 py-2.5 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                      >
+                        Return to Dashboard
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="mt-6">
-                    <div className="mb-6 flex items-center justify-between">
-                      <div className="rounded-lg bg-blue-50 px-4 py-2">
-                        <span className="font-medium text-blue-800">
-                          {score} / {totalQuestions}
-                        </span>{' '}
-                        questions correct
-                      </div>
-
-                      <div className="rounded-lg bg-red-50 px-4 py-2">
-                        <span className="font-medium text-red-800">
-                          {totalQuestions - score}
-                        </span>{' '}
-                        questions incorrect
+                    {/* Summary Header in Detailed View */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">Overall Performance</h3>
+                          <p className="text-gray-600">
+                            {score} out of {totalQuestions} correct ({scorePercentage}%)
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-center">
+                            <div className="text-green-600 font-bold">{score}</div>
+                            <div className="text-sm text-gray-600">Correct</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-red-600 font-bold">{totalQuestions - score}</div>
+                            <div className="text-sm text-gray-600">Incorrect</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setActiveView('summary')}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          View Summary
+                        </button>
                       </div>
                     </div>
 
-                    <div className="max-h-[60vh] space-y-8 overflow-y-auto py-2 pr-2">
+                    {/* Questions List */}
+                    <div className="max-h-[60vh] space-y-6 overflow-y-auto py-2 pr-2">
                       {questions.map((question, index) => {
                         const correctOption = question.correct_option;
                         return (
@@ -150,9 +280,9 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                             <div className="flex items-start">
                               <div
                                 className={`${
-                                  correctOption
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                  question.is_correct
+                                    ? 'bg-gradient-to-br from-green-400 to-green-600 text-white'
+                                    : 'bg-gradient-to-br from-red-400 to-red-600 text-white'
                                 } mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full font-bold`}
                               >
                                 {index + 1}
@@ -175,7 +305,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                                     <p className="ml-8">
                                       <span className="font-bold">
                                         {correctOption}:
-                                      </span>
+                                      </span>{" "}
                                       {getOptionText(question, correctOption)}
                                     </p>
                                   </div>
@@ -199,20 +329,21 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
                       })}
                     </div>
 
-                    <div className="mt-8 flex justify-end space-x-3 border-t pt-4">
+                    {/* Action Buttons */}
+                    <div className="mt-8 flex flex-wrap justify-end gap-3 border-t pt-4">
                       <button
                         type="button"
-                        className="rounded-lg bg-gray-100 px-6 py-3 transition-colors hover:bg-gray-200"
+                        className="px-5 py-2.5 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-lg hover:opacity-90 font-medium"
                         onClick={onClose}
                       >
                         Close Review
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:opacity-90 font-medium"
                         onClick={() => {
                           onClose();
-                          onRetake(); // Call the retake function
+                          onRetake();
                         }}
                       >
                         Retake Test
