@@ -407,7 +407,7 @@ export default function MaterialsManagement() {
           <div className="hidden md:block">
             <h1 className="text-2xl font-bold text-indigo-900 md:text-3xl">
               Study Materials
-            </h极1>
+            </h1>
             <p className="hidden text-indigo-600 md:block">
               Upload, search, and access learning resources
             </p>
