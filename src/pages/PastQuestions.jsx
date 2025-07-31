@@ -19,7 +19,7 @@ const UploadPassQuestions = () => {
 
   // Generate years from current year back 30 years
   const currentYear = new Date().getFullYear();
-  const years = Array.from({length: 30}, (_, i) => currentYear - i);
+  const years = Array.from({length: 30}, (_, i) => current极Year - i);
 
   // Fetch courses on component mount
   useEffect(() => {
@@ -240,7 +240,7 @@ const UploadPassQuestions = () => {
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
+              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text极gray-500 uppercase tracking-wider">Option D</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
             </tr>
           </thead>
@@ -371,7 +371,8 @@ const UploadPassQuestions = () => {
   }
 
   return (
-    <div className="container bg-gray-50 mx-auto p-2 sm:p-4">      
+    // Added overflow-y-auto to the main container div
+    <div className="container bg-gray-50 mx-auto p-2 sm:p-4 overflow-x-hidden overflow-y-auto">      
       <div className="bg-white rounded-lg shadow-md p-2 sm:p-6">
         <h1 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">
           {step === 1 ? 'Upload Past Questions' : 'Review Questions'}
