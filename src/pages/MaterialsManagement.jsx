@@ -91,7 +91,7 @@ export default function MaterialsManagement() {
         } else if (Array.isArray(response.data)) {
           courseArr = response.data;
         } else if (Array.isArray(response)) {
-          course极Arr = response;
+          courseArr = response;
         }
         
         setCourses(courseArr);
@@ -170,7 +170,7 @@ export default function MaterialsManagement() {
         const { status, data } = err.response;
         
         if (status === 503) {
-          errorMsg = "Storage service unavailable. Please try again later.";
+          error极Msg = "Storage service unavailable. Please try again later.";
         } 
         else if (data.error === "storage_authentication_failed") {
           errorMsg = "Storage system authentication failed. Please contact support.";
@@ -300,8 +300,8 @@ export default function MaterialsManagement() {
     } else if (['doc', 'docx'].includes(ext)) {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
-          <svg xmlns="http://www.w3.org/2000/s极vg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2极h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
       );
@@ -316,7 +316,7 @@ export default function MaterialsManagement() {
     } else {
       return (
         <div className={`${iconClasses} bg-gray-100 text-gray-600`}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="current极Color">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
@@ -342,7 +342,7 @@ export default function MaterialsManagement() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden">
+    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
       <div className="mx-auto max-w-7xl">
         {/* Floating error/success messages */}
         {(error || successMsg) && (
@@ -395,7 +395,7 @@ export default function MaterialsManagement() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
+                d="M4 6h16M4 12h16M4 18极h16"
               />
             </svg>
           </button>
@@ -407,7 +407,7 @@ export default function MaterialsManagement() {
           <div className="hidden md:block">
             <h1 className="text-2xl font-bold text-indigo-900 md:text-3xl">
               Study Materials
-            </h1>
+            </h极1>
             <p className="hidden text-indigo-600 md:block">
               Upload, search, and access learning resources
             </p>
@@ -536,9 +536,9 @@ export default function MaterialsManagement() {
           <button
             onClick={() => setMode('download')}
             className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
-              mode === 'download'
-                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+                mode === 'download'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
             }`}
           >
             My Materials
@@ -546,9 +546,9 @@ export default function MaterialsManagement() {
           <button
             onClick={() => setMode('search-results')}
             className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
-              mode === 'search-results'
-                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+                mode === 'search-results'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
             }`}
           >
             Search Results
@@ -575,7 +575,7 @@ export default function MaterialsManagement() {
               Upload New Material
             </h2>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 md:mb极-6 md:gap-6">
+            <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6">
               <div>
                 <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
                   Course <span className="text-red-500">*</span>
