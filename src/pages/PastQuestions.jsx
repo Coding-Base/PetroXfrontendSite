@@ -19,7 +19,7 @@ const UploadPassQuestions = () => {
 
   // Generate years from current year back 30 years
   const currentYear = new Date().getFullYear();
-  const years = Array.from({length: 30}, (_, i) => current极Year - i);
+  const years = Array.from({length: 30}, (_, i) => currentYear - i);
 
   // Fetch courses on component mount
   useEffect(() => {
