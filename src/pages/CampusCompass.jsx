@@ -91,6 +91,7 @@ const CampusCompass = () => {
     const [isMobile, setIsMobile] = useState(false);
     const [mapPadding, setMapPadding] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
     const [directionsError, setDirectionsError] = useState(null);
+    const [scriptLoaded, setScriptLoaded] = useState(false); // Track script load status
     const directionsServiceRef = useRef(null);
     const mapRef = useRef(null);
 
@@ -300,7 +301,7 @@ const CampusCompass = () => {
                     </button>
                     <button 
                         onClick={toggleView}
-                        className={`p-2 rounded-full ${showMap ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
+                        className={`p-2 rounded-full ${showMap ? 'bg-blue-100 text-blue-600' : 'text极gray-500'}`}
                         aria-label={showMap ? "Show map" : "Show list"}
                     >
                         <FaMap size={20} />
@@ -319,7 +320,7 @@ const CampusCompass = () => {
                     <h1 className="text-2xl font-bold mb-2 text-blue-700">Campus Compass</h1>
                 </div>
                 
-                <div className="space-y-4 mb-4">
+                <div className="space极-y-4 mb-4">
                     {/* University selector */}
                     <div>
                         <label className="block mb-1 text-sm font-medium text-gray-700">University</label>
@@ -481,130 +482,133 @@ const CampusCompass = () => {
             >
                 <LoadScript 
                     googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-                    onLoad={() => console.log('Google Maps script loaded')}
+                    onLoad={() => setScriptLoaded(true)} // Mark script as loaded
                 >
-                    <GoogleMap
-                        mapContainerStyle={{ width: '100%', height: '100%' }}
-                        center={getCenter()}
-                        zoom={16}
-                        options={{
-                            streetViewControl: true,
-                            mapTypeControl: false,
-                            fullscreenControl: true,
-                            styles: [
-                                {
-                                    featureType: "poi",
-                                    elementType: "labels",
-                                    stylers: [{ visibility: "off" }]
-                                },
-                                {
-                                    featureType: "transit",
-                                    elementType: "labels",
-                                    stylers: [{ visibility: "off" }]
-                                }
-                            ],
-                            padding: mapPadding
-                        }}
-                        onLoad={onMapLoad}
-                        onClick={() => setSelectedLocation(null)}
-                    >
-                        {/* User marker */}
-                        {userPosition && (
-                            <>
-                                <Marker
-                                    position={userPosition}
-                                    icon={{
-                                        path: window.google && window.google.maps.SymbolPath.CIRCLE,
-                                        scale: 8,
-                                        fillColor: '#4285F4',
-                                        fillOpacity: 1,
-                                        strokeColor: '#fff',
-                                        strokeWeight: 2
-                                    }}
-                                />
-                                <InfoWindow position={userPosition}>
-                                    <div className="font-medium text-blue-700">Your Location</div>
-                                </InfoWindow>
-                            </>
-                        )}
-
-                        {/* Campus markers and InfoWindows */}
-                        {locations.map(loc => (
-                            <React.Fragment key={loc.id}>
-                                <Marker 
-                                    position={loc.position} 
-                                    onClick={() => handleLocationSelect(loc)}
-                                    icon={{
-                                        url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
-                                    }}
-                                />
-                                {selectedLocation?.id === loc.id && !isMobile && (
-                                    <InfoWindow 
-                                        position={loc.position} 
-                                        onCloseClick={() => setSelectedLocation(null)}
-                                    >
-                                        <div className="max-w-xs">
-                                            <h3 className="font-bold text-blue-700 mb-1">{loc.name}</h3>
-                                            <p className="text-sm text-gray-600 mb-2">{loc.description}</p>
-                                            {loc.hours && (
-                                                <p className="text-sm mb-1">
-                                                    <span className="font-medium">Hours:</span> {loc.hours}
-                                                </p>
-                                            )}
-                                            {loc.popularTimes && (
-                                                <div className="mt-2">
-                                                    <p className="font-medium text-sm mb-1">Popular Times:</p>
-                                                    <ul className="text-xs space-y-1">
-                                                        {loc.popularTimes.map((t, i) => (
-                                                            <li key={i} className="flex items-center">
-                                                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                                                                {t}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                            {loc.floorPlan && (
-                                                <a 
-                                                    href={loc.floorPlan} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="inline-block mt-2 text-blue-600 hover:underline text-sm"
-                                                >
-                                                    View Floor Plan
-                                                </a>
-                                            )}
-                                            {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
-                                            {userPosition && (
-                                                <button
-                                                    onClick={handleGetDirections}
-                                                    className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                                                    disabled={isLoading}
-                                                >
-                                                    {isLoading ? (
-                                                        <span className="flex items-center">
-                                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                                            Calculating...
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center">
-                                                            <FaDirections className="mr-2" /> Get Directions
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            )}
-                                            {directionsError && (
-                                                <p className="text-red-500 text-xs mt-2">{directionsError}</p>
-                                            )}
-                                        </div>
+                    {scriptLoaded && ( // Only render when script is confirmed loaded
+                        <GoogleMap
+                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                            center={getCenter()}
+                            zoom={16}
+                            options={{
+                                streetViewControl: true,
+                                mapTypeControl: false,
+                                fullscreenControl: true,
+                                styles: [
+                                    {
+                                        featureType: "poi",
+                                        elementType: "labels",
+                                        stylers: [{ visibility: "off" }]
+                                    },
+                                    {
+                                        featureType: "transit",
+                                        elementType: "labels",
+                                        stylers: [{ visibility: "off" }]
+                                    }
+                                ],
+                                padding: mapPadding
+                            }}
+                            onLoad={onMapLoad}
+                            onClick={() => setSelectedLocation(null)}
+                        >
+                            {/* User marker */}
+                            {userPosition && (
+                                <>
+                                    <Marker
+                                        position={userPosition}
+                                        icon={{
+                                            // Safely access SymbolPath now that script is loaded
+                                            path: window.google.maps.SymbolPath.CIRCLE,
+                                            scale: 8,
+                                            fillColor: '#4285F4',
+                                            fillOpacity: 1,
+                                            strokeColor: '#fff',
+                                            strokeWeight: 2
+                                        }}
+                                    />
+                                    <InfoWindow position={userPosition}>
+                                        <div className="font-medium text-blue-700">Your Location</div>
                                     </InfoWindow>
-                                )}
-                            </React.Fragment>
-                        ))}
+                                </>
+                            )}
 
-                        {/* Directions */}
-                        {directions && <DirectionsRenderer directions={directions} />}
-                    </GoogleMap>
+                            {/* Campus markers and InfoWindows */}
+                            {locations.map(loc => (
+                                <React.Fragment key={loc.id}>
+                                    <Marker 
+                                        position={loc.position} 
+                                        onClick={() => handleLocationSelect(loc)}
+                                        icon={{
+                                            url: `https://maps.google.com/mapfiles/ms/icons/${favorites.includes(loc.id) ? 'yellow' : 'blue'}-dot.png`
+                                        }}
+                                    />
+                                    {selectedLocation?.id === loc.id && !isMobile && (
+                                        <InfoWindow 
+                                            position={loc.position} 
+                                            onCloseClick={() => setSelectedLocation(null)}
+                                        >
+                                            <div className="max-w-xs">
+                                                <h3 className="font-bold text-blue-700 mb-1">{loc.name}</h3>
+                                                <p className="text-sm text-gray-600 mb-2">{loc.description}</p>
+                                                {loc.hours && (
+                                                    <p className="text-sm mb-1">
+                                                        <span className="font-medium">Hours:</span> {loc.hours}
+                                                    </p>
+                                                )}
+                                                {loc.popularTimes && (
+                                                    <div className="mt-2">
+                                                        <p className="font-medium text-sm mb-1">Popular Times:</p>
+                                                        <ul className="text-xs space-y-1">
+                                                            {loc.popularTimes.map((t, i) => (
+                                                                <li key={i} className="flex items-center">
+                                                                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                                                    {t}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {loc.floorPlan && (
+                                                    <a 
+                                                        href={loc.floorPlan} 
+                                                        target="_blank" 
+                                                        rel="noreferrer" 
+                                                        className="inline-block mt-2 text-blue-600 hover:underline text-sm"
+                                                    >
+                                                        View Floor Plan
+                                                    </a>
+                                                )}
+                                                {loc.indoorMaps && <FloorPlan indoorMaps={loc.indoorMaps} />}
+                                                {userPosition && (
+                                                    <button
+                                                        onClick={handleGetDirections}
+                                                        className="mt-3 w-full flex items-center justify-center bg-blue-600 text-white py-1.5 px-3 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                                                        disabled={isLoading}
+                                                    >
+                                                        {isLoading ? (
+                                                            <span className="flex items-center">
+                                                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                                                Calculating...
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center">
+                                                                <FaDirections className="mr-2" /> Get Directions
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                )}
+                                                {directionsError && (
+                                                    <p className="text-red-500 text-xs mt-2">{directionsError}</p>
+                                                )}
+                                            </div>
+                                        </InfoWindow>
+                                    )}
+                                </React.Fragment>
+                            ))}
+
+                            {/* Directions */}
+                            {directions && <DirectionsRenderer directions={directions} />}
+                        </GoogleMap>
+                    )}
                 </LoadScript>
 
                 {/* Mobile Location Card - Get Directions button at top */}
