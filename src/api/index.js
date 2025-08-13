@@ -27,8 +27,11 @@ api.interceptors.request.use(
       '/users/'               // Registration endpoint
     ];
     
+    // Extract path from URL
+    const requestPath = new URL(config.url, baseURL).pathname;
+    
     // Only add token if not in unauthenticated endpoints
-    if (!unauthenticatedEndpoints.some(endpoint => config.url.includes(endpoint))) {
+    if (!unauthenticatedEndpoints.includes(requestPath)) {
       const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -177,3 +180,4 @@ export const uploadPassQuestions = (payload) =>
   api.post('/api/upload-pass-questions/', payload);
 
 export default api;
+
