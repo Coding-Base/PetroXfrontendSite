@@ -108,37 +108,40 @@ export default function GroupTestPage() {
     }
   }, [testId]);
 
-  // Fetch questions separately
+  // Fetch questions when test starts
   const fetchQuestions = useCallback(async () => {
-    if (!groupTest) return;
-    
     setIsFetchingQuestions(true);
     const token = localStorage.getItem('access_token');
     try {
+      // Use the same endpoint but backend should now provide questions
       const response = await axios.get(
-        `https://petroxtestbackend.onrender.com/api/group-test/${testId}/questions/`,
+        `https://petroxtestbackend.onrender.com/api/group-test/${testId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setQuestions(response.data);
+      
+      if (response.data.questions && response.data.questions.length > 0) {
+        setQuestions(response.data.questions);
+      } else {
+        setError('No questions available for this test');
+      }
     } catch (err) {
       setError('Failed to load questions: ' + (err.response?.data?.error || err.message));
     } finally {
       setIsFetchingQuestions(false);
     }
-  }, [testId, groupTest]);
+  }, [testId]);
 
   // Initial fetch
   useEffect(() => {
     fetchTest();
-    // eslint-disable-next-line
-  }, [testId]);
+  }, [fetchTest]);
 
   // Fetch questions when test starts
   useEffect(() => {
-    if (phase === 2 && groupTest && questions.length === 0) {
+    if (phase === 2) {
       fetchQuestions();
     }
-  }, [phase, groupTest, questions, fetchQuestions]);
+  }, [phase, fetchQuestions]);
 
   // PHASE-0 TIMER: countdown to start
   useEffect(() => {
@@ -231,7 +234,7 @@ export default function GroupTestPage() {
     }
   }, [answers, groupTest, testId, questions]);
 
-  // Retake handler (unchanged)
+  // Retake handler
   const handleRetakeTest = async () => {
     try {
       setShowReview(false);
