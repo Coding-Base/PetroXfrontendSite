@@ -115,13 +115,10 @@ export default function CreateTest({ onTestCreated }) {
     try {
       setIsSubmitting(true);
 
-      // Format date without timezone conversion
-      const scheduledDate = new Date(scheduledStart);
-      const isoString = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${scheduledDate.getHours()
-        .toString()
-        .padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}:00`;
+      // --- CHANGED: Format date as UTC ISO so backend stores an absolute time ---
+      // scheduledStart comes from <input type="datetime-local"> (local time string like "YYYY-MM-DDTHH:mm")
+      const scheduledDate = new Date(scheduledStart); // interpreted as local time in browser
+      const isoString = scheduledDate.toISOString(); // sends an absolute UTC time with "Z"
 
       const payload = {
         name: name.trim(),
