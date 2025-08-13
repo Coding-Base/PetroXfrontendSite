@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Breadcrumbs from '../components/shared/breadcrumbs';
 import Modal from '../components/ui/modal';
@@ -19,9 +19,15 @@ export const columns = [
     id: 'score',
     header: 'Score',
     cell: ({ row }) => {
-      // FIX: Added null checks to prevent "map is not a function" error
-      const questions = row?.original?.questions || [];
-      const score = row?.original?.score || 0;
+      // Ensure questions is always an array
+      const questions = Array.isArray(row?.original?.questions) 
+        ? row.original.questions 
+        : [];
+        
+      // Convert score to number safely
+      const score = Number(row?.original?.score) || 0;
+      
+      // Calculate percentage safely
       const pct = questions.length > 0 ? (score * 100) / questions.length : 0;
       
       const colorClass =
@@ -41,7 +47,13 @@ export const columns = [
   {
     id: 'questions',
     header: 'No Of Questions',
-    cell: ({ row }) => <>{row?.original?.questions?.length || 'n/a'}</>,
+    cell: ({ row }) => {
+      // Ensure questions is always an array
+      const questions = Array.isArray(row?.original?.questions) 
+        ? row.original.questions 
+        : [];
+      return <>{questions.length || 'n/a'}</>;
+    },
   },
   {
     id: 'start_time',
@@ -60,21 +72,33 @@ function CreateTestModal({ isOpen, onClose }) {
   );
 }
 
+// Utility function to safely convert data to array
+const safeToArray = (data) => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  if (typeof data === 'object') return Object.values(data);
+  return [];
+};
+
 export default function MyTests() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const [safeRecords, setSafeRecords] = useState([]);
 
   // Destructure data and isLoading directly from useGetTests
-  const { data: records = [], isLoading } = useGetTests();
+  const { data: records, isLoading } = useGetTests();
 
-  // Fix: support both array and object with data property
-  const recordsArray = Array.isArray(records)
-    ? records
-    : Array.isArray(records?.data)
-      ? records.data
-      : [];
+  // Safely convert records to array format
+  useEffect(() => {
+    if (isLoading) return;
+    
+    const converted = safeToArray(records);
+    console.log('Converted records:', converted);
+    setSafeRecords(converted);
+  }, [records, isLoading]);
 
-  const total = recordsArray.length;
+  const total = safeRecords.length;
   const pageLimit = 10;
   const pageCount = Math.ceil(total / pageLimit);
 
@@ -101,13 +125,28 @@ export default function MyTests() {
             filterableColumnCount={1}
             searchableColumnCount={1}
           />
-        ) : recordsArray.length === 0 ? (
-          <p className="mt-4 text-2xl text-gray-600">
-            You haven't taken any tests yet.
-          </p>
+        ) : safeRecords.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="mb-4 h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-medium text-gray-700 mb-2">No tests found</h3>
+            <p className="text-gray-500 mb-4 text-center max-w-md">
+              You haven't taken any tests yet. Create your first test to get started!
+            </p>
+            <Button onClick={() => setIsOpen(true)} className="bg-blue-600 text-white">
+              Create First Test
+            </Button>
+          </div>
         ) : (
           <div className="space-y-4">
-            <DataTable columns={columns} data={recordsArray} pageCount={pageCount} />
+            <DataTable 
+              columns={columns} 
+              data={safeRecords} 
+              pageCount={pageCount} 
+            />
           </div>
         )}
       </div>
