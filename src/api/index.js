@@ -17,32 +17,39 @@ export const api = axios.create({
 const getAccessToken  = () => localStorage.getItem('access_token');
 const getRefreshToken = () => localStorage.getItem('refresh_token');
 
-// Request interceptor: inject access token
+// ===================== REQUEST INTERCEPTOR =====================
 api.interceptors.request.use(
   config => {
-    // Skip authentication for these endpoints
+    // Endpoints that don't require authentication
     const unauthenticatedEndpoints = [
-      '/api/token/',          // Login endpoint
-      '/api/token/refresh/',  // Token refresh endpoint
-      '/users/'               // Registration endpoint
+      '/api/token',          // Login endpoint
+      '/api/token/refresh',  // Token refresh endpoint
+      '/users'               // Registration endpoint
     ];
-    
-    // Extract path from URL
+
+    // Extract just the pathname from the request URL
     const requestPath = new URL(config.url, baseURL).pathname;
-    
-    // Only add token if not in unauthenticated endpoints
-    if (!unauthenticatedEndpoints.includes(requestPath)) {
+
+    // Only skip adding token if the path starts with any unauthenticated endpoint
+    const isUnauthenticated = unauthenticatedEndpoints.some(path =>
+      requestPath.startsWith(path)
+    );
+
+    if (!isUnauthenticated) {
       const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn(`No access token found for ${requestPath}`);
       }
     }
+
     return config;
   },
   error => Promise.reject(error)
 );
 
-// Response interceptor: handle 401 and refresh token
+// ===================== RESPONSE INTERCEPTOR =====================
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -57,9 +64,7 @@ api.interceptors.response.use(
     }
     
     if (!error.response) {
-      // Use navigator.onLine for accurate online status
       const onlineStatus = typeof navigator !== 'undefined' ? navigator.onLine : true;
-      
       return Promise.reject({
         message: onlineStatus 
           ? 'Server connection failed. Please try again later.' 
@@ -125,8 +130,8 @@ export const fetchTestSession = sessionId =>
 export const fetchHistory = () =>
   api.get('/api/history/');
 
-// Add this missing export
-export const fetchUserHistory = () => api.get('/api/history/');
+export const fetchUserHistory = () =>
+  api.get('/api/history/');
 
 // ===================== GROUP TEST ENDPOINTS =====================
 export const createGroupTest = payload =>
@@ -152,7 +157,7 @@ export const uploadMaterial = (formData) => {
       'Content-Type': 'multipart/form-data',
       'X-Upload-Timeout': '120000' // 120 seconds for uploads
     },
-    timeout: 120000 // 120 seconds timeout for uploads
+    timeout: 120000
   });
 };
 
@@ -180,4 +185,3 @@ export const uploadPassQuestions = (payload) =>
   api.post('/api/upload-pass-questions/', payload);
 
 export default api;
-
