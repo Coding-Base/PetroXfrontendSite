@@ -12,7 +12,12 @@ export default function SignUp() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({
+    username: '',
+    email: '',
+    password: '',
+    form: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Clear any existing tokens when component mounts
@@ -21,23 +26,84 @@ export default function SignUp() {
     localStorage.removeItem('refresh_token');
   }, []);
 
+  const validateForm = () => {
+    const newErrors = {
+      username: '',
+      email: '',
+      password: '',
+      form: ''
+    };
+    
+    let isValid = true;
+    
+    // Username validation
+    if (!username.trim()) {
+      newErrors.username = 'Username is required';
+      isValid = false;
+    } else if (username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+      isValid = false;
+    }
+    
+    // Email validation
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+    
+    // Password validation
+    if (!password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+      isValid = false;
+    }
+    
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({ username: '', email: '', password: '', form: '' });
+    
+    // Validate form before submission
+    if (!validateForm()) return;
+    
     setIsLoading(true);
     
     try {
       await registerUser(username, email, password);
       navigate(`/login?next=${encodeURIComponent(next)}`);
     } catch (err) {
-      // Enhanced error logging
       console.error("Registration Error:", err);
       
-      setError(
-        err.response?.data?.detail || 
-        err.response?.data?.error || 
-        'Unexpected error. Please try again.'
-      );
+      // Handle backend validation errors
+      if (err.response?.data) {
+        // Handle field-specific errors
+        if (err.response.data.username) {
+          setErrors(prev => ({ ...prev, username: err.response.data.username[0] }));
+        }
+        if (err.response.data.email) {
+          setErrors(prev => ({ ...prev, email: err.response.data.email[0] }));
+        }
+        if (err.response.data.password) {
+          setErrors(prev => ({ ...prev, password: err.response.data.password[0] }));
+        }
+        
+        // Handle general error messages
+        if (err.response.data.detail) {
+          setErrors(prev => ({ ...prev, form: err.response.data.detail }));
+        } else if (!err.response.data.username && !err.response.data.email && !err.response.data.password) {
+          setErrors(prev => ({ ...prev, form: err.response.data.error || 'Registration failed' }));
+        }
+      } else {
+        setErrors(prev => ({ ...prev, form: err.message || 'Unexpected error. Please try again.' }));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -60,13 +126,13 @@ export default function SignUp() {
           Create Your Account
         </h2>
 
-        {error && (
+        {errors.form && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 animate-fade-in">
             <div className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              {error}
+              {errors.form}
             </div>
           </div>
         )}
@@ -92,9 +158,16 @@ export default function SignUp() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 placeholder="Choose a username"
-                className="pl-10 mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:ring-opacity-50 transition duration-200"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
+                  errors.username 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                }`}
               />
             </div>
+            {errors.username && (
+              <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -118,9 +191,16 @@ export default function SignUp() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="your.email@example.com"
-                className="pl-10 mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:ring-opacity-50 transition duration-200"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
+                  errors.email 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                }`}
               />
             </div>
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -143,9 +223,16 @@ export default function SignUp() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="pl-10 mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:ring-opacity-50 transition duration-200"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
+                  errors.password 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                }`}
               />
             </div>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            )}
           </div>
 
           <Button
