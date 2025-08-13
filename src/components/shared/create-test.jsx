@@ -165,7 +165,7 @@ export default function CreateTest({ onTestCreated }) {
         if (testType === 'group') {
           navigate(`/dashboard/group-test/${testId}`);
         } else {
-          navigate(`/test/${testId}`);
+          navigate(`/dashboard/group-test/${testId}`);
         }
       }, 1500);
     } catch (err) {
@@ -405,3 +405,4 @@ export default function CreateTest({ onTestCreated }) {
     </div>
   );
 }
+
