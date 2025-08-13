@@ -115,7 +115,7 @@ const calculateRank = (approvedUploads) => {
 const calculateTestRank = (totalScore) => {
   const thresholds = Object.keys(TEST_RANK_THRESHOLDS)
     .map(Number)
-    .sort((a, b) => b - a); // Sort descending
+    .sort((a, b) => b - b); // Sort descending
 
   for (const threshold of thresholds) {
     if (totalScore >= threshold) {
@@ -208,14 +208,15 @@ export default function Dashboard() {
         setLeaderboard(leaderboardRes.data);
         setIsLoading(prev => ({ ...prev, leaderboard: false }));
         
-        // Fetch user history
+        // Fetch user history - FIXED: Ensure we always get an array
         const historyRes = await fetchUserHistory();
-        setTestHistory(historyRes.data);
+        const historyData = Array.isArray(historyRes?.data) ? historyRes.data : [];
+        setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
         // Calculate total test score from history
-        if (historyRes.data.length > 0) {
-          const totalScore = historyRes.data.reduce((acc, session) => acc + session.score, 0);
+        if (historyData.length > 0) {
+          const totalScore = historyData.reduce((acc, session) => acc + session.score, 0);
           setTotalTestScore(totalScore);
           setTestRankInfo(calculateTestRank(totalScore));
         } else {
@@ -301,31 +302,33 @@ export default function Dashboard() {
     }
   };
 
-  // Calculate stats from real data
- const calculateStats = () => {
-        const testsTaken = testHistory.length;
-        let totalScorePercentage = 0;
-        let scoredTests = 0;
+  // Calculate stats from real data - FIXED: Ensure testHistory is always treated as array
+  const calculateStats = () => {
+    const historyArray = Array.isArray(testHistory) ? testHistory : [];
+    const testsTaken = historyArray.length;
+    let totalScorePercentage = 0;
+    let scoredTests = 0;
 
-     testHistory.forEach(session => {
-            const questionCount = session.questions?.length || 0;
-            if (questionCount > 0) {
-                const sessionScore = (session.score / questionCount) * 100;
-                totalScorePercentage += sessionScore;
-                scoredTests++;
-            }
-        });
+    historyArray.forEach(session => {
+      const questionCount = session.questions?.length || 0;
+      if (questionCount > 0) {
+        const sessionScore = (session.score / questionCount) * 100;
+        totalScorePercentage += sessionScore;
+        scoredTests++;
+      }
+    });
 
     const averageScore = scoredTests > 0
-            ? Math.round(totalScorePercentage / scoredTests)
-            : 0;
+      ? Math.round(totalScorePercentage / scoredTests)
+      : 0;
 
-        return {
-            testsTaken,
-            averageScore,
-            currentRank: userRank,
-        };
+    return {
+      testsTaken,
+      averageScore,
+      currentRank: userRank,
     };
+  };
+  
   const stats = calculateStats();
 
   // Get performance rating description
