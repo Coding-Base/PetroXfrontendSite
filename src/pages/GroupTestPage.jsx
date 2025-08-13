@@ -8,9 +8,27 @@ import ReviewPage from './ReviewPage';
 import { Button } from '../components/ui/button';
 
 const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60);
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
+  
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+// Helper to format UTC date as local time
+const formatLocalTime = (isoString) => {
+  const date = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
 };
 
 export default function GroupTestPage() {
@@ -29,9 +47,8 @@ export default function GroupTestPage() {
   const [showReview, setShowReview] = useState(false);
   const [sessionId, setSessionId] = useState(null);
 
-  // Helper: Parse scheduled_start as UTC
+  // Parse date as UTC
   const parseUtcDate = (isoString) => {
-    // Always treat as UTC
     return new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
   };
 
@@ -69,14 +86,17 @@ export default function GroupTestPage() {
         }
       }
 
-      // Determine phase
-      const now = new Date();
-      if (now < startDate) {
+      // Determine phase using UTC comparisons
+      const nowUtc = Date.now();
+      const startMs = startDate.getTime();
+      const endMs = endDate.getTime();
+      
+      if (nowUtc < startMs) {
         setPhase(0);
-        setTimeLeft(Math.floor((startDate - now) / 1000));
-      } else if (now >= startDate && now < endDate) {
+        setTimeLeft(Math.floor((startMs - nowUtc) / 1000));
+      } else if (nowUtc >= startMs && nowUtc < endMs) {
         setPhase(1);
-        setTimeLeft(Math.floor((endDate - now) / 1000));
+        setTimeLeft(Math.floor((endMs - nowUtc) / 1000));
       } else {
         setPhase(3);
         setTimeLeft(0);
@@ -101,7 +121,6 @@ export default function GroupTestPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerId);
-          // Re-fetch test to get questions after countdown
           fetchTest();
           setPhase(1);
           return 0;
@@ -139,7 +158,7 @@ export default function GroupTestPage() {
   useEffect(() => {
     if (phase === 2 && groupTest) {
       const endTime = Date.now() + groupTest.duration_minutes * 60000;
-      localStorage.setItem(`testEndTime_${testId}`, endTime);
+      localStorage.setItem(`testEndTime_${testId}`, endTime.toString());
     }
   }, [phase, groupTest, testId]);
 
@@ -291,7 +310,7 @@ export default function GroupTestPage() {
             <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-blue-500"></div>
             <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
               {groupTest?.scheduled_start
-                ? `Test begins at: ${parseUtcDate(groupTest.scheduled_start).toLocaleString()}`
+                ? `Test begins at: ${formatLocalTime(groupTest.scheduled_start)}`
                 : 'Test start time not set'}
             </p>
           </div>
@@ -413,7 +432,7 @@ export default function GroupTestPage() {
             <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-green-500"></div>
             <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
               {groupTest?.scheduled_start
-                ? `Scheduled start was: ${parseUtcDate(groupTest.scheduled_start).toLocaleString()}`
+                ? `Scheduled start was: ${formatLocalTime(groupTest.scheduled_start)}`
                 : 'Test start time not set'}
             </p>
           </div>
