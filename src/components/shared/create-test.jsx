@@ -115,24 +115,20 @@ export default function CreateTest({ onTestCreated }) {
     try {
       setIsSubmitting(true);
 
-      // Format date to UTC without changing time value
+      // Format date without timezone conversion
       const scheduledDate = new Date(scheduledStart);
-      const utcDate = new Date(
-        Date.UTC(
-          scheduledDate.getFullYear(),
-          scheduledDate.getMonth(),
-          scheduledDate.getDate(),
-          scheduledDate.getHours(),
-          scheduledDate.getMinutes()
-        )
-      );
+      const isoString = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${scheduledDate.getHours()
+        .toString()
+        .padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}:00`;
 
       const payload = {
         name: name.trim(),
         course: selectedCourse,
         question_count: Number(questionCount),
         duration_minutes: Number(duration),
-        scheduled_start: utcDate.toISOString(),
+        scheduled_start: isoString,
         invitees: testType === 'group'
           ? invitees.map(email => email.trim()).filter(email => email !== '')
           : [],
@@ -405,4 +401,3 @@ export default function CreateTest({ onTestCreated }) {
     </div>
   );
 }
-
