@@ -13,7 +13,7 @@ export const columns = [
   {
     id: 'course',
     header: 'Course',
-    cell: ({ row }) => <p>{row?.original?.course || 'N/A'}</p>,
+    cell: ({ row }) => <p>{row?.original?.course?.name || row?.original?.course || 'N/A'}</p>,
   },
   {
     id: 'score',
@@ -72,12 +72,25 @@ function CreateTestModal({ isOpen, onClose }) {
   );
 }
 
-// Utility function to safely convert data to array
+// Enhanced utility function to handle paginated API responses
 const safeToArray = (data) => {
   if (!data) return [];
+  
+  // Handle paginated responses with results array
   if (Array.isArray(data)) return data;
+  if (Array.isArray(data.results)) return data.results;
   if (Array.isArray(data.data)) return data.data;
-  if (typeof data === 'object') return Object.values(data);
+  if (Array.isArray(data.data?.results)) return data.data.results;
+  
+  // Handle object responses
+  if (typeof data === 'object') {
+    // If it's a paginated response object
+    if (data.results) return data.results;
+    
+    // Convert plain objects to array of values
+    return Object.values(data);
+  }
+  
   return [];
 };
 
@@ -85,15 +98,17 @@ export default function MyTests() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const [safeRecords, setSafeRecords] = useState([]);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Destructure data and isLoading directly from useGetTests
-  const { data: records, isLoading } = useGetTests();
+  const { data: records, isLoading, refetch } = useGetTests();
 
   // Safely convert records to array format
   useEffect(() => {
     if (isLoading) return;
     
     const converted = safeToArray(records);
+    console.log('API Records:', records);
     console.log('Converted records:', converted);
     setSafeRecords(converted);
   }, [records, isLoading]);
@@ -101,6 +116,20 @@ export default function MyTests() {
   const total = safeRecords.length;
   const pageLimit = 10;
   const pageCount = Math.ceil(total / pageLimit);
+
+  const handleCreateTest = () => {
+    setIsCreating(true);
+    setIsOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsOpen(false);
+    setIsCreating(false);
+    // Refetch tests after creating a new one
+    if (isCreating) {
+      refetch();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -114,7 +143,11 @@ export default function MyTests() {
         />
 
         <div className="mb-4 flex justify-end">
-          <Button onClick={() => setIsOpen(true)} className="text-black">
+          <Button 
+            onClick={handleCreateTest} 
+            className="text-black"
+            disabled={isLoading}
+          >
             Create New Test
           </Button>
         </div>
@@ -136,7 +169,11 @@ export default function MyTests() {
             <p className="text-gray-500 mb-4 text-center max-w-md">
               You haven't taken any tests yet. Create your first test to get started!
             </p>
-            <Button onClick={() => setIsOpen(true)} className="bg-blue-600 text-white">
+            <Button 
+              onClick={handleCreateTest} 
+              className="bg-blue-600 text-white"
+              disabled={isLoading}
+            >
               Create First Test
             </Button>
           </div>
@@ -151,7 +188,7 @@ export default function MyTests() {
         )}
       </div>
 
-      <CreateTestModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <CreateTestModal isOpen={isOpen} onClose={handleCloseModal} />
     </div>
   );
 }
