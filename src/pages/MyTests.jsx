@@ -16,7 +16,7 @@ export const columns = [
     cell: ({ row }) => {
       // Handle both course object and course name
       const course = row.original.course;
-      return <p>{course?.name || course || 'N/A'}</p>;
+      return <p>{typeof course === 'object' ? course.name : course || 'N/A'}</p>;
     },
   },
   {
@@ -78,30 +78,41 @@ function CreateTestModal({ isOpen, onClose }) {
 
 // Enhanced utility function to handle paginated API responses
 const extractTestData = (response) => {
-  if (!response) return [];
-  
-  // Handle direct array response
-  if (Array.isArray(response)) return response;
-  
-  // Handle paginated response with results array
-  if (Array.isArray(response.results)) return response.results;
-  
-  // Handle nested data property
-  if (response.data) {
-    if (Array.isArray(response.data)) return response.data;
-    if (Array.isArray(response.data.results)) return response.data.results;
-  }
-  
-  // Handle other object types
-  if (typeof response === 'object') {
-    // Return the object itself if it looks like a test
-    if (response.id && response.course) return [response];
+  try {
+    if (!response) return [];
     
-    // Convert object values to array
-    return Object.values(response);
+    console.log('Raw API Response:', response);
+    
+    // Handle direct array response
+    if (Array.isArray(response)) return response;
+    
+    // Handle paginated response with results array
+    if (response.results && Array.isArray(response.results)) return response.results;
+    
+    // Handle nested data property
+    if (response.data) {
+      if (Array.isArray(response.data)) return response.data;
+      if (response.data.results && Array.isArray(response.data.results)) return response.data.results;
+    }
+    
+    // Handle other object types
+    if (typeof response === 'object') {
+      // If it has a results property, use that
+      if (response.results) return response.results;
+      
+      // Return the object itself if it looks like a test
+      if (response.id && response.course) return [response];
+      
+      // Convert object values to array
+      const values = Object.values(response);
+      if (values.length > 0 && values[0].id) return values;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error extracting test data:', error);
+    return [];
   }
-  
-  return [];
 };
 
 export default function MyTests() {
@@ -112,14 +123,13 @@ export default function MyTests() {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Destructure data and isLoading directly from useGetTests
-  const { data: apiResponse, isLoading, refetch } = useGetTests();
+  const { data: apiResponse, isLoading, refetch, error } = useGetTests();
 
   // Safely convert records to array format
   useEffect(() => {
     if (isLoading) return;
     
     const extractedData = extractTestData(apiResponse);
-    console.log('API Response:', apiResponse);
     console.log('Extracted Test Data:', extractedData);
     
     setTestData(extractedData);
@@ -141,9 +151,47 @@ export default function MyTests() {
     // Refetch tests after creating a new one
     if (isCreating) {
       setIsLoadingData(true);
-      refetch().then(() => setIsLoadingData(false));
+      refetch().then(() => setIsLoadingData(false)).catch(err => {
+        console.error('Error refetching tests:', err);
+        setIsLoadingData(false);
+      });
     }
   };
+
+  // Render error state if there's an API error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="mx-auto rounded-xl bg-white p-6 shadow">
+          <Breadcrumbs
+            items={[
+              { title: 'Dashboard', link: '/dashboard' },
+              { title: 'My Tests', link: '/history' },
+            ]}
+            className="mb-4"
+          />
+          
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="mb-4 h-24 w-24 rounded-full bg-red-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-medium text-gray-700 mb-2">Failed to load tests</h3>
+            <p className="text-gray-500 mb-4 text-center max-w-md">
+              We encountered an error while loading your tests. Please try again later.
+            </p>
+            <Button 
+              onClick={() => refetch()} 
+              className="bg-blue-600 text-white"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
