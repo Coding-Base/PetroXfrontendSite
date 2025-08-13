@@ -1,10 +1,38 @@
-// src/components/CreateTest.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { fetchCourses, createGroupTest } from '@/api/index';
 
-export default function CreateTest() {
+// Helper function to extract array from API response
+const extractData = (response) => {
+  if (!response) return [];
+  
+  // Handle direct array response
+  if (Array.isArray(response)) return response;
+  
+  // Handle paginated response with results array
+  if (response.results && Array.isArray(response.results)) return response.results;
+  
+  // Handle nested data property
+  if (response.data) {
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data.results && Array.isArray(response.data.results)) return response.data.results;
+  }
+  
+  // Handle other object types
+  if (typeof response === 'object') {
+    // If it has a results property, use that
+    if (response.results) return response.results;
+    
+    // Convert object values to array
+    const values = Object.values(response);
+    if (values.length > 0 && values[0].id) return values;
+  }
+  
+  return [];
+};
+
+export default function CreateTest({ onTestCreated }) {
   const navigate = useNavigate();
 
   // Form state
@@ -29,9 +57,17 @@ export default function CreateTest() {
     const loadCourses = async () => {
       try {
         const response = await fetchCourses();
-        // If your API returns { data: [...] }
-        const courseArr = Array.isArray(response.data) ? response.data : response;
-        setCourses(courseArr);
+        console.log('Courses API response:', response);
+        
+        // Extract course data from response
+        const courseData = extractData(response);
+        console.log('Extracted courses:', courseData);
+        
+        setCourses(courseData);
+        
+        if (courseData.length === 0) {
+          setCourseError('No courses available. Please contact support.');
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setCourseError('Failed to load courses. Please try again later.');
@@ -96,26 +132,47 @@ export default function CreateTest() {
         course: selectedCourse,
         question_count: Number(questionCount),
         duration_minutes: Number(duration),
-        scheduled_start: new Date(scheduledStart).toISOString(),
+        scheduled_start: utcDate.toISOString(),
         invitees: testType === 'group'
           ? invitees.map(email => email.trim()).filter(email => email !== '')
           : [],
       };
 
+      console.log('Creating test with payload:', payload);
       const response = await createGroupTest(payload);
-      const testId = response.id || response.data?.id;
+      
+      // Extract test ID from response
+      let testId = response.id;
+      if (response.data && response.data.id) {
+        testId = response.data.id;
+      } else if (response.test_id) {
+        testId = response.test_id;
+      }
+      
+      console.log('Test created with ID:', testId);
 
       setSuccessMsg(
         `${testType === 'personal' ? 'Personal' : 'Group'} test created! Redirecting...`
       );
 
+      // Close modal after success if we have a callback
+      if (onTestCreated) {
+        setTimeout(onTestCreated, 1500);
+      }
+      
+      // Redirect to test page
       setTimeout(() => {
-        navigate(`/dashboard/group-test/${testId}`);
+        if (testType === 'group') {
+          navigate(`/dashboard/group-test/${testId}`);
+        } else {
+          navigate(`/test/${testId}`);
+        }
       }, 1500);
     } catch (err) {
       console.error('Test creation failed:', err);
       setError(
         err.response?.data?.error?.message ||
+        err.response?.data?.message ||
         err.message ||
         `Failed to create ${testType} test. Please try again.`
       );
@@ -127,6 +184,9 @@ export default function CreateTest() {
   if (isLoadingCourses) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
         <p>Loading courses...</p>
       </div>
     );
@@ -134,11 +194,16 @@ export default function CreateTest() {
 
   if (courseError) {
     return (
-      <div className="mx-auto max-w-md p-6 text-center text-red-500">
-        <p>{courseError}</p>
+      <div className="mx-auto max-w-md p-6 text-center">
+        <div className="mb-4 text-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="mt-2">{courseError}</p>
+        </div>
         <Button
           onClick={() => window.location.reload()}
-          className="mt-4"
+          className="mt-4 bg-blue-600 text-white"
         >
           Retry
         </Button>
