@@ -48,11 +48,9 @@ export default function GroupTestPage() {
   const [sessionId, setSessionId] = useState(null);
   const [isFetchingQuestions, setIsFetchingQuestions] = useState(false);
 
-  // Parse date as UTC
-  const parseUtcDate = (isoString) => {
-    return new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
-  };
-
+const parseLocalDate = (isoString) => {
+  return new Date(isoString); // Interpret as local time
+};
   // Fetch group test details
   const fetchTest = useCallback(async () => {
     const token = localStorage.getItem('access_token');
@@ -65,7 +63,7 @@ export default function GroupTestPage() {
       setGroupTest(data);
 
       // Parse scheduled_start as UTC
-      const startDate = parseUtcDate(data.scheduled_start);
+      const startDate = parseLocalDate(data.scheduled_start)
       const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
 
       // Restore local state if test in progress
@@ -780,3 +778,4 @@ export default function GroupTestPage() {
 
   return null;
 }
+
