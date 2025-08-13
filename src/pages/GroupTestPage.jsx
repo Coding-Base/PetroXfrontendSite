@@ -11,23 +11,28 @@ const formatTime = (seconds) => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}`;
   }
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, '0')}:${secs
+    .toString()
+    .padStart(2, '0')}`;
 };
 
-// Helper to format UTC date as local time
+// Helper to format ISO (local) date as local time string
 const formatLocalTime = (isoString) => {
-  const date = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
+  // Interpret the incoming ISO string as local time (do NOT append 'Z')
+  const date = new Date(isoString);
   return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZoneName: 'short'
+    timeZoneName: 'short',
   });
 };
 
@@ -48,9 +53,11 @@ export default function GroupTestPage() {
   const [sessionId, setSessionId] = useState(null);
   const [isFetchingQuestions, setIsFetchingQuestions] = useState(false);
 
-const parseLocalDate = (isoString) => {
-  return new Date(isoString); // Interpret as local time
-};
+  // Parse date as local (do not force UTC)
+  const parseLocalDate = (isoString) => {
+    return new Date(isoString); // Interpret as local time
+  };
+
   // Fetch group test details
   const fetchTest = useCallback(async () => {
     const token = localStorage.getItem('access_token');
@@ -62,9 +69,11 @@ const parseLocalDate = (isoString) => {
       const data = response.data;
       setGroupTest(data);
 
-      // Parse scheduled_start as UTC
-      const startDate = parseLocalDate(data.scheduled_start)
-      const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
+      // Parse scheduled_start as local time
+      const startDate = parseLocalDate(data.scheduled_start);
+      const endDate = new Date(
+        startDate.getTime() + data.duration_minutes * 60000
+      );
 
       // Restore local state if test in progress
       const savedEndTime = localStorage.getItem(`testEndTime_${testId}`);
@@ -84,24 +93,27 @@ const parseLocalDate = (isoString) => {
         }
       }
 
-      // Determine phase using UTC comparisons
-      const nowUtc = Date.now();
+      // Determine phase using local-time comparisons
+      const nowMs = Date.now();
       const startMs = startDate.getTime();
       const endMs = endDate.getTime();
-      
-      if (nowUtc < startMs) {
+
+      if (nowMs < startMs) {
         setPhase(0);
-        setTimeLeft(Math.floor((startMs - nowUtc) / 1000));
-      } else if (nowUtc >= startMs && nowUtc < endMs) {
+        setTimeLeft(Math.floor((startMs - nowMs) / 1000));
+      } else if (nowMs >= startMs && nowMs < endMs) {
         setPhase(1);
-        setTimeLeft(Math.floor((endMs - nowUtc) / 1000));
+        setTimeLeft(Math.floor((endMs - nowMs) / 1000));
       } else {
         setPhase(3);
         setTimeLeft(0);
       }
       setIsLoading(false);
     } catch (err) {
-      setError('Failed to load test: ' + (err.response?.data?.error || err.message));
+      setError(
+        'Failed to load test: ' +
+          (err.response?.data?.error || err.response?.data?.message || err.message)
+      );
       setIsLoading(false);
     }
   }, [testId]);
@@ -116,7 +128,7 @@ const parseLocalDate = (isoString) => {
         `https://petroxtestbackend.onrender.com/api/group-test/${testId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.questions && response.data.questions.length > 0) {
         setQuestions(response.data.questions);
       } else {
@@ -134,7 +146,7 @@ const parseLocalDate = (isoString) => {
     fetchTest();
   }, [fetchTest]);
 
-  // Fetch questions when test starts
+  // Fetch questions when test starts (phase 2)
   useEffect(() => {
     if (phase === 2) {
       fetchQuestions();
@@ -172,7 +184,7 @@ const parseLocalDate = (isoString) => {
       });
     }, 1000);
     return () => clearInterval(timerId);
-  }, [phase, timeLeft]);
+  }, [phase, timeLeft]); // handleSubmitTest is defined below; it's stable via useCallback
 
   // Save answers to localStorage
   useEffect(() => {
@@ -193,7 +205,7 @@ const parseLocalDate = (isoString) => {
   const handleAnswerChange = (questionId, answer) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: answer
+      [questionId]: answer,
     }));
   };
 
@@ -222,7 +234,7 @@ const parseLocalDate = (isoString) => {
       setScore({
         correct: response.data.score,
         total: questions.length,
-        percentage: Math.round((response.data.score / questions.length) * 100)
+        percentage: Math.round((response.data.score / questions.length) * 100),
       });
       setSessionId(groupTest.session_id);
       localStorage.removeItem(`testEndTime_${testId}`);
@@ -249,7 +261,7 @@ const parseLocalDate = (isoString) => {
       );
       setGroupTest((prev) => ({
         ...prev,
-        session_id: response.data.session_id
+        session_id: response.data.session_id,
       }));
       fetchTest();
     } catch (err) {
@@ -280,7 +292,7 @@ const parseLocalDate = (isoString) => {
         .share({
           title: groupTest?.name || 'Group Test',
           text: 'Join this group test!',
-          url: testLink
+          url: testLink,
         })
         .catch((err) => console.error('Error sharing:', err));
     } else {
@@ -379,12 +391,7 @@ const parseLocalDate = (isoString) => {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
@@ -403,12 +410,7 @@ const parseLocalDate = (isoString) => {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
                 <div>
@@ -518,7 +520,7 @@ const parseLocalDate = (isoString) => {
         </div>
       );
     }
-    
+
     const currentQ = questions[currentQuestion];
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -540,12 +542,7 @@ const parseLocalDate = (isoString) => {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="font-medium">
                 Time Left: {formatTime(timeLeft)}
@@ -567,8 +564,8 @@ const parseLocalDate = (isoString) => {
                       currentQuestion === idx
                         ? 'bg-blue-600'
                         : answers[questions[idx]?.id]
-                          ? 'bg-green-500'
-                          : 'bg-gray-300'
+                        ? 'bg-green-500'
+                        : 'bg-gray-300'
                     }`}
                   ></div>
                 ))}
@@ -580,9 +577,7 @@ const parseLocalDate = (isoString) => {
               </h3>
               <div className="space-y-2 md:space-y-3">
                 {['A', 'B', 'C', 'D'].map((option, idx) => {
-                  const labelText = currentQ
-                    ? currentQ[`option_${option.toLowerCase()}`]
-                    : '';
+                  const labelText = currentQ ? currentQ[`option_${option.toLowerCase()}`] : '';
                   return (
                     <div key={idx} className="flex items-start">
                       <input
@@ -631,12 +626,7 @@ const parseLocalDate = (isoString) => {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Previous
               </Button>
@@ -661,12 +651,7 @@ const parseLocalDate = (isoString) => {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </Button>
               ) : null}
@@ -695,14 +680,7 @@ const parseLocalDate = (isoString) => {
             <div className="relative">
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg className="h-full w-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#e6e6e6"
-                    strokeWidth="8"
-                  />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#e6e6e6" strokeWidth="8" />
                   <circle
                     cx="50"
                     cy="50"
@@ -729,10 +707,7 @@ const parseLocalDate = (isoString) => {
               <div className="flex flex-wrap justify-center gap-4 md:gap-6">
                 <div className="text-center">
                   <p className="text-xl md:text-2xl font-bold text-green-600">
-                    {score?.correct
-                      ? Math.floor((score.correct / questions.length) * 100)
-                      : 0}
-                    %
+                    {score?.correct ? Math.floor((score.correct / questions.length) * 100) : 0}%
                   </p>
                   <p className="text-xs md:text-sm text-gray-500">Accuracy</p>
                 </div>
@@ -778,4 +753,5 @@ const parseLocalDate = (isoString) => {
 
   return null;
 }
+
 
