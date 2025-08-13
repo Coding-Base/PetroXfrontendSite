@@ -1,5 +1,4 @@
-// src/components/SignUp.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { registerUser } from '../api';
 import image from "../images/finallogo.png";
@@ -16,6 +15,12 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Clear any existing tokens when component mounts
+  useEffect(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,8 +30,12 @@ export default function SignUp() {
       await registerUser(username, email, password);
       navigate(`/login?next=${encodeURIComponent(next)}`);
     } catch (err) {
+      // Enhanced error logging
+      console.error("Registration Error:", err);
+      
       setError(
         err.response?.data?.detail || 
+        err.response?.data?.error || 
         'Unexpected error. Please try again.'
       );
     } finally {
