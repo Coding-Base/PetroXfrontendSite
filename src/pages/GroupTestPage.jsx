@@ -46,6 +46,7 @@ export default function GroupTestPage() {
   const [score, setScore] = useState(null);
   const [showReview, setShowReview] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [isFetchingQuestions, setIsFetchingQuestions] = useState(false);
 
   // Parse date as UTC
   const parseUtcDate = (isoString) => {
@@ -62,7 +63,6 @@ export default function GroupTestPage() {
       );
       const data = response.data;
       setGroupTest(data);
-      setQuestions(data.questions || []);
 
       // Parse scheduled_start as UTC
       const startDate = parseUtcDate(data.scheduled_start);
@@ -108,11 +108,37 @@ export default function GroupTestPage() {
     }
   }, [testId]);
 
+  // Fetch questions separately
+  const fetchQuestions = useCallback(async () => {
+    if (!groupTest) return;
+    
+    setIsFetchingQuestions(true);
+    const token = localStorage.getItem('access_token');
+    try {
+      const response = await axios.get(
+        `https://petroxtestbackend.onrender.com/api/group-test/${testId}/questions/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setQuestions(response.data);
+    } catch (err) {
+      setError('Failed to load questions: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsFetchingQuestions(false);
+    }
+  }, [testId, groupTest]);
+
   // Initial fetch
   useEffect(() => {
     fetchTest();
     // eslint-disable-next-line
   }, [testId]);
+
+  // Fetch questions when test starts
+  useEffect(() => {
+    if (phase === 2 && groupTest && questions.length === 0) {
+      fetchQuestions();
+    }
+  }, [phase, groupTest, questions, fetchQuestions]);
 
   // PHASE-0 TIMER: countdown to start
   useEffect(() => {
@@ -188,16 +214,14 @@ export default function GroupTestPage() {
   };
 
   const handleSubmitTest = useCallback(async () => {
-    if (!groupTest) return;
+    if (!groupTest || questions.length === 0) return;
     try {
       const response = await submitTest(groupTest.session_id, answers);
       setPhase(3);
       setScore({
         correct: response.data.score,
-        total: groupTest.question_count,
-        percentage: Math.round(
-          (response.data.score / groupTest.question_count) * 100
-        )
+        total: questions.length,
+        percentage: Math.round((response.data.score / questions.length) * 100)
       });
       setSessionId(groupTest.session_id);
       localStorage.removeItem(`testEndTime_${testId}`);
@@ -205,7 +229,7 @@ export default function GroupTestPage() {
     } catch (err) {
       setError('Failed to submit test');
     }
-  }, [answers, groupTest, testId]);
+  }, [answers, groupTest, testId, questions]);
 
   // Retake handler (unchanged)
   const handleRetakeTest = async () => {
@@ -342,7 +366,7 @@ export default function GroupTestPage() {
                 </div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Questions</p>
-                  <p className="text-sm md:text-base font-medium">{questions.length}</p>
+                  <p className="text-sm md:text-base font-medium">{groupTest?.question_count || 0}</p>
                 </div>
               </div>
               <div className="flex items-center">
@@ -449,7 +473,7 @@ export default function GroupTestPage() {
           <div className="mb-6 md:mb-8 rounded-xl bg-white p-4 md:p-6 text-left shadow-sm">
             <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">Instructions</h3>
             <ul className="list-disc space-y-1 md:space-y-2 pl-4 md:pl-5 text-xs md:text-sm text-gray-600">
-              <li>This test has {questions.length} multiple-choice questions</li>
+              <li>This test has {groupTest?.question_count || 0} multiple-choice questions</li>
               <li>
                 You have {groupTest?.duration_minutes || 0} minutes to complete
                 the test
@@ -464,9 +488,9 @@ export default function GroupTestPage() {
           <Button
             onClick={handleStartButton}
             className="rounded-lg bg-green-600 px-6 py-3 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-green-700 hover:shadow-lg w-full md:w-auto"
-            disabled={!groupTest || questions.length === 0}
+            disabled={!groupTest}
           >
-            {questions.length === 0 ? "Loading Questions..." : "Start Test Now"}
+            Start Test Now
           </Button>
         </div>
       </div>
@@ -475,7 +499,8 @@ export default function GroupTestPage() {
 
   // ——————— PHASE 2: Test In Progress ———————
   if (phase === 2) {
-    if (questions.length === 0) {
+    // Show loading while fetching questions
+    if (isFetchingQuestions || questions.length === 0) {
       return (
         <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
           <div className="p-4 md:p-8 text-center">
@@ -483,15 +508,16 @@ export default function GroupTestPage() {
               <div className="mx-auto h-12 w-12 md:h-16 md:w-16 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
             </div>
             <h2 className="mb-2 text-lg md:text-xl font-bold text-gray-800">
-              Questions Loading
+              Loading Test Questions
             </h2>
             <p className="text-sm md:text-base text-gray-600">
-              {groupTest ? groupTest.name : 'Test'} questions are being prepared
+              Preparing {groupTest ? groupTest.name : 'test'} questions
             </p>
           </div>
         </div>
       );
     }
+    
     const currentQ = questions[currentQuestion];
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
