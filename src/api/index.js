@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 // Base URL for backend API - ensure no trailing slash
 const rawBaseURL = import.meta.env.VITE_SERVER_URL;
 const baseURL = rawBaseURL.endsWith('/') 
@@ -19,9 +20,19 @@ const getRefreshToken = () => localStorage.getItem('refresh_token');
 // Request interceptor: inject access token
 api.interceptors.request.use(
   config => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Skip authentication for these endpoints
+    const unauthenticatedEndpoints = [
+      '/api/token/',          // Login endpoint
+      '/api/token/refresh/',  // Token refresh endpoint
+      '/users/'               // Registration endpoint
+    ];
+    
+    // Only add token if not in unauthenticated endpoints
+    if (!unauthenticatedEndpoints.some(endpoint => config.url.includes(endpoint))) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
