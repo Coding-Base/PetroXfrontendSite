@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { submitTest } from '@/api/index';
 import { FaCopy, FaShareAlt } from 'react-icons/fa';
 import ReviewPage from './ReviewPage';
 import { Button } from '../components/ui/button';
@@ -11,7 +10,6 @@ const formatTime = (seconds) => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-
   if (hours > 0) {
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs
       .toString()
@@ -22,7 +20,6 @@ const formatTime = (seconds) => {
     .padStart(2, '0')}`;
 };
 
-// Format an ISO/timestamp to local readable string
 const formatLocalTime = (isoString) => {
   const date = new Date(isoString);
   return date.toLocaleString(undefined, {
@@ -35,17 +32,12 @@ const formatLocalTime = (isoString) => {
   });
 };
 
-// Robust parser: accepts "YYYY-MM-DDTHH:mm" (local), "YYYY-MM-DDTHH:mm:ss", or timezone-aware ISO (with Z or ±hh:mm)
 const parseLocalDate = (isoString) => {
   if (!isoString) return null;
-
-  // If ISO contains timezone info (Z or ±hh:mm) let Date handle it (will convert to local)
   if (/[zZ]$|[+\-]\d{2}:\d{2}$/.test(isoString)) {
     const d = new Date(isoString);
     return isNaN(d.getTime()) ? null : d;
   }
-
-  // Match local "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss"
   const m = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (m) {
     const [, Y, Mo, D, H, Min, S] = m;
@@ -59,8 +51,6 @@ const parseLocalDate = (isoString) => {
     );
     return isNaN(d.getTime()) ? null : d;
   }
-
-  // Fallback to Date constructor
   const fallback = new Date(isoString);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
@@ -73,16 +63,15 @@ export default function GroupTestPage() {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [phase, setPhase] = useState(0); // 0: countdown, 1: ready to start, 2: in-progress, 3: ended
+  const [phase, setPhase] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [score, setScore] = useState(null);
   const [showReview, setShowReview] = useState(false);
-  const [sessionId, setSessionId] = useState(null); // explicit session id state
+  const [sessionId, setSessionId] = useState(null);
   const [isFetchingQuestions, setIsFetchingQuestions] = useState(false);
 
-  // Fetch group test details
   const fetchTest = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     try {
@@ -93,7 +82,6 @@ export default function GroupTestPage() {
       const data = response.data;
       setGroupTest(data);
 
-      // store sessionId explicitly if backend provided
       if (data.session_id) {
         setSessionId(data.session_id);
         console.log('DBG: fetchTest set sessionId =', data.session_id);
@@ -103,8 +91,6 @@ export default function GroupTestPage() {
       }
 
       console.log('DBG: server scheduled_start =', data.scheduled_start);
-
-      // Parse scheduled_start (robust)
       const startDate = parseLocalDate(data.scheduled_start);
       if (!startDate) {
         console.warn('DBG: unable to parse scheduled_start:', data.scheduled_start);
@@ -112,12 +98,10 @@ export default function GroupTestPage() {
         setIsLoading(false);
         return;
       }
-
       console.log('DBG: parsed startDate (local) =', startDate.toString());
 
       const endDate = new Date(startDate.getTime() + (data.duration_minutes || 0) * 60000);
 
-      // Restore local state if test in progress
       const savedEndTime = localStorage.getItem(`testEndTime_${testId}`);
       const savedAnswers = localStorage.getItem(`testAnswers_${testId}`);
 
@@ -149,12 +133,10 @@ export default function GroupTestPage() {
         }
       }
 
-      // Determine phase using local-time comparisons
       if (nowMs < startMs) {
         setPhase(0);
         setTimeLeft(Math.floor((startMs - nowMs) / 1000));
       } else if (nowMs >= startMs && nowMs < endMs) {
-        // Between scheduled start and end: show ready-to-start (phase 1)
         setPhase(1);
         setTimeLeft(Math.floor((endMs - nowMs) / 1000));
       } else {
@@ -170,7 +152,6 @@ export default function GroupTestPage() {
     }
   }, [testId]);
 
-  // Fetch questions when the test is started (phase 2)
   const fetchQuestions = useCallback(async () => {
     setIsFetchingQuestions(true);
     const token = localStorage.getItem('access_token');
@@ -179,7 +160,6 @@ export default function GroupTestPage() {
         `https://petroxtestbackend.onrender.com/api/group-test/${testId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (response.data.questions && response.data.questions.length > 0) {
         setQuestions(response.data.questions);
       } else {
@@ -193,22 +173,13 @@ export default function GroupTestPage() {
     }
   }, [testId]);
 
-  // Initial load
-  useEffect(() => {
-    fetchTest();
-  }, [fetchTest]);
+  useEffect(() => { fetchTest(); }, [fetchTest]);
+  useEffect(() => { if (phase === 2) fetchQuestions(); }, [phase, fetchQuestions]);
 
-  useEffect(() => {
-    if (phase === 2) {
-      fetchQuestions();
-    }
-  }, [phase, fetchQuestions]);
-
-  // PHASE-0 TIMER (countdown to start)
   useEffect(() => {
     if (phase !== 0 || timeLeft <= 0) return;
     const timerId = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerId);
           fetchTest();
@@ -221,35 +192,24 @@ export default function GroupTestPage() {
     return () => clearInterval(timerId);
   }, [phase, timeLeft, fetchTest]);
 
-  // PHASE-2 TIMER (test in progress)
-  // Note: include handleSubmitTest in deps once defined
-  // We'll reference handleSubmitTest safely below by including it in the dependency array.
-  // For now set up timer effect; we will reference handleSubmitTest via a stable ref by including it in deps later.
   useEffect(() => {
     if (phase !== 2 || timeLeft <= 0) return;
     const timerId = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerId);
-          // handleSubmitTest will be called below via function reference in dependency array
-          // (we call handleSubmitTest inside a separate useEffect to avoid hoisting issues)
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, timeLeft]);
 
-  // Save answers to localStorage automatically
   useEffect(() => {
-    if (Object.keys(answers).length > 0) {
-      localStorage.setItem(`testAnswers_${testId}`, JSON.stringify(answers));
-    }
+    if (Object.keys(answers).length > 0) localStorage.setItem(`testAnswers_${testId}`, JSON.stringify(answers));
   }, [answers, testId]);
 
-  // Save end time to localStorage when test starts
   useEffect(() => {
     if (phase === 2 && groupTest) {
       const endTime = Date.now() + groupTest.duration_minutes * 60000;
@@ -257,20 +217,9 @@ export default function GroupTestPage() {
     }
   }, [phase, groupTest, testId]);
 
-  // Handlers for navigation and answers
-  const handleAnswerChange = (questionId, answer) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
-  };
-
-  const handleNextQuestion = () => {
-    setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
-  };
-
-  const handlePrevQuestion = () => {
-    setCurrentQuestion((prev) => Math.max(prev - 1, 0));
-  };
-
-  // Start button: begin the test locally and fetch questions
+  const handleAnswerChange = (questionId, answer) => setAnswers(prev => ({ ...prev, [questionId]: answer }));
+  const handleNextQuestion = () => setCurrentQuestion(prev => Math.min(prev + 1, questions.length - 1));
+  const handlePrevQuestion = () => setCurrentQuestion(prev => Math.max(prev - 1, 0));
   const handleStartButton = () => {
     setPhase(2);
     setTimeLeft(groupTest.duration_minutes * 60);
@@ -279,14 +228,50 @@ export default function GroupTestPage() {
     fetchQuestions();
   };
 
-  // Submit test (useCallback to be stable)
+  // Prefer submit endpoint that includes the group test id in URL (avoids ambiguity between test and session)
+  const trySubmitToEndpoints = async (sid, answersToSend) => {
+    const token = localStorage.getItem('access_token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    // First, the preferred explicit endpoint that binds submission to the group test id
+    const preferUrl = `https://petroxtestbackend.onrender.com/api/group-test/${groupTest?.id || testId}/submit/`;
+    const preferBody = { session_id: sid, answers: answersToSend };
+
+    try {
+      console.log('DBG: trying preferred submit endpoint', preferUrl, preferBody);
+      const res = await axios.post(preferUrl, preferBody, { headers });
+      return res;
+    } catch (err) {
+      console.warn('DBG: preferred submit attempt failed', preferUrl, err?.response?.status, err?.message);
+      // fall-through to try other shapes
+    }
+
+    // fallback shapes
+    const endpoints = [
+      { url: `https://petroxtestbackend.onrender.com/api/submit-test/`, body: { session_id: sid, answers: answersToSend } },
+      { url: `https://petroxtestbackend.onrender.com/api/session/${sid}/submit/`, body: { answers: answersToSend } },
+      { url: `https://petroxtestbackend.onrender.com/api/submit/${sid}/`, body: { answers: answersToSend } },
+    ];
+
+    for (const ep of endpoints) {
+      try {
+        console.log('DBG: trying fallback submit endpoint', ep.url, ep.body);
+        const res = await axios.post(ep.url, ep.body, { headers });
+        return res;
+      } catch (err) {
+        console.warn('DBG: submit attempt failed for', ep.url, err?.response?.status, err?.message);
+      }
+    }
+
+    throw new Error('All submit attempts failed');
+  };
+
   const handleSubmitTest = useCallback(async () => {
     if (!groupTest || questions.length === 0) {
       console.warn('DBG: nothing to submit: groupTest or questions missing');
       return;
     }
 
-    // Debug details about what we're submitting
     console.log('DBG: submit attempt ->', {
       testId,
       groupTestId: groupTest?.id,
@@ -294,7 +279,6 @@ export default function GroupTestPage() {
       answers,
     });
 
-    // Prefer explicit sessionId; fallback to groupTest.session_id
     const sid = sessionId ?? groupTest.session_id;
     if (!sid) {
       setError('Cannot submit test: session id is missing. Please contact support.');
@@ -302,11 +286,20 @@ export default function GroupTestPage() {
     }
 
     try {
-      const response = await submitTest(sid, answers);
+      const response = await trySubmitToEndpoints(sid, answers);
       console.log('DBG: submit response ->', response);
 
       const respData = response.data ?? response;
       const scoreValue = respData.score ?? respData.data?.score ?? respData?.result?.score;
+
+      // If server responded with a different id than the current groupTest, warn (helps debugging)
+      if (respData.id && Number(respData.id) !== Number(groupTest?.id) && respData.id !== sid) {
+        console.warn('DBG: submit returned id does not match groupTest.id or session id - server linked submission to different object', {
+          returnedId: respData.id,
+          groupTestId: groupTest?.id,
+          sessionId: sid,
+        });
+      }
 
       setPhase(3);
       setScore({
@@ -315,30 +308,21 @@ export default function GroupTestPage() {
         percentage: scoreValue ? Math.round((scoreValue / questions.length) * 100) : 0,
       });
 
-      // keep session id from server (if returned) or sid
-      if (respData.session_id) {
-        setSessionId(respData.session_id);
-      } else {
-        setSessionId(sid);
-      }
+      if (respData.session_id) setSessionId(respData.session_id);
+      else setSessionId(sid);
 
       localStorage.removeItem(`testEndTime_${testId}`);
       localStorage.removeItem(`testAnswers_${testId}`);
     } catch (err) {
-      console.error('DBG: submitTest err', err);
-      setError('Failed to submit test');
+      console.error('DBG: submitTest final err', err);
+      setError('Failed to submit test. Check console/network logs for details.');
     }
   }, [answers, groupTest, questions, sessionId, testId]);
 
-  // If timer hit 0 during phase 2 we want to call submit; watch timeLeft and phase
   useEffect(() => {
-    if (phase === 2 && timeLeft === 0) {
-      // ensure we actually submit when countdown reaches zero
-      handleSubmitTest();
-    }
+    if (phase === 2 && timeLeft === 0) handleSubmitTest();
   }, [phase, timeLeft, handleSubmitTest]);
 
-  // Retake handler
   const handleRetakeTest = async () => {
     try {
       setShowReview(false);
@@ -362,26 +346,18 @@ export default function GroupTestPage() {
     }
   };
 
-  // Copy/share helpers unchanged
   const copyTestLink = () => {
     const testLink = `${window.location.origin}/group-test/${testId}`;
-    navigator.clipboard
-      .writeText(testLink)
-      .then(() => alert('Test link copied to clipboard!'))
-      .catch((err) => {
-        console.error('Failed to copy: ', err);
-        alert('Failed to copy link. Please copy manually.');
-      });
+    navigator.clipboard.writeText(testLink).then(() => alert('Test link copied to clipboard!')).catch((err) => {
+      console.error('Failed to copy: ', err);
+      alert('Failed to copy link. Please copy manually.');
+    });
   };
 
   const shareTestLink = () => {
     const testLink = `${window.location.origin}/group-test/${testId}`;
     if (navigator.share) {
-      navigator.share({
-        title: groupTest?.name || 'Group Test',
-        text: 'Join this group test!',
-        url: testLink,
-      }).catch((err) => console.error('Error sharing:', err));
+      navigator.share({ title: groupTest?.name || 'Group Test', text: 'Join this group test!', url: testLink }).catch((err) => console.error('Error sharing:', err));
     } else {
       copyTestLink();
     }
@@ -389,7 +365,7 @@ export default function GroupTestPage() {
 
   const creatorName = groupTest?.created_by?.username || 'Unknown Creator';
 
-  // ---------------- RENDER ----------------
+  // ---------- Render (unchanged UI blocks for phases 0-3) ----------
   if (isLoading) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -410,10 +386,7 @@ export default function GroupTestPage() {
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
         <div className="p-4 md:p-6 bg-red-50 border border-red-200 rounded-xl text-center">
           <p className="text-red-700 mb-4">{error}</p>
-          <Button
-            onClick={() => navigate('/dashboard')}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition duration-200 hover:bg-blue-700"
-          >
+          <Button onClick={() => navigate('/dashboard')} className="rounded-lg bg-blue-600 px-4 py-2 text-white transition duration-200 hover:bg-blue-700">
             Return to Dashboard
           </Button>
         </div>
@@ -421,29 +394,20 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 0: Countdown to start
   if (phase === 0) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
         <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 text-center shadow-lg">
           <div className="mb-6 md:mb-8">
-            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">
-              {groupTest?.name || 'Group Test'}
-            </h1>
+            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">{groupTest?.name || 'Group Test'}</h1>
             <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-blue-500"></div>
-            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
-              {groupTest?.scheduled_start
-                ? `Test begins at: ${formatLocalTime(groupTest.scheduled_start)}`
-                : 'Test start time not set'}
-            </p>
+            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">{groupTest?.scheduled_start ? `Test begins at: ${formatLocalTime(groupTest.scheduled_start)}` : 'Test start time not set'}</p>
           </div>
 
           <div className="mb-6 md:mb-10">
             <div className="inline-block rounded-xl bg-white p-4 md:p-6 shadow-md">
               <p className="mb-2 text-xs md:text-sm text-gray-500">Time until test starts</p>
-              <p className="text-3xl md:text-4xl font-bold text-blue-600">
-                {formatTime(timeLeft)}
-              </p>
+              <p className="text-3xl md:text-4xl font-bold text-blue-600">{formatTime(timeLeft)}</p>
             </div>
           </div>
 
@@ -454,9 +418,7 @@ export default function GroupTestPage() {
                 <div className="mr-3 rounded-lg bg-blue-100 p-2"></div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Course</p>
-                  <p className="text-sm md:text-base font-medium">
-                    {groupTest?.course?.name || 'No course specified'}
-                  </p>
+                  <p className="text-sm md:text-base font-medium">{groupTest?.course?.name || 'No course specified'}</p>
                 </div>
               </div>
 
@@ -495,9 +457,7 @@ export default function GroupTestPage() {
           </div>
 
           <div className="rounded-lg bg-blue-50 p-4 md:p-6">
-            <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">
-              Invite Participants
-            </h3>
+            <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">Invite Participants</h3>
             <p className="mb-3 md:mb-4 text-sm md:text-base text-gray-600">Share this test with others:</p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <Button onClick={copyTestLink} className="flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm text-gray-700 transition duration-200 hover:bg-gray-50 w-full sm:w-auto">
@@ -513,21 +473,14 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 1: Ready to Start (user must click “Start Test”)
   if (phase === 1) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
         <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-green-50 to-teal-50 p-4 md:p-8 text-center shadow-lg">
           <div className="mb-6 md:mb-8">
-            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">
-              {groupTest?.name || 'Group Test'}
-            </h1>
+            <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-800">{groupTest?.name || 'Group Test'}</h1>
             <div className="mx-auto mb-4 md:mb-6 h-1 w-16 md:w-24 bg-green-500"></div>
-            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">
-              {groupTest?.scheduled_start
-                ? `Scheduled start was: ${formatLocalTime(groupTest.scheduled_start)}`
-                : 'Test start time not set'}
-            </p>
+            <p className="mb-4 md:mb-6 text-sm md:text-base text-gray-600">{groupTest?.scheduled_start ? `Scheduled start was: ${formatLocalTime(groupTest.scheduled_start)}` : 'Test start time not set'}</p>
           </div>
 
           <div className="mb-6 md:mb-10">
@@ -548,11 +501,7 @@ export default function GroupTestPage() {
             </ul>
           </div>
 
-          <Button
-            onClick={handleStartButton}
-            className="rounded-lg bg-green-600 px-6 py-3 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-green-700 hover:shadow-lg w-full md:w-auto"
-            disabled={!groupTest}
-          >
+          <Button onClick={handleStartButton} className="rounded-lg bg-green-600 px-6 py-3 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-green-700 hover:shadow-lg w-full md:w-auto" disabled={!groupTest}>
             Start Test Now
           </Button>
         </div>
@@ -560,9 +509,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 2: Test In Progress
   if (phase === 2) {
-    // Show loading while fetching questions
     if (isFetchingQuestions || questions.length === 0) {
       return (
         <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -598,10 +545,7 @@ export default function GroupTestPage() {
 
           <div className="mb-6 md:mb-8">
             <div className="mb-3 md:mb-4 flex items-center justify-between">
-              <p className="text-xs md:text-sm text-gray-600">
-                Question <span className="font-medium">{currentQuestion + 1}</span> of <span className="font-medium">{questions.length}</span>
-              </p>
-
+              <p className="text-xs md:text-sm text-gray-600">Question <span className="font-medium">{currentQuestion + 1}</span> of <span className="font-medium">{questions.length}</span></p>
               <div className="flex flex-wrap gap-1">
                 {questions.map((_, idx) => (
                   <div key={idx} className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${currentQuestion === idx ? 'bg-blue-600' : answers[questions[idx]?.id] ? 'bg-green-500' : 'bg-gray-300'}`}></div>
@@ -611,25 +555,13 @@ export default function GroupTestPage() {
 
             <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
               <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800">{currentQ?.question_text || 'Question not available'}</h3>
-
               <div className="space-y-2 md:space-y-3">
-                {['A', 'B', 'C', 'D'].map((option, idx) => {
+                {['A','B','C','D'].map((option, idx) => {
                   const labelText = currentQ ? currentQ[`option_${option.toLowerCase()}`] : '';
                   return (
                     <div key={idx} className="flex items-start">
-                      <input
-                        type="radio"
-                        id={`option-${idx}`}
-                        name="answer"
-                        checked={answers[currentQ?.id] === option}
-                        onChange={() => currentQ && handleAnswerChange(currentQ.id, option)}
-                        className="mt-1 h-4 w-4 text-blue-600"
-                        disabled={!currentQ}
-                      />
-                      <label
-                        htmlFor={`option-${idx}`}
-                        className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${answers[currentQ?.id] === option ? 'border border-blue-200 bg-blue-50' : 'hover:bg-gray-100'}`}
-                      >
+                      <input type="radio" id={`option-${idx}`} name="answer" checked={answers[currentQ?.id] === option} onChange={() => currentQ && handleAnswerChange(currentQ.id, option)} className="mt-1 h-4 w-4 text-blue-600" disabled={!currentQ} />
+                      <label htmlFor={`option-${idx}`} className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${answers[currentQ?.id] === option ? 'border border-blue-200 bg-blue-50' : 'hover:bg-gray-100'}`}>
                         <span className="mr-1 font-medium">{option}.</span> {labelText || `Option ${option}`}
                       </label>
                     </div>
@@ -641,36 +573,13 @@ export default function GroupTestPage() {
 
           <div className="flex flex-col justify-between gap-3 sm:flex-row">
             <div>
-              <Button
-                onClick={handlePrevQuestion}
-                disabled={currentQuestion === 0}
-                className={`flex items-center rounded-lg px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm ${currentQuestion === 0 ? 'cursor-not-allowed text-gray-400' : 'text-gray-700 hover:bg-gray-100'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Previous
-              </Button>
+              <Button onClick={handlePrevQuestion} disabled={currentQuestion === 0} className={`flex items-center rounded-lg px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm ${currentQuestion === 0 ? 'cursor-not-allowed text-gray-400' : 'text-gray-700 hover:bg-gray-100'}`}><svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>Previous</Button>
             </div>
 
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button
-                onClick={handleSubmitTest}
-                className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50"
-              >
-                Submit Test
-              </Button>
-
+              <Button onClick={handleSubmitTest} className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50">Submit Test</Button>
               {currentQuestion < questions.length - 1 ? (
-                <Button
-                  onClick={handleNextQuestion}
-                  className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700"
-                >
-                  Next
-                  <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Button>
+                <Button onClick={handleNextQuestion} className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700">Next<svg xmlns="http://www.w3.org/2000/svg" className="ml-1 h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></Button>
               ) : null}
             </div>
           </div>
@@ -679,7 +588,6 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 3: Test Ended
   if (phase === 3) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -695,35 +603,20 @@ export default function GroupTestPage() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg className="h-full w-full" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="45" fill="none" stroke="#e6e6e6" strokeWidth="8" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#4f46e5"
-                    strokeWidth="8"
-                    strokeDasharray={`${score?.percentage || 0} ${100 - (score?.percentage || 0)}`}
-                    strokeDashoffset="25"
-                    transform="rotate(-90 50 50)"
-                  />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#4f46e5" strokeWidth="8" strokeDasharray={`${score?.percentage || 0} ${100 - (score?.percentage || 0)}`} strokeDashoffset="25" transform="rotate(-90 50 50)" />
                 </svg>
               </div>
-
               <div className="relative z-10">
                 <p className="text-4xl md:text-5xl font-bold text-gray-800">{score?.percentage ?? 0}%</p>
               </div>
             </div>
 
-            <p className="mt-4 md:mt-6 text-sm md:text-base text-gray-600">
-              {score?.correct ?? 0} out of {score?.total ?? 0} questions correct
-            </p>
+            <p className="mt-4 md:mt-6 text-sm md:text-base text-gray-600">{score?.correct ?? 0} out of {score?.total ?? 0} questions correct</p>
 
             <div className="mt-4 md:mt-6">
               <div className="flex flex-wrap justify-center gap-4 md:gap-6">
                 <div className="text-center">
-                  <p className="text-xl md:text-2xl font-bold text-green-600">
-                    {score?.correct ? Math.floor((score.correct / (questions.length || 1)) * 100) : 0}%
-                  </p>
+                  <p className="text-xl md:text-2xl font-bold text-green-600">{score?.correct ? Math.floor((score.correct / (questions.length || 1)) * 100) : 0}%</p>
                   <p className="text-xs md:text-sm text-gray-500">Accuracy</p>
                 </div>
 
@@ -741,27 +634,11 @@ export default function GroupTestPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Button
-              onClick={() => navigate('/dashboard')}
-              className="rounded-lg bg-purple-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-purple-700 hover:shadow-lg"
-            >
-              Return to Dashboard
-            </Button>
-
-            <Button
-              onClick={() => setShowReview(true)}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-blue-700 hover:shadow-lg"
-            >
-              Review Answers
-            </Button>
+            <Button onClick={() => navigate('/dashboard')} className="rounded-lg bg-purple-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-purple-700 hover:shadow-lg">Return to Dashboard</Button>
+            <Button onClick={() => setShowReview(true)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm md:text-lg font-semibold text-white shadow-md transition duration-200 hover:bg-blue-700 hover:shadow-lg">Review Answers</Button>
           </div>
 
-          <ReviewPage
-            sessionId={sessionId}
-            isOpen={showReview}
-            onClose={() => setShowReview(false)}
-            onRetake={handleRetakeTest}
-          />
+          <ReviewPage sessionId={sessionId} isOpen={showReview} onClose={() => setShowReview(false)} onRetake={handleRetakeTest} />
         </div>
       </div>
     );
