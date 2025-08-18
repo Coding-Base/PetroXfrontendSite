@@ -125,7 +125,7 @@ export default function MaterialsManagement() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 10 * 102极 * 1024) {
+      if (selectedFile.size > 20 * 1024* 1024) {
         setError('File size exceeds 10MB limit');
       } else {
         setError('');
@@ -989,3 +989,4 @@ export default function MaterialsManagement() {
     </div>
   );
 }
+
