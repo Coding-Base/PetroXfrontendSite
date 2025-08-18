@@ -77,21 +77,21 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Fetch courses on mount
+  // Fetch courses on mount - FIXED: Correctly handle API response structure
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
         
-        // Handle both array and object responses
+        // Handle API response structure - courses are in response.results
         let courseArr = [];
-        if (Array.isArray(response)) {
-          courseArr = response;
-        } else if (Array.isArray(response.data)) {
-          courseArr = response.data;
+        if (response && Array.isArray(response.results)) {
+          courseArr = response.results;
         } else if (Array.isArray(response)) {
           courseArr = response;
+        } else if (response && Array.isArray(response.data)) {
+          courseArr = response.data;
         }
         
         setCourses(courseArr);
@@ -170,7 +170,7 @@ export default function MaterialsManagement() {
         const { status, data } = err.response;
         
         if (status === 503) {
-          error极Msg = "Storage service unavailable. Please try again later.";
+          errorMsg = "Storage service unavailable. Please try again later.";
         } 
         else if (data.error === "storage_authentication_failed") {
           errorMsg = "Storage system authentication failed. Please contact support.";
@@ -201,6 +201,7 @@ export default function MaterialsManagement() {
     }
   };
 
+  // FIXED: Search function now passes query correctly
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setError('Please enter a search query');
@@ -212,7 +213,8 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     try {
-      const results = await searchMaterials(searchQuery.trim());
+      // Pass query as an object property
+      const results = await searchMaterials({ query: searchQuery.trim() });
       
       // Handle different response formats
       let materialList = [];
@@ -229,7 +231,18 @@ export default function MaterialsManagement() {
       setShowMobileMenu(false);
     } catch (error) {
       console.error('Search error:', error);
-      setError('Failed to search materials. Please try again.');
+      
+      // Enhanced error handling for 500 errors
+      let errorMsg = 'Failed to search materials. Please try again.';
+      if (error.response) {
+        if (error.response.status === 500) {
+          errorMsg = "Server error. Please try again later.";
+        } else if (error.response.data?.message) {
+          errorMsg = error.response.data.message;
+        }
+      }
+      
+      setError(errorMsg);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -285,7 +298,7 @@ export default function MaterialsManagement() {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 极2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
       );
@@ -316,7 +329,7 @@ export default function MaterialsManagement() {
     } else {
       return (
         <div className={`${iconClasses} bg-gray-100 text-gray-600`}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="current极Color">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
@@ -342,7 +355,7 @@ export default function MaterialsManagement() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="min极h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
       <div className="mx-auto max-w-7xl">
         {/* Floating error/success messages */}
         {(error || successMsg) && (
@@ -395,7 +408,7 @@ export default function MaterialsManagement() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18极h16"
+                d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
           </button>
@@ -748,7 +761,7 @@ export default function MaterialsManagement() {
                     className="h-5 w-5 md:h-6 md:w-6"
                     fill="none"
                     viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    stroke="current极Color"
                   >
                     <path
                       strokeLinecap="round"
