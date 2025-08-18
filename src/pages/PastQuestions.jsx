@@ -1,47 +1,110 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../components/ui/button';
-import { fetchCourses } from '@/api/index';
+import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '@/api/index';
 
-const UploadPassQuestions = () => {
-  const [step, setStep] = useState(1);
-  const [questionType, setQuestionType] = useState('multichoice');
+export default function MaterialsManagement() {
+  const [mode, setMode] = useState('upload');
+  const [materialName, setMaterialName] = useState('');
+  const [tags, setTags] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState('');
   const [file, setFile] = useState(null);
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [year, setYear] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
-  const [uploadStatus, setUploadStatus] = useState(null);
-  const [parsedQuestions, setParsedQuestions] = useState([]);
-  const [courses, setCourses] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-  const [courseError, setCourseError] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [uploadedMaterials, setUploadedMaterials] = useState([]);
+  const [downloadedMaterials, setDownloadedMaterials] = useState([]);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isOnline, setIsOnline] = useState(true);
+  const messageTimeout = useRef(null);
 
-  // Generate years from current year back 30 years
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({length: 30}, (_, i) => currentYear - i);
+  // Check online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Initial check
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
-  // Fetch courses on component mount - FIXED: Correctly handle API response structure
+  // Clear messages automatically after 5 seconds
+  useEffect(() => {
+    let timeoutId;
+    
+    if (error || successMsg) {
+      // Clear any existing timeout
+      if (messageTimeout.current) {
+        clearTimeout(messageTimeout.current);
+        messageTimeout.current = null;
+      }
+      
+      // Set new timeout
+      timeoutId = setTimeout(() => {
+        setError('');
+        setSuccessMsg('');
+      }, 5000);
+      
+      messageTimeout.current = timeoutId;
+    }
+    
+    // Cleanup
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [error, successMsg]);
+
+  // Clear messages manually
+  const clearMessages = () => {
+    setError('');
+    setSuccessMsg('');
+    if (messageTimeout.current) {
+      clearTimeout(messageTimeout.current);
+      messageTimeout.current = null;
+    }
+  };
+
+  // Fixed course loading - handles API response structure properly
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
         
-        // Handle API response structure - courses are in response.results
-        let courseArr = [];
-        if (response && Array.isArray(response.results)) {
-          courseArr = response.results;
-        } else if (Array.isArray(response)) {
-          courseArr = response;
-        } else if (response && Array.isArray(response.data)) {
-          courseArr = response.data;
-        }
+        console.log('Courses API response:', response); // For debugging
         
-        setCourses(courseArr);
+        // Handle API response structure - courses are in response.results
+        if (response && response.results && Array.isArray(response.results)) {
+          setCourses(response.results);
+        } 
+        // Handle non-paginated array response
+        else if (Array.isArray(response)) {
+          setCourses(response);
+        } 
+        // Handle other possible structures
+        else if (response && response.data && Array.isArray(response.data)) {
+          setCourses(response.data);
+        } 
+        else {
+          console.error('Unexpected courses response structure:', response);
+          setCourses([]);
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
-        setCourseError('Failed to load courses. Please try again later.');
+        setError('Failed to load courses. Please try again later.');
         setCourses([]);
       } finally {
         setIsLoadingCourses(false);
@@ -51,328 +114,266 @@ const UploadPassQuestions = () => {
     loadCourses();
   }, []);
 
+  // Load downloaded materials from localStorage
+  useEffect(() => {
+    const savedDownloads = JSON.parse(
+      localStorage.getItem('downloadedMaterials') || '[]'
+    );
+    setDownloadedMaterials(Array.isArray(savedDownloads) ? savedDownloads : []);
+  }, []);
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selected极File) {
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain'
-      ];
-      if (!validTypes.includes(selectedFile.type)) {
-        setMessage({
-          text: 'Invalid file type. Please upload PDF, DOCX, or TXT.',
-          type: 'error'
-        });
-        return;
+    if (selectedFile) {
+      if (selectedFile.size > 10 * 102极 * 1024) {
+        setError('File size exceeds 10MB limit');
+      } else {
+        setError('');
+        setFile(selectedFile);
       }
-      setFile(selectedFile);
-      setMessage({ text: '', type: '' });
     }
   };
 
-  const handleQuestionChange = (index, field, value) => {
-    const updatedQuestions = [...parsedQuestions];
-    updatedQuestions[index] = {
-      ...updatedQuestions[index],
-      [field]: value
-    };
-    setParsedQuestions(updatedQuestions);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (step === 1 && !year) {
-      setMessage({ text: 'Please select a year', type: 'error' });
+  const handleUpload = async () => {
+    if (!selectedCourseId || !materialName.trim() || !file) {
+      setError('Please fill all required fields');
       return;
     }
 
-    if (step === 1) {
-      if (!file) {
-        setMessage({ text: 'Please select a file', type: 'error' });
-        return;
-      }
-      if (!selectedCourse) {
-        setMessage({ text: 'Please select a course', type: 'error' });
-        return;
+    // Check online status before upload
+    if (!isOnline) {
+      setError('You are offline. Please connect to the internet to upload materials.');
+      return;
+    }
+
+    setIsUploading(true);
+    setError('');
+    setSuccessMsg('');
+
+    const formData = new FormData();
+    formData.append('course', parseInt(selectedCourseId, 10));
+    formData.append('name', materialName.trim());
+    formData.append('tags', tags.trim());
+    formData.append('file', file);
+
+    try {
+      const response = await uploadMaterial(formData);
+      setUploadedMaterials([response.data, ...uploadedMaterials]);
+      
+      // Reset form
+      setMaterialName('');
+      setTags('');
+      setFile(null);
+      setSelectedCourseId('');
+      
+      setSuccessMsg('Material uploaded successfully!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      
+      // Enhanced error handling
+      let errorMsg = 'Failed to upload material. Please try again.';
+      
+      if (err.response) {
+        const { status, data } = err.response;
+        
+        if (status === 503) {
+          errorMsg = "Storage service unavailable. Please try again later.";
+        } 
+        else if (data.error === "storage_authentication_failed") {
+          errorMsg = "Storage system authentication failed. Please contact support.";
+        } 
+        else if (data.error && data.error.includes("JWT")) {
+          errorMsg = "Security token error. Please try again later.";
+        }
+        else if (data.message) {
+          errorMsg = data.message;
+        }
+        else {
+          errorMsg = data.error?.message || data.error || errorMsg;
+        }
+      } else if (err.request) {
+        // The request was made but no response was received
+        errorMsg = "No response from server. Please check your connection and try again.";
+      } else if (err.isTimeout) {
+        errorMsg = "Request timed out. Please try again.";
+      } else if (err.isNetworkError) {
+        errorMsg = isOnline 
+          ? "Server connection failed. Please try again later." 
+          : "Network error. Please check your internet connection.";
       }
       
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('question_type', questionType);
-      formData.append('year', year);
-
-      setIsLoading(true);
-      setMessage({ text: '', type: '' });
-      try {
-        const response = await axios.post(
-          'https://petroxtestbackend.onrender.com/api/preview-pass-questions/', 
-          formData, 
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-          }
-        );
-
-        const questionsWithIds = response.data.questions.map(q => ({
-          ...q,
-          id: Math.random().toString(36).substr(2, 9)
-        }));
-        
-        setParsedQuestions(questionsWithIds);
-        setStep(2);
-      } catch (error) {
-        // Enhanced error handling
-        let errorMsg = 'Failed to parse file. Please check the format and try again.';
-        if (error.response) {
-          if (error.response.data) {
-            errorMsg = error.response.data.error || 
-                      error.response.data.message || 
-                      JSON.stringify(error.response.data);
-          }
-        } else if (error.request) {
-          errorMsg = "No response from server. Please check your connection.";
-        } else {
-          errorMsg = error.message;
-        }
-        setMessage({ text: errorMsg, type: 'error' });
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setIsLoading(true);
-      setMessage({ text: '', type: '' });
-      
-      try {
-        // Validate all questions are filled
-        const hasEmptyQuestions = parsedQuestions.some(q => {
-          if (!q.text) return true;
-          if (questionType === 'multichoice') {
-            return !q.A || !q.B || !q.C || !q.D || !q.answer;
-          }
-          return false;
-        });
-        
-        if (hasEmptyQuestions) {
-          setMessage({ 
-            text: 'Please fill all question fields and ensure answers are selected', 
-            type: 'error' 
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Format questions for backend
-        const formattedQuestions = parsedQuestions.map(q => {
-          const baseQuestion = {
-            text: q.text,
-            question_type: questionType
-          };
-          
-          if (questionType === 'multichoice') {
-            return {
-              ...baseQuestion,
-              optionA: q.A,
-              optionB: q.B,
-              optionC: q.C,
-              optionD: q.D,
-              correct_answer: q.answer
-            };
-          }
-          return baseQuestion;
-        });
-
-        const response = await axios.post(
-          'https://petroxtestbackend.onrender.com/api/upload-pass-questions/', 
-          {
-            course_id: selectedCourse,
-            year: year,
-            questions: formattedQuestions,
-            question_type: questionType
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-          }
-        );
-
-        setMessage({ 
-          text: response.data.message || 'Questions submitted successfully! They are pending admin approval.',
-          type: 'success'
-        });
-        
-        setUploadStatus({
-          count: parsedQuestions.length,
-          year: year,
-          course: courses.find(c => c.id == selectedCourse)?.name || 'Unknown Course',
-          filename: file.name
-        });
-        
-        setFile(null);
-        setSelectedCourse('');
-        setYear('');
-        setStep(1);
-        setParsedQuestions([]);
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = '';
-      } catch (error) {
-        console.error('Submission error:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          course_id: selectedCourse,
-          year: year,
-          question_count: parsedQuestions.length
-        });
-        
-        if (error.response?.status === 409) {
-          setMessage({ 
-            text: error.response.data.error || 'Past questions for this year already exist', 
-            type: 'error' 
-          });
-        } else {
-          // Enhanced error handling
-          let errorMsg = 'Submission failed. Please try again.';
-          if (error.response) {
-            if (error.response.data) {
-              errorMsg = error.response.data.error || 
-                         error.response.data.message || 
-                         JSON.stringify(error.response.data);
-            }
-          } else if (error.request) {
-            errorMsg = "No response from server. Please check your connection.";
-          } else {
-            errorMsg = error.message;
-          }
-          setMessage({ text: errorMsg, type: 'error' });
-        }
-      } finally {
-        setIsLoading(false);
-      }
+      setError(errorMsg);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const renderQuestionEditor = () => (
-    <div className="mt-6">
-      <h2 className="text-lg sm:text-xl font-semibold mb-4">Review and Edit Questions</h2>
-      <p className="text-xs sm:text-sm text-gray-600 mb-4">
-        Please review the parsed questions and make any necessary corrections before submitting.
-      </p>
-      <div className="max-h-[400px] overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-[600px] w-full bg-white text-xs sm:text-sm">
-          <thead className="sticky top-0 bg-gray-50 z-10">
-            <tr>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Question</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {parsedQuestions.map((q, index) => (
-              <tr key={q.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <textarea
-                    value={q.text}
-                    onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm h-20 sm:h-24"
-                    placeholder="Question text"
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.A}
-                    onChange={(e) => handleQuestionChange(index, 'A', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option A"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.B}
-                    onChange={(e) => handleQuestionChange(index, 'B', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option B"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.C}
-                    onChange={(e) => handleQuestionChange(index, 'C', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option C"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.D}
-                    onChange={(e) => handleQuestionChange(index, 'D', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option D"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <select
-                    value={q.answer}
-                    onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    disabled={questionType === 'theory'}
-                  >
-                    <option value="">Select</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {/* Button group: sticky on mobile */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between
-        fixed bottom-0 left-0 right-0 bg-white p-2 border-t border-gray-200 z-20 sm:static sm:bg-transparent sm:border-0 sm:p-0">
-        <Button
-          type="button"
-          onClick={() => setStep(1)}
-          className="w-full sm:w-auto px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
-        >
-          Back to Upload
-        </Button>
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium text-white transition ${
-            isLoading 
-              ? 'bg-blue-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
-          {isLoading ? 'Submitting...' : 'Submit Questions'}
-        </Button>
-      </div>
-      {/* Add padding to bottom so content is not hidden behind sticky buttons */}
-      <div className="h-20 sm:hidden" />
-    </div>
-  );
+  // Fixed search functionality with better error handling
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setError('Please enter a search query');
+      return;
+    }
+
+    setIsSearching(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      // Try different parameter formats to find what the backend expects
+      let results;
+      
+      try {
+        // First try with query as a plain string
+        results = await searchMaterials(searchQuery.trim());
+      } catch (firstError) {
+        console.log('First search attempt failed, trying with object parameter...');
+        // If that fails, try with object parameter
+        results = await searchMaterials({ query: searchQuery.trim() });
+      }
+      
+      console.log('Search results:', results); // For debugging
+      
+      // Handle different response formats
+      let materialList = [];
+      if (Array.isArray(results)) {
+        materialList = results;
+      } else if (results && Array.isArray(results.data)) {
+        materialList = results.data;
+      } else if (results && Array.isArray(results.results)) {
+        materialList = results.results;
+      } else if (results && Array.isArray(results)) {
+        materialList = results;
+      }
+      
+      setSearchResults(materialList);
+      setMode('search-results');
+      setShowMobileMenu(false);
+    } catch (error) {
+      console.error('Search error:', error);
+      
+      // Enhanced error handling
+      let errorMsg = 'Failed to search materials. Please try again.';
+      if (error.response) {
+        if (error.response.status === 500) {
+          errorMsg = "Server error. Please try again later.";
+        } else if (error.response.data?.error) {
+          errorMsg = error.response.data.error;
+        } else if (error.response.data?.message) {
+          errorMsg = error.response.data.message;
+        } else {
+          errorMsg = `Error ${error.response.status}: ${error.response.statusText}`;
+        }
+      } else if (error.request) {
+        errorMsg = "No response from server. Please check your connection.";
+      } else {
+        errorMsg = error.message || errorMsg;
+      }
+      
+      setError(errorMsg);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleDownload = async (material) => {
+    try {
+      const downloadData = await downloadMaterial(material.id);
+      
+      // Use either direct URL or API-provided URL
+      const downloadUrl = downloadData.download_url || material.file_url;
+      
+      if (!downloadUrl) {
+        throw new Error('No download URL available');
+      }
+
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', material.name);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Add to downloaded materials
+      const alreadyDownloaded = downloadedMaterials.some(
+        item => item.id === material.id
+      );
+      
+      if (!alreadyDownloaded) {
+        const newDownloaded = [material, ...downloadedMaterials];
+        setDownloadedMaterials(newDownloaded);
+        localStorage.setItem(
+          'downloadedMaterials',
+          JSON.stringify(newDownloaded)
+        );
+      }
+      
+      setSuccessMsg(`"${material.name}" downloaded successfully!`);
+    } catch (err) {
+      console.error('Download error:', err);
+      setError('Failed to download file. Please try again.');
+    }
+  };
+
+  // File icon based on file type
+  const getFileIcon = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const iconClasses = 'h-10 w-10 p-1.5 rounded-lg md:h-12 md:w-12 md:p-2 md:rounded-xl';
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+      return (
+        <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      );
+    } else if (['pdf'].includes(ext)) {
+      return (
+        <div className={`${iconClasses} bg-red-100 text-red-600`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      );
+    } else if (['doc', 'docx'].includes(ext)) {
+      return (
+        <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      );
+    } else if (['ppt', 'pptx'].includes(ext)) {
+      return (
+        <div className={`${iconClasses} bg-orange-100 text-orange-600`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </div>
+      );
+    } else {
+      return (
+        <div className={`${iconClasses} bg-gray-100 text-gray-600`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      );
+    }
+  };
+
+  // Get course name by ID
+  const getCourseName = (courseId) => {
+    const course = courses.find((c) => c.id === courseId);
+    return course ? course.name : 'Unknown Course';
+  };
 
   if (isLoadingCourses) {
     return (
-      <div className="container bg-gray-50 mx-auto p-4 flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center overflow-x-hidden">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
           <p className="mt-4 text-indigo-700">Loading courses...</p>
@@ -381,92 +382,253 @@ const UploadPassQuestions = () => {
     );
   }
 
-  if (courseError) {
-    return (
-      <div className="container bg-gray-50 mx-auto p-2 sm:p-4">
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <div className="rounded-lg bg-red-100 p-4 text-red-700">
-            <p className="font-medium">{courseError}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-3 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+  return (
+    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto max-w-7xl">
+        {/* Floating error/success messages */}
+        {(error || successMsg) && (
+          <div className="fixed top-4 right-4 z-50 w-full max-w-md">
+            {error && (
+              <div className="mb-2 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg relative">
+                <button 
+                  onClick={clearMessages}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <div className="pr-6">{error}</div>
+              </div>
+            )}
+            
+            {successMsg && (
+              <div className="mb-2 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg relative">
+                <button 
+                  onClick={clearMessages}
+                  className="absolute top-2 right-2 text-green-500 hover:text-green-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/s极vg" className="h-5 w-5" viewBox="0 极0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <div className="pr-6">{successMsg}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile menu button */}
+        <div className="mb-3 flex items-center justify-between md:hidden">
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="rounded-lg bg-indigo-600 p-2 text-white"
+            aria-label="Toggle menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              Retry
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <h1 className="text-lg font-bold text-indigo-900">Study Materials</h1>
+          <div className="w-10"></div>
+        </div>
+
+        <div className="mb-4 flex flex-col items-center justify-between gap-2 md:mb-8 md:flex-row">
+          <div className="hidden md:block">
+            <h1 className="text-2xl font-bold text-indigo-900 md:text-3xl">
+              Study Materials
+            </h1>
+            <p className="hidden text-indigo-600 md:block">
+              Upload, search, and access learning resources
+            </p>
+          </div>
+
+          <div className="flex w-full flex-col items-center gap-2 md:flex-row md:gap-4">
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-indigo-200 bg-white py-2 pr-4 pl-10 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:py-3 text-xs sm:text-sm"
+                placeholder="Search materials..."
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <svg
+                className="absolute top-2.5 left-3 h-4 w-4 text-indigo-400 md:top-3.5 md:h-5 md:w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+
+            <Button
+              onClick={handleSearch}
+              variant="primary"
+              disabled={isSearching}
+              className="w-full md:w-auto text-xs sm:text-sm"
+            >
+              {isSearching ? (
+                <>
+                  <svg
+                    className="mr-2 h-4 w-4 animate-spin text-white md:h-5 md:w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Searching...
+                </>
+              ) : (
+                'Search'
+              )}
+            </Button>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    // Added overflow-y-auto to the main container div
-    <div className="container bg-gray-50 mx-auto p-2 sm:p-4 overflow-x-hidden overflow-y-auto">      
-      <div className="bg-white rounded-lg shadow-md p-2 sm:p-6">
-        <h1 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">
-          {step === 1 ? 'Upload Past Questions' : 'Review Questions'}
-        </h1>
-        
-        {step === 1 && (
-          <>
-            <div className="mb-4 sm:mb-6">
-              <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3 text-gray-700">Question Type</h2>
-              <div className="flex flex-col sm极:flex-row gap-2 sm:gap-4">
-                <Button 
-                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition ${
-                    questionType === 'multichoice' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
-                  onClick={() => setQuestionType('multichoice')}
-                >
-                  Multiple Choice
-                </Button>
-                <Button 
-                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition ${
-                    questionType === 'theory' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
-                  onClick={() => setQuestionType('theory')}
-                >
-                  Theory Questions
-                </Button>
-              </div>
-              <p className="mt-2 text-xs sm:text-sm text-gray-500">
-                Select the type of questions in your file
-              </p>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* Mobile menu dropdown */}
+        {showMobileMenu && (
+          <div className="mb-4 rounded-xl bg-white p-2 shadow-lg md:hidden">
+            <button
+              onClick={() => {
+                setMode('upload');
+                setShowMobileMenu(false);
+              }}
+              className={`mb-2 w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
+                mode === 'upload'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+              }`}
+            >
+              Upload Material
+            </button>
+            <button
+              onClick={() => {
+                setMode('download');
+                setShowMobileMenu(false);
+              }}
+              className={`mb-2 w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
+                mode === 'download'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+              }`}
+            >
+              My Materials
+            </button>
+            <button
+              onClick={() => {
+                setMode('search-results');
+                setShowMobileMenu(false);
+              }}
+              className={`w-full rounded-lg px-2 py-2 text-center font-medium text-xs ${
+                mode === 'search-results'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+              }`}
+            >
+              Search Results
+            </button>
+          </div>
+        )}
+
+        {/* Desktop mode buttons */}
+        <div className="mb-4 hidden space-x-2 md:mb-8 md:flex md:space-x-4">
+          <button
+            onClick={() => setMode('upload')}
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+              mode === 'upload'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+            }`}
+          >
+            Upload Material
+          </button>
+          <button
+            onClick={() => setMode('download')}
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+                mode === 'download'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+            }`}
+          >
+            My Materials
+          </button>
+          <button
+            onClick={() => setMode('search-results')}
+            className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-medium transition-all md:rounded-xl md:px-6 md:py-3 md:text-base ${
+                mode === 'search-results'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                  : 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+            }`}
+          >
+            Search Results
+          </button>
+        </div>
+
+        {mode === 'upload' && (
+          <div className="mb-6 rounded-xl border border-indigo-100 bg-white p-5 shadow-lg md:mb-8 md:rounded-2xl md:p-8 md:shadow-xl">
+            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-indigo-800 md:mb-6 md:text-2xl">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 md:h-6 md:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              Upload New Material
+            </h2>
+
+            <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  Year
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Course <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
+                  value={selectedCourseId}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
                   required
                 >
-                  <option value="">-- Select year --</option>
-                  {years.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  Select Course
-                </label>
-                <select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-                  required
-                >
-                  <option value="">-- Select a course --</option>
-                  {courses.map(course => (
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
                     <option key={course.id} value={course.id}>
                       {course.name}
                     </option>
@@ -475,171 +637,355 @@ const UploadPassQuestions = () => {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  Upload File
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Material Name <span className="text-red-500">*</span>
                 </label>
-                <div className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-4">
-                  <label className="flex-1 w-full">
-                    <div className={`border-2 border-dashed rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-blue-400 transition ${
-                      file ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                    }`}>
-                      <input
-                        type="file"
-                        onChange={handleFileChange}
-                        accept=".pdf,.docx,.txt"
-                        className="hidden"
-                        required
-                      />
-                      <p className="text-gray-600 text-xs sm:text-sm">
-                        {file ? (
-                          <span className="font-medium text-green-700">{file.name}</span>
-                        ) : (
-                          'Click to browse or drag and drop'
-                        )}
+                <input
+                  type="text"
+                  value={materialName}
+                  onChange={(e) => setMaterialName(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
+                  placeholder="Enter material name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 md:rounded-xl md:px-4 md:py-3"
+                  placeholder="e.g., math, calculus, formulas"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-indigo-700 md:mb-2">
+                  File <span className="text-red-500">*</span>
+                </label>
+                <div className="flex w-full items-center justify-center">
+                  <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50 transition-colors hover:bg-indigo-100 md:rounded-2xl">
+                    <div className="flex flex-col items-center justify-center p-4">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="mb-2 h-8 w-8 text-indigo-500 md:h-10 md:w-10"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 极6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="text-center text-xs font-medium text-indigo-600 md:text-sm">
+                        {file ? file.name : 'Click to upload or drag and drop'}
                       </p>
-                      <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                        Supported formats: PDF, DOCX, TXT
+                      <p className="mt-1 text-xs text-indigo-400">
+                        Max file size: 10MB
                       </p>
+                      {file?.size > 10 * 1024 * 1024 && (
+                        <p className="mt-1 text-xs text-red-500">
+                          File too large! Max 10MB
+                        </p>
+                      )}
                     </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
+                    />
                   </label>
-                  {file && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setFile(null);
-                        document.querySelector('input[type="file"]').value = '';
-                      }}
-                      className="p-2 text-xs sm:text-base text-red-500 hover:text-red-700"
-                    >
-                      ✕ Clear
-                    </Button>
-                  )}
                 </div>
               </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={isLoading || !file || !selectedCourse || !year}
-                  className={`w-full py-2 sm:py-3 px-4 rounded-lg font-medium text-white transition text-xs sm:text-base ${
-                    isLoading 
-                      ? 'bg-blue-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    'Parse Questions'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </>
-        )}
-
-        {step === 2 && (
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-800 text-sm sm:text-base">Upload Details</h3>
-              <div className="mt-2 text-xs sm:text-sm">
-                <p><span className="font-medium">Year:</span> {year}</p>
-                <p><span className="font-medium">Course:</span> {courses.find(c => c.id == selectedCourse)?.name || 'Unknown Course'}</p>
-                <p><span className="font-medium">File:</span> {file?.name || 'No file selected'}</p>
-                <p><span className="font-medium">Questions:</span> {parsedQuestions.length}</p>
-              </div>
             </div>
-            {renderQuestionEditor()}
-          </form>
-        )}
-        
-        {message.text && (
-          <div
-            className={`mt-4 sm:mt-6 rounded-lg p-3 sm:p-4 text-xs sm:text-base ${
-              message.type === 'error'
-                ? 'bg-red-100 text-red-700'
-                : message.type === 'success'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-blue-100 text-blue-700'
-            }`}
-          >
-            {message.text}
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleUpload}
+                disabled={isUploading || !file || !selectedCourseId || !materialName.trim()}
+                className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl disabled:opacity-70 md:w-auto md:rounded-xl md:px-8 md:py-3 md:text-base"
+              >
+                {isUploading ? (
+                  <>
+                    <svg
+                      className="mr-2 h-4 w-4 animate-spin text-white md:h-5 md:w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    Upload Material
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
-        {uploadStatus && step === 1 && (
-          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-800 mb-2 text-xs sm:text-base">Upload Details</h3>
-            <ul className="space-y-1 text-xs sm:text-sm text-gray-600">
-              <li>
-                <span className="font-medium">Year:</span> {uploadStatus.year}
-              </li>
-              <li>
-                <span className="font-medium">Course:</span> {uploadStatus.course}
-              </li>
-              <li>
-                <span className="font-medium">File:</span> {uploadStatus.filename}
-              </li>
-              <li>
-                <span className="font-medium">Questions:</span> {uploadStatus.count}
-              </li>
-              <li>
-                <span className="font-medium">Status:</span> <span className="text-yellow-600">Pending Admin Approval</span>
-              </li>
-            </ul>
-            <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500">
-              You can track the approval status in your dashboard.
-            </p>
+        {(mode === 'download' || mode === 'search-results') && (
+          <div className="rounded-xl border border-indigo-100 bg-white p-4 shadow-lg md:rounded-2xl md:p-6 md:shadow-xl">
+            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-indigo-800 md:mb-6 md:text-2xl">
+              {mode === 'search-results' ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 md:h-6 md:w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  Search Results
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 md:h-6 md:w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                    />
+                  </svg>
+                  My Materials
+                </>
+              )}
+            </h2>
+
+            {mode === 'download' && downloadedMaterials.length === 0 && (
+              <div className="rounded-lg border-2 border-dashed border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 py-8 text-center md:rounded-2xl md:py-16">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="mx-auto mb-3 h-16 w-16 text-indigo-300 md:mb-4 md:h-24 md:w-24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 className="mb-2 text-lg font-medium text-indigo-700 md:text-xl">
+                  No materials yet
+                </h3>
+                <p className="mb-4 text-sm text-indigo-500 md:text-base">
+                  Download materials to see them here
+                </p>
+                <button
+                  onClick={() => setMode('search-results')}
+                  className="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl md:rounded-xl md:px-6 md:py-3 md:text-base"
+                >
+                  Search Materials
+                </button>
+              </div>
+            )}
+
+            {(mode === 'search-results' && searchResults.length === 0) && (
+              <div className="rounded-lg border-2 border-dashed border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 py-8 text-center md:rounded-2xl md:py-16">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="mx-auto mb-3 h-16 w-16 text-indigo-300 md:mb-4 md:h-24 md:w-24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <h3 className="mb-2 text-lg font-medium text-indigo-700 md:text-xl">
+                  No materials found
+                </h3>
+                <p className="mb-4 text-sm text-indigo-500 md:text-base">
+                  Try different search terms
+                </p>
+              </div>
+            )}
+
+            {/* Scrollable container for mobile */}
+            <div className="max-h-[calc(100vh-300px)] overflow-y-auto md:max-h-none">
+              {(mode === 'search-results' && searchResults.length > 0) ||
+              (mode === 'download' && downloadedMaterials.length > 0) ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+                  {(mode === 'search-results'
+                    ? searchResults
+                    : downloadedMaterials
+                  ).map((material) => {
+                    const isDownloaded = downloadedMaterials.some(
+                      item => item.id === material.id
+                    );
+                    
+                    // Get file URL from material object
+                    const fileUrl = material.file_url || material.url;
+                    
+                    return (
+                      <div
+                        key={material.id}
+                        className="flex flex-col overflow-hidden rounded-lg border border-indigo-100 bg-white transition-all hover:shadow-md md:rounded-2xl md:hover:shadow-lg"
+                      >
+                        <div className="flex justify-center bg-gradient-to-r from-indigo-50 to-purple-50 p-3 md:p-4">
+                          {getFileIcon(material.name)}
+                        </div>
+                        <div className="flex-grow p-3 md:p-4">
+                          <h4
+                            className="mb-1 truncate text-sm font-bold text-gray-800 md:text-base"
+                            title={material.name}
+                          >
+                            {material.name}
+                          </h4>
+                          <div className="mb-2 flex items-start gap-2 text-xs text-indigo-600 md:text-sm">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mt-0.5 h-3 w-3 md:h-4 md:w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                              />
+                            </svg>
+                            <span className="truncate">
+                              {getCourseName(material.course)}
+                            </span>
+                          </div>
+                          {material.tags && (
+                            <div className="mb-2 flex flex-wrap gap-1 md:mb-3">
+                              {material.tags.split(',').filter(tag => tag.trim()).map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] text-indigo-700 md:px-2 md:py-1 md:text-xs"
+                                >
+                                  {tag.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <p className="mt-1 flex items-center text-[10px] text-gray-500 md:mt-2 md:text-xs">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mr-1 h-2.5 w-2.5 md:h-3 md:w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            {new Date(material.uploaded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="px-3 pb-3 md:px-4 md:pb-4">
+                          <button
+                            onClick={() => handleDownload(material)}
+                            className={`flex w-full items-center justify-center rounded-lg px-3 py-1.5 text-sm text-white shadow-md transition-all hover:shadow-lg md:px-4 md:py-2 md:text-base ${
+                              isDownloaded 
+                                ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700' 
+                                : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
+                            }`}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="mr-1 h-4 w-4 md:mr-2 md:h-5 md:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                            {isDownloaded ? 'Download Again' : 'Download'}
+                          </button>
+                          
+                          {/* Direct link fallback */}
+                          {fileUrl && (
+                            <a 
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 block text-center text-xs text-indigo-600 underline"
+                            >
+                              Open in new tab
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
-
-      {step === 1 && (
-        <div className="mt-6 sm:mt-8 bg-blue-50 p-3 sm:p-4 rounded-lg">
-          <h3 className="font-medium text-blue-800 mb-2 text-xs sm:text-base">How to format your file</h3>
-          <p className="text-xs sm:text-sm text-blue-700 mb-2">
-            For best results, structure your questions like this:
-          </p>
-          <pre className="bg-white p-2 sm:p-3 rounded text-xs sm:text-sm overflow-x-auto">
-{`1. What is 2+2?
-a) 3
-b) 4
-c) 5
-d) 6
-Answer: b
-
-2. Capital of France?
-a) London
-b) Berlin
-c) Paris
-d) Madrid
-Answer: c
-
-3. Newton's first law is also known as:
-(a) Law of inertia
-(b) Law of acceleration
-(c) Law of action-reaction
-(d) Law of gravitation
-Ans: a`}
-          </pre>
-          <p className="mt-2 text-xs sm:text-sm text-blue-700">
-            The parser supports various formats including:
-          </p>
-          <ul className="text-xs sm:text-sm text-blue-700 list-disc pl-5 mt-1">
-            <li>Different numbering styles: 1), 1., (1)</li>
-            <li>Option formats: a), a., (a)</li>
-            <li>Answer indicators: Answer, Ans, Correct, Corr</li>
-          </ul>
-        </div>
-      )}
     </div>
   );
-};
-
-export default UploadPassQuestions;
+}
