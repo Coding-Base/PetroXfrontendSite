@@ -21,14 +21,23 @@ const UploadPassQuestions = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({length: 30}, (_, i) => currentYear - i);
 
-  // Fetch courses on component mount
+  // Fetch courses on component mount - FIXED: Correctly handle API response structure
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
-        // If your API returns { data: [...] }
-        const courseArr = Array.isArray(response.data) ? response.data : response;
+        
+        // Handle API response structure - courses are in response.results
+        let courseArr = [];
+        if (response && Array.isArray(response.results)) {
+          courseArr = response.results;
+        } else if (Array.isArray(response)) {
+          courseArr = response;
+        } else if (response && Array.isArray(response.data)) {
+          courseArr = response.data;
+        }
+        
         setCourses(courseArr);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
@@ -44,7 +53,7 @@ const UploadPassQuestions = () => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile) {
+    if (selected极File) {
       const validTypes = [
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -116,9 +125,19 @@ const UploadPassQuestions = () => {
         setParsedQuestions(questionsWithIds);
         setStep(2);
       } catch (error) {
-        const errorMsg = error.response?.data?.error || 
-                        error.response?.data?.message || 
-                        'Failed to parse file. Please check the format and try again.';
+        // Enhanced error handling
+        let errorMsg = 'Failed to parse file. Please check the format and try again.';
+        if (error.response) {
+          if (error.response.data) {
+            errorMsg = error.response.data.error || 
+                      error.response.data.message || 
+                      JSON.stringify(error.response.data);
+          }
+        } else if (error.request) {
+          errorMsg = "No response from server. Please check your connection.";
+        } else {
+          errorMsg = error.message;
+        }
         setMessage({ text: errorMsg, type: 'error' });
       } finally {
         setIsLoading(false);
@@ -215,9 +234,19 @@ const UploadPassQuestions = () => {
             type: 'error' 
           });
         } else {
-          const errorMsg = error.response?.data?.error || 
-                          error.response?.data?.message || 
-                          'Submission failed. Please try again.';
+          // Enhanced error handling
+          let errorMsg = 'Submission failed. Please try again.';
+          if (error.response) {
+            if (error.response.data) {
+              errorMsg = error.response.data.error || 
+                         error.response.data.message || 
+                         JSON.stringify(error.response.data);
+            }
+          } else if (error.request) {
+            errorMsg = "No response from server. Please check your connection.";
+          } else {
+            errorMsg = error.message;
+          }
           setMessage({ text: errorMsg, type: 'error' });
         }
       } finally {
@@ -240,7 +269,7 @@ const UploadPassQuestions = () => {
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text极gray-500 uppercase tracking-wider">Option D</th>
+              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
             </tr>
           </thead>
@@ -382,7 +411,7 @@ const UploadPassQuestions = () => {
           <>
             <div className="mb-4 sm:mb-6">
               <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3 text-gray-700">Question Type</h2>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <div className="flex flex-col sm极:flex-row gap-2 sm:gap-4">
                 <Button 
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition ${
                     questionType === 'multichoice' 
