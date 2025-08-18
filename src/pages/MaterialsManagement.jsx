@@ -77,24 +77,31 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Fetch courses on mount - FIXED: Correctly handle API response structure
+  // Fixed course loading - handles API response structure properly
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
         
-        // Handle API response structure - courses are in response.results
-        let courseArr = [];
-        if (response && Array.isArray(response.results)) {
-          courseArr = response.results;
-        } else if (Array.isArray(response)) {
-          courseArr = response;
-        } else if (response && Array.isArray(response.data)) {
-          courseArr = response.data;
-        }
+        console.log('Courses API response:', response); // For debugging
         
-        setCourses(courseArr);
+        // Handle API response structure - courses are in response.results
+        if (response && response.results && Array.isArray(response.results)) {
+          setCourses(response.results);
+        } 
+        // Handle non-paginated array response
+        else if (Array.isArray(response)) {
+          setCourses(response);
+        } 
+        // Handle other possible structures
+        else if (response && response.data && Array.isArray(response.data)) {
+          setCourses(response.data);
+        } 
+        else {
+          console.error('Unexpected courses response structure:', response);
+          setCourses([]);
+        }
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setError('Failed to load courses. Please try again later.');
@@ -118,7 +125,7 @@ export default function MaterialsManagement() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      if (selectedFile.size > 10 * 102极 * 1024) {
         setError('File size exceeds 10MB limit');
       } else {
         setError('');
@@ -201,7 +208,7 @@ export default function MaterialsManagement() {
     }
   };
 
-  // FIXED: Search function now passes query correctly
+  // Fixed search functionality with better error handling
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setError('Please enter a search query');
@@ -213,8 +220,19 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     try {
-      // Pass query as an object property
-      const results = await searchMaterials({ query: searchQuery.trim() });
+      // Try different parameter formats to find what the backend expects
+      let results;
+      
+      try {
+        // First try with query as a plain string
+        results = await searchMaterials(searchQuery.trim());
+      } catch (firstError) {
+        console.log('First search attempt failed, trying with object parameter...');
+        // If that fails, try with object parameter
+        results = await searchMaterials({ query: searchQuery.trim() });
+      }
+      
+      console.log('Search results:', results); // For debugging
       
       // Handle different response formats
       let materialList = [];
@@ -224,6 +242,8 @@ export default function MaterialsManagement() {
         materialList = results.data;
       } else if (results && Array.isArray(results.results)) {
         materialList = results.results;
+      } else if (results && Array.isArray(results)) {
+        materialList = results;
       }
       
       setSearchResults(materialList);
@@ -232,14 +252,22 @@ export default function MaterialsManagement() {
     } catch (error) {
       console.error('Search error:', error);
       
-      // Enhanced error handling for 500 errors
+      // Enhanced error handling
       let errorMsg = 'Failed to search materials. Please try again.';
       if (error.response) {
         if (error.response.status === 500) {
           errorMsg = "Server error. Please try again later.";
+        } else if (error.response.data?.error) {
+          errorMsg = error.response.data.error;
         } else if (error.response.data?.message) {
           errorMsg = error.response.data.message;
+        } else {
+          errorMsg = `Error ${error.response.status}: ${error.response.statusText}`;
         }
+      } else if (error.request) {
+        errorMsg = "No response from server. Please check your connection.";
+      } else {
+        errorMsg = error.message || errorMsg;
       }
       
       setError(errorMsg);
@@ -298,7 +326,7 @@ export default function MaterialsManagement() {
       return (
         <div className={`${iconClasses} bg-blue-100 text-blue-600`}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 极2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
       );
@@ -355,7 +383,7 @@ export default function MaterialsManagement() {
   }
 
   return (
-    <div className="min极h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="min-h-screen w-full bg-gray-50 p-2 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto">
       <div className="mx-auto max-w-7xl">
         {/* Floating error/success messages */}
         {(error || successMsg) && (
@@ -380,7 +408,7 @@ export default function MaterialsManagement() {
                   onClick={clearMessages}
                   className="absolute top-2 right-2 text-green-500 hover:text-green-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/s极vg" className="h-5 w-5" viewBox="0 极0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </button>
@@ -653,7 +681,7 @@ export default function MaterialsManagement() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 极6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                         />
                       </svg>
                       <p className="text-center text-xs font-medium text-indigo-600 md:text-sm">
@@ -665,7 +693,7 @@ export default function MaterialsManagement() {
                       {file?.size > 10 * 1024 * 1024 && (
                         <p className="mt-1 text-xs text-red-500">
                           File too large! Max 10MB
-                        </p>
+                        </极p>
                       )}
                     </div>
                     <input
@@ -761,7 +789,7 @@ export default function MaterialsManagement() {
                     className="h-5 w-5 md:h-6 md:w-6"
                     fill="none"
                     viewBox="0 0 24 24"
-                    stroke="current极Color"
+                    stroke="currentColor"
                   >
                     <path
                       strokeLinecap="round"
