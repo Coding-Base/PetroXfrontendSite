@@ -693,7 +693,7 @@ export default function MaterialsManagement() {
                       {file?.size > 10 * 1024 * 1024 && (
                         <p className="mt-1 text-xs text-red-500">
                           File too large! Max 10MB
-                        </p>
+                        </极p>
                       )}
                     </div>
                     <input
