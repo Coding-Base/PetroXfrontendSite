@@ -408,7 +408,7 @@ export default function MaterialsManagement() {
                   onClick={clearMessages}
                   className="absolute top-2 right-2 text-green-500 hover:text-green-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/s极vg" className="h-5 w-5" viewBox="0 极0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </button>
@@ -681,7 +681,7 @@ export default function MaterialsManagement() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 极6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                         />
                       </svg>
                       <p className="text-center text-xs font-medium text-indigo-600 md:text-sm">
@@ -989,6 +989,7 @@ export default function MaterialsManagement() {
     </div>
   );
 }
+
 
 
 
