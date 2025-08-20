@@ -11,7 +11,9 @@ import {
   FaCompass,
   FaClipboardList,
   FaDownload,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaBars,
+  FaTimes
 } from 'react-icons/fa';
 import image1 from '../images/land1.png';
 import image2 from '../images/land2.png';
@@ -23,6 +25,7 @@ const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [stats, setStats] = useState({ users: 0, questions: 0, downloads: 0 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const observer = useRef(null);
 
   const slides = [
@@ -43,19 +46,42 @@ const LandingPage = () => {
     }
   ];
   
-  // Preloader effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-      // Simulate loading stats
+  // Fetch stats from backend
+  const fetchStats = async () => {
+    try {
+      // Replace with your actual API endpoint
+      const response = await fetch('/api/stats/');
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          users: data.total_users || 80,
+          questions: data.total_questions || 482,
+          downloads: data.total_downloads || 14
+        });
+      } else {
+        // Fallback to default values if API fails
+        setStats({
+          users: 80,
+          questions: 482,
+          downloads: 14
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Fallback to default values
       setStats({
         users: 80,
         questions: 482,
         downloads: 14
       });
-    }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => clearTimeout(timer);
+  // Preloader effect
+  useEffect(() => {
+    fetchStats();
   }, []);
 
   // Carousel effect
@@ -99,6 +125,20 @@ const LandingPage = () => {
     };
   }, []);
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuOpen && !event.target.closest('.mobile-menu') && !event.target.closest('.menu-button')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
@@ -119,10 +159,9 @@ const LandingPage = () => {
   }
 
   return (
-
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
-      <header className="relative h-[90vh] overflow-hidden">
+      <header className="relative h-[70vh] md:h-[90vh] overflow-hidden">
         {/* Carousel */}
         <div className="absolute inset-0 transition-opacity duration-1000 ease-in-out">
           {slides.map((slide, index) => (
@@ -134,7 +173,7 @@ const LandingPage = () => {
             >
               {/* Image with 20% opacity */}
               <div
-                className="absolute inset-0 bg-cover bg-center opacity-90"
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90"
                 style={{ backgroundImage: `url(${slide.image})` }}
               ></div>
 
@@ -146,79 +185,128 @@ const LandingPage = () => {
 
         {/* Navigation */}
         <nav
-          className={`fixed z-30 flex w-full items-center justify-between px-6 py-4 transition-all duration-300 md:px-12 ${
+          className={`fixed z-30 flex w-full items-center justify-between px-4 py-3 transition-all duration-300 md:px-12 ${
             scrolled ? 'bg-gray-900/90 backdrop-blur-sm' : 'bg-transparent'
           }`}
         >
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold tracking-wider text-white">
+            <h1 className="text-xl md:text-2xl font-bold tracking-wider text-white">
               <span className="text-indigo-400">PETRO</span>
               <span className="text-amber-400">X</span>
             </h1>
           </div>
 
-          <div className="hidden space-x-8 md:flex">
+          <div className="hidden space-x-4 md:space-x-8 md:flex">
             <a
               href="#features"
-              className="text-gray-200 transition-colors hover:text-white"
+              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="text-gray-200 transition-colors hover:text-white"
+              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
             >
               How It Works
             </a>
             <a
               href="#testimonials"
-              className="text-gray-200 transition-colors hover:text-white"
+              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
             >
               Testimonials
             </a>
             <Link
               to="/about"
-              className="text-gray-200 transition-colors hover:text-white"
+              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
             >
               About
             </Link>
             <Link
               to="/policies"
-              className="text-gray-200 transition-colors hover:text-white"
+              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
             >
               Policies
             </Link>
           </div>
 
-          <div>
+          <div className="flex items-center">
             <Link
               to="/login"
-              className="rounded bg-indigo-600 px-6 py-2 font-medium text-white transition-all hover:bg-indigo-700"
+              className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-indigo-700 md:px-6 md:text-base"
             >
               Get Started
             </Link>
+            
+            {/* Mobile menu button */}
+            <button 
+              className="ml-4 text-white md:hidden menu-button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+            </button>
           </div>
         </nav>
 
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="fixed top-16 right-4 z-40 w-48 rounded-lg bg-gray-800 py-2 shadow-xl md:hidden mobile-menu">
+            <a
+              href="#features"
+              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              How It Works
+            </a>
+            <a
+              href="#testimonials"
+              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Testimonials
+            </a>
+            <Link
+              to="/about"
+              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link
+              to="/policies"
+              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Policies
+            </Link>
+          </div>
+        )}
+
         {/* Hero Content */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center md:px-6">
           <div className="max-w-4xl">
-            <h1 className="mb-6 text-4xl font-bold leading-tight text-white md:text-5xl">
+            <h1 className="mb-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
               {slides[currentSlide].title}
             </h1>
-            <p className="mx-auto mb-10 max-w-2xl text-xl text-gray-200">
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-200 md:mb-10 md:text-xl">
               {slides[currentSlide].subtitle}
             </p>
-            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
                 to="/signup"
-                className="rounded bg-indigo-600 px-8 py-3 font-medium text-white transition-all hover:bg-indigo-700"
+                className="rounded bg-indigo-600 px-6 py-3 font-medium text-white transition-all hover:bg-indigo-700 md:px-8"
               >
                 Create Free Account
               </Link>
               <Link
                 to="/features"
-                className="rounded border border-gray-300 bg-transparent px-8 py-3 font-medium text-white transition-all hover:bg-white/10"
+                className="rounded border border-gray-300 bg-transparent px-6 py-3 font-medium text-white transition-all hover:bg-white/10 md:px-8"
               >
                 Explore Features
               </Link>
@@ -227,14 +315,14 @@ const LandingPage = () => {
         </div>
 
         {/* Carousel Indicators */}
-        <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 transform space-x-2">
+        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 transform space-x-2 md:bottom-8">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-3 w-3 rounded-full transition-all ${
+              className={`h-2 w-2 rounded-full transition-all md:h-3 md:w-3 ${
                 currentSlide === index
-                  ? 'w-6 bg-white'
+                  ? 'w-4 bg-white md:w-6'
                   : 'bg-white/50 hover:bg-white/80'
               }`}
               aria-label={`Go to slide ${index + 1}`}
@@ -244,70 +332,71 @@ const LandingPage = () => {
       </header>
 
       {/* Stats Section */}
-      <section className="bg-gradient-to-r from-indigo-600 to-indigo-800 py-12 text-white">
-        <div className="mx-auto max-w-6xl px-6 md:px-12">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <section className="bg-gradient-to-r from-indigo-600 to-indigo-800 py-8 text-white md:py-12">
+        <div className="mx-auto max-w-6xl px-4 md:px-12">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold md:text-5xl">
+              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
                 {stats.users.toLocaleString()}+
               </div>
-              <div className="mt-2 text-lg font-medium">Active Students</div>
+              <div className="mt-2 text-base font-medium md:text-lg">Active Students</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold md:text-5xl">
+              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
                 {stats.questions.toLocaleString()}+
               </div>
-              <div className="mt-2 text-lg font-medium">Past Questions</div>
+              <div className="mt-2 text-base font-medium md:text-lg">Past Questions</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold md:text-5xl">
+              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
                 {stats.downloads.toLocaleString()}+
               </div>
-              <div className="mt-2 text-lg font-medium">Resources Downloaded</div>
+              <div className="mt-2 text-base font-medium md:text-lg">Resources Downloaded</div>
             </div>
           </div>
         </div>
       </section>
-<Affilate/>
+
+      <Affilate/>
+
       {/* Features Section */}
       <section
-        style={{ marginTop: '-900px' }}
         id="features"
-        className={`animate-section bg-white px-6 py-20 transition-all duration-700 md:px-12 ${
+        className={`animate-section bg-white px-4 py-12 transition-all duration-700 md:px-12 md:py-20 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
         }`}
       >
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-800 md:text-4xl">
+          <div className="mb-12 text-center md:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
               Powerful Learning Tools
             </h2>
-            <p className="mx-auto max-w-2xl text-gray-600">
+            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
               PetroX provides everything you need to excel academically
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`rounded-lg border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-300 hover:shadow-md ${
+                className={`rounded-lg border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-indigo-300 hover:shadow-md md:p-8 ${
                   isVisible ? 'opacity-100' : 'opacity-0'
                 }`}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <div className="mb-6 text-3xl text-indigo-600">
+                <div className="mb-4 text-2xl text-indigo-600 md:mb-6 md:text-3xl">
                   {feature.icon}
                 </div>
-                <h3 className="mb-3 text-xl font-bold text-gray-800">
+                <h3 className="mb-3 text-lg font-bold text-gray-800 md:text-xl">
                   {feature.title}
                 </h3>
-                <p className="mb-4 text-gray-600">{feature.description}</p>
+                <p className="mb-4 text-gray-600 md:text-base">{feature.description}</p>
                 <div className="flex flex-wrap gap-2">
                   {feature.tags.map((tag, tagIndex) => (
                     <span
                       key={tagIndex}
-                      className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+                      className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3"
                     >
                       {tag}
                     </span>
@@ -320,57 +409,57 @@ const LandingPage = () => {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="bg-gray-50 px-6 py-20 md:px-12">
+      <section id="how-it-works" className="bg-gray-50 px-4 py-12 md:px-12 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-800 md:text-4xl">
+          <div className="mb-12 text-center md:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
               How PetroX Works
             </h2>
-            <p className="mx-auto max-w-2xl text-gray-600">
+            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
               A seamless learning experience designed for academic success
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-12 lg:flex-row">
-            <div className="lg:w-1/2">
-              <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6 shadow-sm">
-                <div className="flex h-80 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100">
-                  <div className="h-64 w-full rounded-xl border-2 border-dashed bg-gray-200" />
+          <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
+            <div className="w-full lg:w-1/2">
+              <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm md:p-6">
+                <div className="flex h-64 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 md:h-80">
+                  <div className="h-48 w-full rounded-xl border-2 border-dashed bg-gray-200 md:h-64" />
                 </div>
               </div>
             </div>
 
-            <div className="lg:w-1/2">
-              <div className="space-y-8">
+            <div className="w-full lg:w-1/2">
+              <div className="space-y-6 md:space-y-8">
                 {steps.map((step, index) => (
                   <div key={index} className="flex items-start">
-                    <div className="mr-4 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                      <span className="text-xl font-bold">{index + 1}</span>
+                    <div className="mr-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 md:h-12 md:w-12">
+                      <span className="text-lg font-bold md:text-xl">{index + 1}</span>
                     </div>
                     <div>
-                      <h3 className="mb-2 text-xl font-bold text-gray-800">
+                      <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">
                         {step.title}
                       </h3>
-                      <p className="text-gray-600">{step.description}</p>
+                      <p className="text-gray-600 md:text-base">{step.description}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-12 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 p-0.5 shadow-sm">
-                <div className="rounded-lg bg-white p-6">
+              <div className="mt-10 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 p-0.5 shadow-sm md:mt-12">
+                <div className="rounded-lg bg-white p-4 md:p-6">
                   <div className="flex flex-col items-center justify-between sm:flex-row">
-                    <div>
-                      <h3 className="mb-2 text-xl font-bold text-gray-800">
+                    <div className="text-center sm:text-left">
+                      <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">
                         Ready to get started?
                       </h3>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 md:text-base">
                         Join thousands of students already using PetroX
                       </p>
                     </div>
                     <Link
                       to="/signup"
-                      className="mt-4 rounded bg-indigo-600 px-8 py-3 font-medium text-white transition-all hover:bg-indigo-700 sm:mt-0"
+                      className="mt-4 rounded bg-indigo-600 px-6 py-2 font-medium text-white transition-all hover:bg-indigo-700 sm:mt-0 md:px-8 md:py-3"
                     >
                       Sign Up Free
                     </Link>
@@ -383,76 +472,76 @@ const LandingPage = () => {
       </section>
 
       {/* Academic Resources Section */}
-      <section className="bg-white px-6 py-20 md:px-12">
+      <section className="bg-white px-4 py-12 md:px-12 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-800 md:text-4xl">
+          <div className="mb-12 text-center md:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
               Academic Resources
             </h2>
-            <p className="mx-auto max-w-2xl text-gray-600">
+            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
               Comprehensive tools for exam preparation and campus navigation
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                <FaCompass className="text-2xl" />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
+                <FaCompass className="text-xl md:text-2xl" />
               </div>
-              <h3 className="mb-4 text-xl font-bold text-gray-800">Campus Compass</h3>
-              <p className="mb-6 text-gray-600">
+              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Campus Compass</h3>
+              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
                 Never get lost on campus again. Our interactive campus map helps you find classrooms, libraries, and facilities with ease.
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Navigation
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Real-time
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Interactive Map
                 </span>
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                <FaClipboardList className="text-2xl" />
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
+                <FaClipboardList className="text-xl md:text-2xl" />
               </div>
-              <h3 className="mb-4 text-xl font-bold text-gray-800">Online Tests</h3>
-              <p className="mb-6 text-gray-600">
+              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Online Tests</h3>
+              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
                 Create and take timed exams, invite friends to join, and get instant results with detailed performance analytics.
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Timed Exams
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Collaborate
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   Analytics
                 </span>
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                <FaDownload className="text-2xl" />
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
+                <FaDownload className="text-xl md:text-2xl" />
               </div>
-              <h3 className="mb-4 text-xl font-bold text-gray-800">Resource Library</h3>
-              <p className="mb-6 text-gray-600">
-                Access our collection of 482+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
+              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Resource Library</h3>
+              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
+                Access our collection of {stats.questions.toLocaleString()}+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   PDF Downloads
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
-                  482+ Resources
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
+                  {stats.questions.toLocaleString()}+ Resources
                 </span>
-                <span className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   All Subjects
                 </span>
               </div>
@@ -464,42 +553,42 @@ const LandingPage = () => {
       {/* Testimonials Section */}
       <section
         id="testimonials"
-        className="bg-gray-900 px-6 py-20 text-white md:px-12"
+        className="bg-gray-900 px-4 py-12 text-white md:px-12 md:py-20"
       >
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+          <div className="mb-12 text-center md:mb-16">
+            <h2 className="mb-4 text-2xl font-bold md:text-3xl lg:text-4xl">
               What Students Say
             </h2>
-            <p className="mx-auto max-w-2xl text-gray-400">
+            <p className="mx-auto max-w-2xl text-gray-400 md:text-lg">
               Hear from students who have transformed their academic journey
               with PetroX
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
             {testimonials.map((testimonial, index) => (
               <div
                 key={index}
-                className="rounded-lg border border-gray-700 bg-gray-800 p-6"
+                className="rounded-lg border border-gray-700 bg-gray-800 p-4 md:p-6"
               >
-                <div className="mb-6 flex items-center">
-                  <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-700">
-                    <span className="text-lg font-medium text-indigo-400">
+                <div className="mb-4 flex items-center md:mb-6">
+                  <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 md:mr-4 md:h-12 md:w-12">
+                    <span className="text-base font-medium text-indigo-400 md:text-lg">
                       {testimonial.name.charAt(0)}
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold">{testimonial.name}</h4>
-                    <p className="text-gray-400">{testimonial.role}</p>
+                    <h4 className="text-base font-bold md:text-lg">{testimonial.name}</h4>
+                    <p className="text-sm text-gray-400 md:text-base">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="mb-4 text-gray-300">"{testimonial.quote}"</p>
+                <p className="mb-4 text-sm text-gray-300 md:text-base">"{testimonial.quote}"</p>
                 <div className="flex text-amber-400">
                   {[...Array(5)].map((_, i) => (
                     <svg
                       key={i}
-                      className="h-4 w-4 fill-current"
+                      className="h-3 w-3 fill-current md:h-4 md:w-4"
                       viewBox="0 0 24 24"
                     >
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
@@ -513,53 +602,53 @@ const LandingPage = () => {
       </section>
 
       {/* AI Assistant Section */}
-      <section className="bg-white px-6 py-20 md:px-12">
+      <section className="bg-white px-4 py-12 md:px-12 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col items-center gap-12 lg:flex-row">
-            <div className="lg:w-1/2">
-              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <div className="mb-6 flex items-center">
-                  <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                    <FaRobot className="text-xl" />
+          <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
+            <div className="w-full lg:w-1/2">
+              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                <div className="mb-4 flex items-center md:mb-6">
+                  <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 md:mr-4 md:h-12 md:w-12">
+                    <FaRobot className="text-lg md:text-xl" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">
+                    <h3 className="text-lg font-bold text-gray-800 md:text-xl">
                       PetroMark AI Assistant
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 md:text-base">
                       Your personal learning companion
                     </p>
                   </div>
                 </div>
 
-                <div className="mb-6 space-y-4">
+                <div className="mb-4 space-y-3 md:mb-6 md:space-y-4">
                   <div className="flex items-start">
-                    <div className="mr-3 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-sm">
+                    <div className="mr-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-xs md:mr-3 md:h-8 md:w-8 md:text-sm">
                       AI
                     </div>
-                    <div className="rounded-lg rounded-tl-none bg-indigo-50 p-4">
-                      <p className="text-gray-800">
+                    <div className="rounded-lg rounded-tl-none bg-indigo-50 p-3 md:p-4">
+                      <p className="text-sm text-gray-800 md:text-base">
                         How can I help with your studies today?
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start justify-end">
-                    <div className="max-w-xs rounded-lg rounded-tr-none bg-indigo-600 p-4 text-white">
-                      <p>Can you explain quantum physics concepts?</p>
+                    <div className="max-w-xs rounded-lg rounded-tr-none bg-indigo-600 p-3 text-white md:p-4">
+                      <p className="text-sm md:text-base">Can you explain quantum physics concepts?</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="mb-3 font-medium text-gray-700">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 md:p-4">
+                  <p className="mb-2 text-sm font-medium text-gray-700 md:mb-3 md:text-base">
                     PetroMark is ready to assist with:
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2">
                     {aiFeatures.map((feature, index) => (
                       <div key={index} className="flex items-center">
-                        <div className="mr-2 h-1.5 w-1.5 rounded-full bg-indigo-600"></div>
-                        <span className="text-sm text-gray-700">{feature}</span>
+                        <div className="mr-1 h-1.5 w-1.5 rounded-full bg-indigo-600 md:mr-2"></div>
+                        <span className="text-xs text-gray-700 md:text-sm">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -567,23 +656,23 @@ const LandingPage = () => {
               </div>
             </div>
 
-            <div className="lg:w-1/2">
-              <h2 className="mb-6 text-3xl font-bold text-gray-800 md:text-4xl">
+            <div className="w-full lg:w-1/2">
+              <h2 className="mb-4 text-2xl font-bold text-gray-800 md:mb-6 md:text-3xl lg:text-4xl">
                 Intelligent Learning with{' '}
                 <span className="text-indigo-600">PetroMark AI</span>
               </h2>
-              <p className="mb-8 text-gray-600">
+              <p className="mb-6 text-gray-600 md:mb-8 md:text-base">
                 Our advanced AI assistant provides personalized tutoring,
                 answers your questions in real-time, and helps you master
                 complex subjects through interactive learning.
               </p>
 
-              <ul className="mb-8 space-y-4">
+              <ul className="mb-6 space-y-3 md:mb-8 md:space-y-4">
                 {aiBenefits.map((benefit, index) => (
                   <li key={index} className="flex items-start">
-                    <div className="mt-1 mr-3 rounded-full bg-indigo-100 p-1 text-indigo-600">
+                    <div className="mt-1 mr-2 rounded-full bg-indigo-100 p-1 text-indigo-600 md:mr-3">
                       <svg
-                        className="h-4 w-4"
+                        className="h-3 w-3 md:h-4 md:w-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -595,14 +684,14 @@ const LandingPage = () => {
                         ></path>
                       </svg>
                     </div>
-                    <span className="text-gray-700">{benefit}</span>
+                    <span className="text-sm text-gray-700 md:text-base">{benefit}</span>
                   </li>
                 ))}
               </ul>
 
               <Link
                 to="/petromark"
-                className="inline-flex items-center rounded bg-indigo-600 px-8 py-3 font-medium text-white transition-all hover:bg-indigo-700"
+                className="inline-flex items-center rounded bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-all hover:bg-indigo-700 md:px-8 md:py-3 md:text-base"
               >
                 <FaRobot className="mr-2" />
                 Try PetroMark Now
@@ -613,23 +702,23 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 px-6 pt-16 pb-8 text-white md:px-12">
+      <footer className="bg-gray-900 px-4 pt-12 pb-6 text-white md:px-12 md:pt-16 md:pb-8">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="mb-10 grid grid-cols-1 gap-8 md:mb-12 md:grid-cols-4">
             <div>
-              <h3 className="mb-4 text-2xl font-bold">
+              <h3 className="mb-3 text-xl font-bold md:mb-4 md:text-2xl">
                 <span className="text-indigo-400">PETRO</span>
                 <span className="text-amber-400">X</span>
               </h3>
-              <p className="mb-6 text-gray-400">
+              <p className="mb-4 text-sm text-gray-400 md:mb-6 md:text-base">
                 The ultimate academic platform for students seeking excellence.
               </p>
-              <div className="flex space-x-4">
+              <div className="flex space-x-3 md:space-x-4">
                 {socialLinks.map((social, index) => (
                   <a
                     key={index}
                     href={social.url}
-                    className="flex h-8 w-8 items-center justify-center rounded bg-gray-800 text-gray-300 transition-colors hover:bg-gray-700"
+                    className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-gray-300 transition-colors hover:bg-gray-700 md:h-8 md:w-8"
                     aria-label={social.name}
                   >
                     {social.icon}
@@ -639,7 +728,7 @@ const LandingPage = () => {
             </div>
 
             <div>
-              <h4 className="mb-4 text-lg font-bold text-gray-200">
+              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">
                 Resources
               </h4>
               <ul className="space-y-2">
@@ -647,7 +736,7 @@ const LandingPage = () => {
                   <li key={index}>
                     <a
                       href={resource.url}
-                      className="text-gray-400 transition-colors hover:text-white"
+                      className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
                     >
                       {resource.name}
                     </a>
@@ -657,12 +746,12 @@ const LandingPage = () => {
             </div>
 
             <div>
-              <h4 className="mb-4 text-lg font-bold text-gray-200">Legal</h4>
+              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">Legal</h4>
               <ul className="space-y-2">
                 <li>
                   <Link
                     to="/policies"
-                    className="text-gray-400 transition-colors hover:text-white"
+                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
                   >
                     Privacy Policy
                   </Link>
@@ -670,7 +759,7 @@ const LandingPage = () => {
                 <li>
                   <Link
                     to="/policies"
-                    className="text-gray-400 transition-colors hover:text-white"
+                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
                   >
                     Terms & Conditions
                   </Link>
@@ -678,7 +767,7 @@ const LandingPage = () => {
                 <li>
                   <Link
                     to="/about"
-                    className="text-gray-400 transition-colors hover:text-white"
+                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
                   >
                     About Us
                   </Link>
@@ -686,7 +775,7 @@ const LandingPage = () => {
                 <li>
                   <Link
                     to="/about#contact"
-                    className="text-gray-400 transition-colors hover:text-white"
+                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
                   >
                     Contact
                   </Link>
@@ -695,26 +784,26 @@ const LandingPage = () => {
             </div>
 
             <div>
-              <h4 className="mb-4 text-lg font-bold text-gray-200">
+              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">
                 Stay Updated
               </h4>
-              <p className="mb-4 text-gray-400">
+              <p className="mb-3 text-sm text-gray-400 md:mb-4 md:text-base">
                 Subscribe to our newsletter for updates
               </p>
               <div className="flex">
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="w-full rounded-l bg-gray-800 px-4 py-2 text-white focus:outline-none"
+                  className="w-full rounded-l bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none md:px-4 md:py-2 md:text-base"
                 />
-                <button className="rounded-r bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700">
+                <button className="rounded-r bg-indigo-600 px-3 py-2 text-sm text-white transition-colors hover:bg-indigo-700 md:px-4 md:py-2 md:text-base">
                   Subscribe
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
+          <div className="border-t border-gray-800 pt-6 text-center text-xs text-gray-500 md:pt-8 md:text-sm">
             <p>
               &copy; {new Date().getFullYear()} PetroX. All rights reserved.
             </p>
