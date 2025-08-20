@@ -423,8 +423,12 @@ const LandingPage = () => {
           <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
             <div className="w-full lg:w-1/2">
               <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm md:p-6">
-                <div className="flex h-64 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 md:h-80">
-                  <div className="h-48 w-full rounded-xl border-2 border-dashed bg-gray-200 md:h-64" />
+                <div className="flex h-64 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 overflow-hidden md:h-80">
+                  <img 
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQP4phE-UfKc5Hsebz7iCuGjDngoLJgBesA9A&s" 
+                    alt="How PetroX Works" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </div>
