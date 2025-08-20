@@ -383,7 +383,7 @@ const LandingPage = () => {
                 <FaCheckCircle className="text-xl" />
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Proven Results</h3>
-              <p className="text-gray-600">Students using PetroX have reported an average GPA increase of 0.8 points.</p>
+              <p className="text-gray-600">Students using PetroX will experience an increase in their Acedemic Performance.</p>
             </div>
 
             <div className="flex flex-col items-center text-center p-6 rounded-lg bg-amber-50 border border-amber-100">
@@ -415,7 +415,7 @@ const LandingPage = () => {
                 <FaClock className="text-xl" />
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Time Saving</h3>
-              <p className="text-gray-600">Reduce study time by up to 40% with our organized resource library.</p>
+              <p className="text-gray-600">Reduce study time  with our organized resource library.</p>
             </div>
 
             <div className="flex flex-col items-center text-center p-6 rounded-lg bg-red-50 border border-red-100">
@@ -423,7 +423,7 @@ const LandingPage = () => {
                 <FaAward className="text-xl" />
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Recognition</h3>
-              <p className="text-gray-600">Earn badges and rewards for your academic achievements and contributions.</p>
+              <p className="text-gray-600">Earn badges and points for your academic achievements and contributions.</p>
             </div>
           </div>
         </div>
@@ -1021,3 +1021,4 @@ const resources = [
 ];
 
 export default LandingPage;
+
