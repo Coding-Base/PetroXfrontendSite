@@ -19,16 +19,37 @@ const UploadPassQuestions = () => {
 
   // Generate years from current year back 30 years
   const currentYear = new Date().getFullYear();
-  const years = Array.from({length: 30}, (_, i) => currentYear - i);
+  const years = Array.from({ length: 30 }, (_, i) => currentYear - i);
 
-  // Fetch courses on component mount
+  // Fetch courses on component mount (robust to axios / paginated / array shapes)
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
-        // If your API returns { data: [...] }
-        const courseArr = Array.isArray(response.data) ? response.data : response;
+
+        // Debugging output - inspect the shape in browser console if needed
+        console.log('fetchCourses raw response:', response);
+
+        // Normalize possible shapes:
+        // - axios: response.data => { count, results: [...] }
+        // - direct payload: { count, results: [...] }
+        // - plain array: [ ...courses ]
+        const payload = response?.data ?? response;
+        let courseArr = [];
+
+        if (Array.isArray(payload)) {
+          courseArr = payload;
+        } else if (payload && Array.isArray(payload.results)) {
+          courseArr = payload.results;
+        } else if (payload && Array.isArray(payload.data)) {
+          courseArr = payload.data;
+        } else {
+          console.error('Unexpected courses response structure:', payload);
+          courseArr = [];
+        }
+
+        console.log('Normalized courses array:', courseArr);
         setCourses(courseArr);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
@@ -43,7 +64,7 @@ const UploadPassQuestions = () => {
   }, []);
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+    const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       const validTypes = [
         'application/pdf',
@@ -73,7 +94,7 @@ const UploadPassQuestions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (step === 1 && !year) {
       setMessage({ text: 'Please select a year', type: 'error' });
       return;
@@ -88,7 +109,7 @@ const UploadPassQuestions = () => {
         setMessage({ text: 'Please select a course', type: 'error' });
         return;
       }
-      
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('question_type', questionType);
@@ -98,8 +119,8 @@ const UploadPassQuestions = () => {
       setMessage({ text: '', type: '' });
       try {
         const response = await axios.post(
-          'https://petroxtestbackend.onrender.com/api/preview-pass-questions/', 
-          formData, 
+          'https://petroxtestbackend.onrender.com/api/preview-pass-questions/',
+          formData,
           {
             headers: {
               'Content-Type': 'multipart/form-data',
@@ -108,17 +129,20 @@ const UploadPassQuestions = () => {
           }
         );
 
-        const questionsWithIds = response.data.questions.map(q => ({
+        // safe access to questions array
+        const remoteQuestions = response?.data?.questions ?? [];
+        const questionsWithIds = remoteQuestions.map(q => ({
           ...q,
           id: Math.random().toString(36).substr(2, 9)
         }));
-        
+
         setParsedQuestions(questionsWithIds);
         setStep(2);
       } catch (error) {
-        const errorMsg = error.response?.data?.error || 
-                        error.response?.data?.message || 
-                        'Failed to parse file. Please check the format and try again.';
+        console.error('Preview parse error:', error?.response?.data ?? error);
+        const errorMsg = error.response?.data?.error ||
+                         error.response?.data?.message ||
+                         'Failed to parse file. Please check the format and try again.';
         setMessage({ text: errorMsg, type: 'error' });
       } finally {
         setIsLoading(false);
@@ -126,7 +150,7 @@ const UploadPassQuestions = () => {
     } else {
       setIsLoading(true);
       setMessage({ text: '', type: '' });
-      
+
       try {
         // Validate all questions are filled
         const hasEmptyQuestions = parsedQuestions.some(q => {
@@ -136,23 +160,23 @@ const UploadPassQuestions = () => {
           }
           return false;
         });
-        
+
         if (hasEmptyQuestions) {
-          setMessage({ 
-            text: 'Please fill all question fields and ensure answers are selected', 
-            type: 'error' 
+          setMessage({
+            text: 'Please fill all question fields and ensure answers are selected',
+            type: 'error'
           });
           setIsLoading(false);
           return;
         }
-        
+
         // Format questions for backend
         const formattedQuestions = parsedQuestions.map(q => {
           const baseQuestion = {
             text: q.text,
             question_type: questionType
           };
-          
+
           if (questionType === 'multichoice') {
             return {
               ...baseQuestion,
@@ -167,9 +191,9 @@ const UploadPassQuestions = () => {
         });
 
         const response = await axios.post(
-          'https://petroxtestbackend.onrender.com/api/upload-pass-questions/', 
+          'https://petroxtestbackend.onrender.com/api/upload-pass-questions/',
           {
-            course_id: selectedCourse,
+            course_id: Number(selectedCourse),
             year: year,
             questions: formattedQuestions,
             question_type: questionType
@@ -181,18 +205,19 @@ const UploadPassQuestions = () => {
           }
         );
 
-        setMessage({ 
-          text: response.data.message || 'Questions submitted successfully! They are pending admin approval.',
+        setMessage({
+          text: response.data?.message || 'Questions submitted successfully! They are pending admin approval.',
           type: 'success'
         });
-        
+
         setUploadStatus({
           count: parsedQuestions.length,
           year: year,
-          course: courses.find(c => c.id == selectedCourse)?.name || 'Unknown Course',
-          filename: file.name
+          course: courses.find(c => Number(c.id) === Number(selectedCourse))?.name || 'Unknown Course',
+          filename: file?.name || ''
         });
-        
+
+        // Reset form
         setFile(null);
         setSelectedCourse('');
         setYear('');
@@ -208,16 +233,16 @@ const UploadPassQuestions = () => {
           year: year,
           question_count: parsedQuestions.length
         });
-        
+
         if (error.response?.status === 409) {
-          setMessage({ 
-            text: error.response.data.error || 'Past questions for this year already exist', 
-            type: 'error' 
+          setMessage({
+            text: error.response.data?.error || 'Past questions for this year already exist',
+            type: 'error'
           });
         } else {
-          const errorMsg = error.response?.data?.error || 
-                          error.response?.data?.message || 
-                          'Submission failed. Please try again.';
+          const errorMsg = error.response?.data?.error ||
+                           error.response?.data?.message ||
+                           'Submission failed. Please try again.';
           setMessage({ text: errorMsg, type: 'error' });
         }
       } finally {
@@ -240,7 +265,7 @@ const UploadPassQuestions = () => {
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text极gray-500 uppercase tracking-wider">Option D</th>
+              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
               <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
             </tr>
           </thead>
@@ -328,8 +353,8 @@ const UploadPassQuestions = () => {
           type="submit"
           disabled={isLoading}
           className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium text-white transition ${
-            isLoading 
-              ? 'bg-blue-400 cursor-not-allowed' 
+            isLoading
+              ? 'bg-blue-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700'
           }`}
         >
@@ -341,6 +366,7 @@ const UploadPassQuestions = () => {
     </div>
   );
 
+  // Loading / error states for course list
   if (isLoadingCourses) {
     return (
       <div className="container bg-gray-50 mx-auto p-4 flex items-center justify-center min-h-screen">
@@ -358,8 +384,8 @@ const UploadPassQuestions = () => {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <div className="rounded-lg bg-red-100 p-4 text-red-700">
             <p className="font-medium">{courseError}</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="mt-3 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             >
               Retry
@@ -372,31 +398,31 @@ const UploadPassQuestions = () => {
 
   return (
     // Added overflow-y-auto to the main container div
-    <div className="container bg-gray-50 mx-auto p-2 sm:p-4 overflow-x-hidden overflow-y-auto">      
+    <div className="container bg-gray-50 mx-auto p-2 sm:p-4 overflow-x-hidden overflow-y-auto">
       <div className="bg-white rounded-lg shadow-md p-2 sm:p-6">
         <h1 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">
           {step === 1 ? 'Upload Past Questions' : 'Review Questions'}
         </h1>
-        
+
         {step === 1 && (
           <>
             <div className="mb-4 sm:mb-6">
               <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3 text-gray-700">Question Type</h2>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                <Button 
+                <Button
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition ${
-                    questionType === 'multichoice' 
-                      ? 'bg-blue-600 text-white' 
+                    questionType === 'multichoice'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 hover:bg-gray-300'
                   }`}
                   onClick={() => setQuestionType('multichoice')}
                 >
                   Multiple Choice
                 </Button>
-                <Button 
+                <Button
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition ${
-                    questionType === 'theory' 
-                      ? 'bg-blue-600 text-white' 
+                    questionType === 'theory'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 hover:bg-gray-300'
                   }`}
                   onClick={() => setQuestionType('theory')}
@@ -425,7 +451,7 @@ const UploadPassQuestions = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Select Course
@@ -438,7 +464,8 @@ const UploadPassQuestions = () => {
                 >
                   <option value="">-- Select a course --</option>
                   {courses.map(course => (
-                    <option key={course.id} value={course.id}>
+                    // store value as string to keep select controlled state consistent
+                    <option key={course.id} value={String(course.id)}>
                       {course.name}
                     </option>
                   ))}
@@ -478,7 +505,8 @@ const UploadPassQuestions = () => {
                       type="button"
                       onClick={() => {
                         setFile(null);
-                        document.querySelector('input[type="file"]').value = '';
+                        const fileInput = document.querySelector('input[type="file"]');
+                        if (fileInput) fileInput.value = '';
                       }}
                       className="p-2 text-xs sm:text-base text-red-500 hover:text-red-700"
                     >
@@ -493,8 +521,8 @@ const UploadPassQuestions = () => {
                   type="submit"
                   disabled={isLoading || !file || !selectedCourse || !year}
                   className={`w-full py-2 sm:py-3 px-4 rounded-lg font-medium text-white transition text-xs sm:text-base ${
-                    isLoading 
-                      ? 'bg-blue-400 cursor-not-allowed' 
+                    isLoading
+                      ? 'bg-blue-400 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
@@ -521,7 +549,7 @@ const UploadPassQuestions = () => {
               <h3 className="font-medium text-blue-800 text-sm sm:text-base">Upload Details</h3>
               <div className="mt-2 text-xs sm:text-sm">
                 <p><span className="font-medium">Year:</span> {year}</p>
-                <p><span className="font-medium">Course:</span> {courses.find(c => c.id == selectedCourse)?.name || 'Unknown Course'}</p>
+                <p><span className="font-medium">Course:</span> {courses.find(c => Number(c.id) === Number(selectedCourse))?.name || 'Unknown Course'}</p>
                 <p><span className="font-medium">File:</span> {file?.name || 'No file selected'}</p>
                 <p><span className="font-medium">Questions:</span> {parsedQuestions.length}</p>
               </div>
@@ -529,7 +557,7 @@ const UploadPassQuestions = () => {
             {renderQuestionEditor()}
           </form>
         )}
-        
+
         {message.text && (
           <div
             className={`mt-4 sm:mt-6 rounded-lg p-3 sm:p-4 text-xs sm:text-base ${
