@@ -13,7 +13,13 @@ import {
   FaDownload,
   FaMapMarkerAlt,
   FaBars,
-  FaTimes
+  FaTimes,
+  FaCheckCircle,
+  FaLightbulb,
+  FaChartLine,
+  FaMobileAlt,
+  FaClock,
+  FaAward
 } from 'react-icons/fa';
 import image1 from '../images/land1.png';
 import image2 from '../images/land2.png';
@@ -359,6 +365,70 @@ const LandingPage = () => {
 
       <Affilate/>
 
+      {/* Benefits Section - Added to fill space */}
+      <section className="bg-white px-4 py-12 md:px-12 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
+              Why Students Love PetroX
+            </h2>
+            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
+              Discover the features that make PetroX the ultimate academic companion
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-indigo-50 border border-indigo-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                <FaCheckCircle className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Proven Results</h3>
+              <p className="text-gray-600">Students using PetroX have reported an average GPA increase of 0.8 points.</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-amber-50 border border-amber-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 text-amber-600 mb-4">
+                <FaLightbulb className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Smart Learning</h3>
+              <p className="text-gray-600">AI-powered recommendations tailor study materials to your learning style.</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-green-50 border border-green-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 text-green-600 mb-4">
+                <FaChartLine className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Progress Tracking</h3>
+              <p className="text-gray-600">Monitor your academic growth with detailed analytics and performance insights.</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-blue-50 border border-blue-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <FaMobileAlt className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Mobile Access</h3>
+              <p className="text-gray-600">Study anywhere, anytime with our mobile-optimized platform.</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-purple-50 border border-purple-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 text-purple-600 mb-4">
+                <FaClock className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Time Saving</h3>
+              <p className="text-gray-600">Reduce study time by up to 40% with our organized resource library.</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-red-50 border border-red-100">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600 mb-4">
+                <FaAward className="text-xl" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Recognition</h3>
+              <p className="text-gray-600">Earn badges and rewards for your academic achievements and contributions.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section
         id="features"
@@ -425,7 +495,7 @@ const LandingPage = () => {
               <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm md:p-6">
                 <div className="flex h-64 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 overflow-hidden md:h-80">
                   <img 
-                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQP4phE-UfKc5Hsebz7iCuGjDngoLJgBesA9A&s" 
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShGiNXczSdhTVmzY7W3nf4y7imrrf5NZhGhA&s" 
                     alt="How PetroX Works" 
                     className="w-full h-full object-cover"
                   />
