@@ -1,3 +1,4 @@
+// MaterialManagement.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../components/ui/button';
 import { fetchCourses, uploadMaterial, searchMaterials, downloadMaterial } from '@/api/index';
@@ -26,13 +27,13 @@ export default function MaterialsManagement() {
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     // Initial check
     setIsOnline(navigator.onLine);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -42,23 +43,23 @@ export default function MaterialsManagement() {
   // Clear messages automatically after 5 seconds
   useEffect(() => {
     let timeoutId;
-    
+
     if (error || successMsg) {
       // Clear any existing timeout
       if (messageTimeout.current) {
         clearTimeout(messageTimeout.current);
         messageTimeout.current = null;
       }
-      
+
       // Set new timeout
       timeoutId = setTimeout(() => {
         setError('');
         setSuccessMsg('');
       }, 5000);
-      
+
       messageTimeout.current = timeoutId;
     }
-    
+
     // Cleanup
     return () => {
       if (timeoutId) {
@@ -77,31 +78,36 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Fixed course loading - handles API response structure properly
+  // --- Load courses robustly (handles axios responses, paginated results, arrays, etc.)
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoadingCourses(true);
         const response = await fetchCourses();
-        
-        console.log('Courses API response:', response); // For debugging
-        
-        // Handle API response structure - courses are in response.results
-        if (response && response.results && Array.isArray(response.results)) {
-          setCourses(response.results);
-        } 
-        // Handle non-paginated array response
-        else if (Array.isArray(response)) {
-          setCourses(response);
-        } 
-        // Handle other possible structures
-        else if (response && response.data && Array.isArray(response.data)) {
-          setCourses(response.data);
-        } 
-        else {
-          console.error('Unexpected courses response structure:', response);
-          setCourses([]);
+
+        // Helpful debug log so you can see exact response shape in browser console
+        console.log('Courses API raw response:', response);
+
+        // Normalize whatever shape the API / axios returns:
+        // - axios: response.data => { count, results }
+        // - direct payload: { count, results }
+        // - plain array: [ ...courses ]
+        const payload = response?.data ?? response;
+        let courseList = [];
+
+        if (Array.isArray(payload)) {
+          courseList = payload;
+        } else if (payload && Array.isArray(payload.results)) {
+          courseList = payload.results;
+        } else if (payload && Array.isArray(payload.data)) {
+          // some APIs wrap an array in data
+          courseList = payload.data;
+        } else {
+          console.error('Unexpected courses response structure:', payload);
         }
+
+        console.log('Normalized courses list:', courseList);
+        setCourses(courseList);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
         setError('Failed to load courses. Please try again later.');
@@ -125,7 +131,7 @@ export default function MaterialsManagement() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 20 * 1024* 1024) {
+      if (selectedFile.size > 20 * 1024 * 1024) {
         setError('File size exceeds 20MB limit');
       } else {
         setError('');
@@ -151,6 +157,7 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     const formData = new FormData();
+    // selectedCourseId is stored as a string in the select -> parse to int here
     formData.append('course', parseInt(selectedCourseId, 10));
     formData.append('name', materialName.trim());
     formData.append('tags', tags.trim());
@@ -158,50 +165,48 @@ export default function MaterialsManagement() {
 
     try {
       const response = await uploadMaterial(formData);
-      setUploadedMaterials([response.data, ...uploadedMaterials]);
-      
+
+      // if your uploadMaterial returns axios response, use response.data; otherwise adjust accordingly
+      const uploaded = response?.data ?? response;
+      setUploadedMaterials([uploaded, ...uploadedMaterials]);
+
       // Reset form
       setMaterialName('');
       setTags('');
       setFile(null);
       setSelectedCourseId('');
-      
+
       setSuccessMsg('Material uploaded successfully!');
     } catch (err) {
       console.error('Upload error:', err);
-      
+
       // Enhanced error handling
       let errorMsg = 'Failed to upload material. Please try again.';
-      
+
       if (err.response) {
         const { status, data } = err.response;
-        
+
         if (status === 503) {
           errorMsg = "Storage service unavailable. Please try again later.";
-        } 
-        else if (data.error === "storage_authentication_failed") {
+        } else if (data && data.error === "storage_authentication_failed") {
           errorMsg = "Storage system authentication failed. Please contact support.";
-        } 
-        else if (data.error && data.error.includes("JWT")) {
+        } else if (data && data.error && String(data.error).includes("JWT")) {
           errorMsg = "Security token error. Please try again later.";
-        }
-        else if (data.message) {
+        } else if (data && data.message) {
           errorMsg = data.message;
-        }
-        else {
-          errorMsg = data.error?.message || data.error || errorMsg;
+        } else {
+          errorMsg = data?.error?.message || data?.error || errorMsg;
         }
       } else if (err.request) {
-        // The request was made but no response was received
         errorMsg = "No response from server. Please check your connection and try again.";
       } else if (err.isTimeout) {
         errorMsg = "Request timed out. Please try again.";
       } else if (err.isNetworkError) {
-        errorMsg = isOnline 
-          ? "Server connection failed. Please try again later." 
+        errorMsg = isOnline
+          ? "Server connection failed. Please try again later."
           : "Network error. Please check your internet connection.";
       }
-      
+
       setError(errorMsg);
     } finally {
       setIsUploading(false);
@@ -222,18 +227,18 @@ export default function MaterialsManagement() {
     try {
       // Try different parameter formats to find what the backend expects
       let results;
-      
+
       try {
         // First try with query as a plain string
         results = await searchMaterials(searchQuery.trim());
       } catch (firstError) {
-        console.log('First search attempt failed, trying with object parameter...');
+        console.log('First search attempt failed, trying with object parameter...', firstError);
         // If that fails, try with object parameter
         results = await searchMaterials({ query: searchQuery.trim() });
       }
-      
-      console.log('Search results:', results); // For debugging
-      
+
+      console.log('Search results raw:', results);
+
       // Handle different response formats
       let materialList = [];
       if (Array.isArray(results)) {
@@ -245,13 +250,13 @@ export default function MaterialsManagement() {
       } else if (results && Array.isArray(results)) {
         materialList = results;
       }
-      
+
       setSearchResults(materialList);
       setMode('search-results');
       setShowMobileMenu(false);
     } catch (error) {
       console.error('Search error:', error);
-      
+
       // Enhanced error handling
       let errorMsg = 'Failed to search materials. Please try again.';
       if (error.response) {
@@ -269,7 +274,7 @@ export default function MaterialsManagement() {
       } else {
         errorMsg = error.message || errorMsg;
       }
-      
+
       setError(errorMsg);
       setSearchResults([]);
     } finally {
@@ -280,10 +285,10 @@ export default function MaterialsManagement() {
   const handleDownload = async (material) => {
     try {
       const downloadData = await downloadMaterial(material.id);
-      
+
       // Use either direct URL or API-provided URL
-      const downloadUrl = downloadData.download_url || material.file_url;
-      
+      const downloadUrl = downloadData?.download_url || material.file_url || material.url;
+
       if (!downloadUrl) {
         throw new Error('No download URL available');
       }
@@ -300,7 +305,7 @@ export default function MaterialsManagement() {
       const alreadyDownloaded = downloadedMaterials.some(
         item => item.id === material.id
       );
-      
+
       if (!alreadyDownloaded) {
         const newDownloaded = [material, ...downloadedMaterials];
         setDownloadedMaterials(newDownloaded);
@@ -309,7 +314,7 @@ export default function MaterialsManagement() {
           JSON.stringify(newDownloaded)
         );
       }
-      
+
       setSuccessMsg(`"${material.name}" downloaded successfully!`);
     } catch (err) {
       console.error('Download error:', err);
@@ -365,9 +370,10 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Get course name by ID
+  // Get course name by ID (robust to string/number mismatches)
   const getCourseName = (courseId) => {
-    const course = courses.find((c) => c.id === courseId);
+    const idNum = Number(courseId);
+    const course = courses.find((c) => Number(c.id) === idNum);
     return course ? course.name : 'Unknown Course';
   };
 
@@ -390,7 +396,7 @@ export default function MaterialsManagement() {
           <div className="fixed top-4 right-4 z-50 w-full max-w-md">
             {error && (
               <div className="mb-2 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg relative">
-                <button 
+                <button
                   onClick={clearMessages}
                   className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                 >
@@ -401,10 +407,10 @@ export default function MaterialsManagement() {
                 <div className="pr-6">{error}</div>
               </div>
             )}
-            
+
             {successMsg && (
               <div className="mb-2 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg relative">
-                <button 
+                <button
                   onClick={clearMessages}
                   className="absolute top-2 right-2 text-green-500 hover:text-green-700"
                 >
@@ -629,7 +635,8 @@ export default function MaterialsManagement() {
                 >
                   <option value="">Select a course</option>
                   {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
+                    // value as string to avoid type mismatch with select's state
+                    <option key={course.id} value={String(course.id)}>
                       {course.name}
                     </option>
                   ))}
@@ -871,10 +878,10 @@ export default function MaterialsManagement() {
                     const isDownloaded = downloadedMaterials.some(
                       item => item.id === material.id
                     );
-                    
+
                     // Get file URL from material object
                     const fileUrl = material.file_url || material.url;
-                    
+
                     return (
                       <div
                         key={material.id}
@@ -936,7 +943,7 @@ export default function MaterialsManagement() {
                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                               />
                             </svg>
-                            {new Date(material.uploaded_at).toLocaleDateString()}
+                            {material.uploaded_at ? new Date(material.uploaded_at).toLocaleDateString() : ''}
                           </p>
                         </div>
                         <div className="px-3 pb-3 md:px-4 md:pb-4">
@@ -964,7 +971,7 @@ export default function MaterialsManagement() {
                             </svg>
                             {isDownloaded ? 'Download Again' : 'Download'}
                           </button>
-                          
+
                           {/* Direct link fallback */}
                           {fileUrl && (
                             <a 
@@ -989,7 +996,3 @@ export default function MaterialsManagement() {
     </div>
   );
 }
-
-
-
-
