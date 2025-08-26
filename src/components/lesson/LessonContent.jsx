@@ -1,222 +1,341 @@
 // src/components/lesson/LessonContent.jsx
+// Rich, expanded lesson content for 100-level courses (Maths, Chemistry, Physics, GST).
+// Each Session contains Topics and Content objects with explanation (multi-paragraph), examples array with steps.
+
 const LessonContent = {
   // ===============================
-  // Mathematics (Maths 101)
+  // Mathematics (Maths 101) - Expanded
   // ===============================
   Maths: [
-    // First Semester
     {
       Session: "First Semester",
       Topics: [
         "Numbers, Sets & Real Number System",
+        "Indices, Surds & Logarithms",
         "Algebraic Expressions & Factorization",
-        "Functions & Graphs",
-        "Limits & Continuity"
+        "Functions, Graphs & Transformations",
+        "Sequences, Series & Binomial",
+        "Trigonometry Basics & Identities",
+        "Matrices & Systems of Linear Equations",
+        "Intro to Limits & Continuity"
       ],
       Content: [
         {
-          explanation: `This topic is foundational. We examine the complete hierarchy of numbers: natural, whole, integers, rational, irrational, and real numbers. You will learn formal set notation, basic set operations (union, intersection, difference, complement), and how to represent sets using roster and set-builder notation. We'll also cover interval notation for real number ranges and how these notations map to the number line.
+          explanation:
+            `Foundations: We classify numbers (Natural, Whole, Integers, Rational, Irrational, Real) and use set notation (roster and set-builder). Learn how to manipulate intervals, represent sets on number line and reason about membership, complements, and subsets.
 
-Key ideas include membership testing (is x ∈ A?), subset relations, Venn diagrams for two- and three-set overlaps, and practical reasoning about sets in word problems. We'll apply these concepts to solve problems that combine counting, membership, and basic probability intuition.`,
+Practical skills include drawing two- and three-set Venn diagrams, solving membership problems, and applying interval arithmetic for inequalities. This topic prepares you for algebraic reasoning and probability tasks.`,
           examples: [
             {
-              title: "Example 1 — Classifying numbers",
-              problem: "Classify these numbers: −3, 0, 1/2, √2, 7",
-              solution: "Answer with categories each belongs to.",
+              title: "Example — Set membership & Venn",
+              problem: "U = {1..10}, A = {even numbers}, B = {multiples of 3}. Find A ∩ B and A ∪ B.",
+              solution: "A = {2,4,6,8,10}, B = {3,6,9}. A ∩ B = {6}. A ∪ B = {2,3,4,6,8,9,10}.",
               steps: [
-                "−3 is an integer (ℤ), rational (ℚ), and real (ℝ); not natural.",
-                "0 is an integer and whole number; rational and real.",
-                "1/2 is rational (ℚ) and real (ℝ).",
-                "√2 is irrational (not expressible as p/q with integers p and q) so belongs to ℝ but not ℚ.",
-                "7 is natural (ℕ), whole, integer, rational, and real."
+                "List each set explicitly using definition.",
+                "Intersection: numbers common to both sets → {6}.",
+                "Union: combine all unique elements in ascending order."
               ]
             },
             {
-              title: "Example 2 — Set operations",
-              problem: "If A = {1,2,3,4}, B = {3,4,5,6}, compute A ∪ B, A ∩ B, A \\ B.",
-              solution: "Perform the operations directly.",
+              title: "Example — Interval inequality",
+              problem: "Solve |x − 3| ≤ 2",
+              solution: "Equivalent to −2 ≤ x − 3 ≤ 2 ⇒ 1 ≤ x ≤ 5.",
               steps: [
-                "A ∪ B = {1,2,3,4,5,6}",
-                "A ∩ B = {3,4}",
-                "A \\ B = elements in A not in B = {1,2}"
+                "Remove absolute value by writing two inequalities.",
+                "Solve and present interval: [1,5]."
               ]
             }
           ]
         },
-        {
-          explanation: `Algebraic expressions are formulas built from numbers, variables, and operators. Mastery of simplification, manipulation, laws of indices (exponents), and working with surds (roots) is crucial. Factorization transforms a polynomial into product form and is essential for solving polynomial equations and simplifying rational expressions.
 
-We cover techniques such as factoring common factors, grouping, quadratic trinomials, difference of squares, sum/difference of cubes, completing the square, and basic rationalization of denominators. The goal is to make you comfortable recognizing patterns and applying the correct factorization approach quickly.`,
+        {
+          explanation:
+            `Exponents and logarithms: rules of indices, rational exponents and simplifying surds (roots). Learn rationalization techniques and the laws of logarithms (product, quotient, power rules) and how logs turn multiplicative relationships into additive ones — crucial for solving exponential equations.
+
+We'll also cover practical approximations and how to switch between exponential and log form.`,
           examples: [
             {
-              title: "Example — Factorization",
-              problem: "Factor x^2 − 5x + 6",
-              solution: "Find two numbers whose product is 6 and sum −5.",
+              title: "Example — Laws of exponents",
+              problem: "Simplify (x^3 * x^−5) / x^−2",
+              solution: "Use exponent rules: x^{3 − 5 + 2} = x^0 = 1 (for x ≠ 0).",
               steps: [
-                "Numbers: −2 and −3 (since (−2)(−3)=6 and −2+(−3)=−5).",
-                "So x^2 −5x +6 = (x−2)(x−3)."
+                "Subtract exponents where dividing, add when multiplying.",
+                "Confirm domain excludes x = 0 if needed."
               ]
             },
             {
-              title: "Example — Rationalize a denominator",
-              problem: "Rationalize 1 / (√3 − 1)",
-              solution: "Multiply numerator and denominator by (√3 + 1).",
+              title: "Example — Log equation",
+              problem: "Solve log_2(x) + log_2(x − 2) = 3",
+              solution: "Combine logs: log_2[x(x − 2)] = 3 ⇒ x(x − 2) = 8 ⇒ x^2 −2x −8 = 0 ⇒ (x −4)(x +2)=0 ⇒ x = 4 or −2; but x>2 (domain), so x=4.",
               steps: [
-                "1/(√3 − 1) × (√3 + 1)/(√3 + 1) = (√3 + 1)/(3 − 1) = (√3 + 1)/2."
+                "Use product rule for logs, convert to exponential form, solve quadratic, check domain."
               ]
             }
           ]
         },
-        {
-          explanation: `Functions describe relationships mapping inputs to outputs. You'll learn formal definitions of domain (allowable inputs) and range (possible outputs), the idea of injective/surjective/bijective functions, inverse functions, composition, and transformations (translations, stretches, reflections). Graphical intuition—identifying intercepts, asymptotes, and key behavior—gives insight into problem solving and calculus readiness.
 
-We'll handle polynomial, rational, exponential, and logarithmic functions at an introductory level, focussing on how algebraic manipulations affect the graph and how to sketch or reason about simple transformations.`,
+        {
+          explanation:
+            `Algebraic factorization: factorization techniques for polynomials, recognizing quadratic patterns, difference of squares, factor by grouping, and completing the square. We practice manipulating rational expressions and simplifying algebraic fractions.
+
+This chapter is highly procedural — practice pattern recognition and multiplication checking for accuracy.`,
           examples: [
             {
-              title: "Example — Domain and range",
-              problem: "Find domain and range of f(x) = √(x − 1)",
-              solution: "Think about the radicand demand.",
+              title: "Example — Quadratic factorization",
+              problem: "Factor x^2 + x − 12",
+              solution: "(x + 4)(x − 3).",
               steps: [
-                "Require x − 1 ≥ 0 ⇒ x ≥ 1, so domain: [1, ∞).",
-                "The square root yields non-negative outputs ⇒ range: [0, ∞)."
+                "Find pair multiplying to −12 that sum to +1 → +4 and −3.",
+                "Write factors and optionally expand to check."
               ]
             },
             {
-              title: "Example — Inverse function",
-              problem: "Find f^{-1}(x) for f(x)=2x+3",
-              solution: "Swap x and y and solve.",
+              title: "Example — Completing the square",
+              problem: "Write x^2 + 6x + 5 in completed-square form",
+              solution: "x^2 + 6x + 9 − 4 = (x + 3)^2 − 4.",
               steps: [
-                "Let y = 2x + 3. Swap: x = 2y + 3 ⇒ solve for y: y = (x − 3)/2.",
-                "So f^{-1}(x) = (x − 3)/2."
+                "Add and subtract (b/2)^2 where b = 6, then factor perfect square."
               ]
             }
           ]
         },
-        {
-          explanation: `Limits formalize the behavior of functions near a point and are the gateway to continuity, differentiation, and integration. We introduce limits via intuitive examples (approaching a value), precise algebraic computation (factor and cancel, rationalize, squeeze theorem), one-sided limits, and infinite limits. Continuity links the limit concept to function value: a function is continuous at a point if the limit equals the function value there.
 
-Understanding common limit forms and algebraic techniques prepares you to evaluate derivatives as limits later in the course.`,
+        {
+          explanation:
+            `Functions and graph transformations: domain and range, inverse and composite functions, and common function types (linear, quadratic, polynomial, rational, exponential). Understand how translations, stretches and reflections modify graphs; identify intercepts, asymptotes and end behavior.
+
+Graphical interpretation is used repeatedly in calculus and modelling.`,
           examples: [
             {
-              title: "Example — Evaluate a limit",
-              problem: "lim_{x→2} (x^2 − 4)/(x − 2)",
-              solution: "Factor numerator and simplify.",
+              title: "Example — Vertical stretch",
+              problem: "How does y = 2(x − 1)^2 + 3 differ from y = x^2 ?",
+              solution: "Shift right 1, up 3, and vertical stretch by factor 2 (narrows parabola).",
               steps: [
-                "x^2 − 4 = (x − 2)(x + 2)",
-                "Cancel (x − 2) to get x + 2. Evaluate at x = 2 ⇒ 4."
+                "Translate base graph, then apply scaling factor to y-values."
               ]
             },
             {
-              title: "Example — One-sided limit",
-              problem: "lim_{x→0^+} ln(x)",
-              solution: "As x approaches 0 from the right, ln(x) → −∞.",
+              title: "Example — Inverse",
+              problem: "Find inverse of f(x) = (x − 1)/2",
+              solution: "Swap x and y → x = (y − 1)/2 ⇒ y = 2x + 1 so f^{-1}(x) = 2x + 1.",
               steps: [
-                "ln(x) decreases without bound as x→0^+; this is an infinite limit."
+                "Swap variables and solve algebraically."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Sequences and series: arithmetic and geometric sequences, nth-term formula, partial sums, and an introduction to binomial expansion for positive integer powers. Recognize how series appear in approximations and why convergence matters for infinite geometric series.
+
+We also link to calculus by showing how series approximate functions.`,
+          examples: [
+            {
+              title: "Example — Sum of GP",
+              problem: "Find sum of 1 + 1/2 + 1/4 + ... to infinity",
+              solution: "It's a geometric series with a = 1, r = 1/2 ⇒ sum = a/(1 − r) = 2.",
+              steps: [
+                "Ensure |r| < 1 to apply infinite sum formula."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Trigonometry basics: unit circle, sine/cosine/tangent definitions, exact values for common angles, and fundamental identities (Pythagorean, sum/difference). Learn solving basic trigonometric equations and using identities for simplification.
+
+Trigonometry is used across physics and engineering problems; visualize on the unit circle to build intuition.`,
+          examples: [
+            {
+              title: "Example — Exact trig value",
+              problem: "Find sin(30°) and cos(60°)",
+              solution: "sin(30°)=1/2, cos(60°)=1/2.",
+              steps: [
+                "Recall unit triangle or memorize standard angle values."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Matrices and linear systems: representation of linear equations as matrices, solving 2×2 and 3×3 systems using substitution, elimination, and (briefly) matrix row operations. Interpret determinants and basic inverse matrix concepts for small systems.
+
+These skills prepare you for numerical linear algebra and engineering modeling.`,
+          examples: [
+            {
+              title: "Example — 2×2 linear system",
+              problem: "Solve: x + y = 5, 2x − y = 1",
+              solution: "Add equations => 3x = 6 ⇒ x = 2. Then y = 3.",
+              steps: [
+                "Use elimination to combine equations and back-substitute."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Intro to limits and continuity: idea of approaching a value, removable discontinuities, and limit computation using algebraic simplification like factoring and rationalization. Continuity conditions and one-sided limits are introduced for later calculus topics.`,
+          examples: [
+            {
+              title: "Example — Limit via factoring",
+              problem: "lim_{x→1} (x^2 − 1)/(x − 1)",
+              solution: "Factor numerator => (x − 1)(x + 1)/(x − 1) => limit = x + 1 at x=1 => 2.",
+              steps: [
+                "Factor and cancel common factor, evaluate limit."
               ]
             }
           ]
         }
       ]
     },
-    // Second Semester
+
     {
       Session: "Second Semester",
       Topics: [
-        "Differentiation: Rules & Applications",
-        "Integration: Techniques & Interpretation",
-        "Applications of Calculus (Area, Volume, Optimization)",
-        "Differential Equations: First Order"
+        "Differentiation rules & implicit differentiation",
+        "Applications of derivatives (max/min & curve sketching)",
+        "Integration techniques (substitution, parts)",
+        "Definite integrals & area applications",
+        "Sequences of functions & series intro",
+        "Differential equations (first order separable/linear)",
+        "Partial fractions & rational integrals",
+        "Numerical methods (trapezoid rule intro)"
       ],
       Content: [
         {
-          explanation: `Differentiation is the process of finding the instantaneous rate of change — the derivative. You will master derivative rules (power, constant, constant multiple, sum/difference, product, quotient, chain rule) and learn how to differentiate polynomial, rational, exponential, logarithmic, and trigonometric functions. Applications include finding tangents, rates of change, velocity/acceleration relationships, critical points for optimization, and modelling physical processes.
+          explanation:
+            `We develop differentiation rules: power, product, quotient, and chain rules. Implicit differentiation handles relations not easily solved for y. Practice finding derivatives of polynomials, composites, exponentials, logs and simple trig functions.
 
-We underline problem solving strategies: identify the rule, simplify the function if possible, apply algebra carefully, and check units/interpretations in applied problems.`,
+Interpret derivative as slope and instantaneous rate of change; this is key for motion and optimization.`,
           examples: [
-            {
-              title: "Example — Differentiate a product",
-              problem: "Find d/dx [x^2 sin x]",
-              solution: "Use product rule: (u v)' = u' v + u v'.",
-              steps: [
-                "u = x^2, u' = 2x; v = sin x, v' = cos x.",
-                "Derivative = 2x sin x + x^2 cos x."
-              ]
-            },
             {
               title: "Example — Chain rule",
-              problem: "d/dx [ln(3x^2 + 1)]",
-              solution: "Derivative of ln(u) is u'/u.",
+              problem: "Differentiate y = (3x^2 + 2)^5",
+              solution: "y' = 5(3x^2 + 2)^4 * 6x = 30x(3x^2 + 2)^4",
               steps: [
-                "u = 3x^2 + 1, u' = 6x.",
-                "Derivative = 6x / (3x^2 + 1)."
-              ]
-            }
-          ]
-        },
-        {
-          explanation: `Integration reverses differentiation and recovers accumulated quantities. Learn indefinite integrals (antiderivatives), definite integrals as limits of Riemann sums, and properties of integrals. Techniques include substitution, integration by parts, basic trigonometric integrals, and partial fraction decomposition for rational functions. Interpretation: integrals compute area under curves, accumulated distance from velocity, and many physical quantities.
-
-We emphasize careful algebra, verifying results by differentiating antiderivatives, and applying definite integrals to compute exact areas.`,
-          examples: [
-            {
-              title: "Example — Substitution",
-              problem: "Compute ∫ 2x cos(x^2) dx",
-              solution: "Let u = x^2 ⇒ du = 2x dx.",
-              steps: [
-                "Integral becomes ∫ cos(u) du = sin(u) + C = sin(x^2) + C."
+                "Set u = 3x^2 + 2; dy/dx = 5u^4 * du/dx; compute du/dx = 6x."
               ]
             },
             {
-              title: "Example — Definite integral",
-              problem: "∫_{0}^{1} 3x^2 dx",
-              solution: "Find antiderivative: x^3, evaluate between 0 and 1.",
+              title: "Example — Implicit differentiation",
+              problem: "Differentiate x^2 + y^2 = 25",
+              solution: "2x + 2y*y' = 0 ⇒ y' = −x/y",
               steps: [
-                "x^3 |_{0}^{1} = 1^3 − 0 = 1."
+                "Differentiate both sides wrt x, treat y as function of x (y')."
               ]
             }
           ]
         },
-        {
-          explanation: `Applications: Use calculus to compute areas between curves, volumes of solids of revolution (disk/washer), arc length (intro), and solve optimization problems (maximize/minimize). We teach systematic approaches: set up the integral carefully (choose correct variable and limits), sketch the region, choose method (slicing, cylindrical shells), and interpret results.
 
-Optimization: identify objective function, constraint (if any), differentiate, locate critical points, and determine maxima/minima via second derivative test or sign analysis.`,
+        {
+          explanation:
+            `Derivative applications include optimization (find maxima/minima), related rates, and curve sketching (critical points, inflection, concavity). Learn systematic steps: find derivative, solve f' = 0, classify with sign analysis or second derivative test, then interpret in context.
+
+Examples include maximizing area/volume and minimizing cost problems.`,
+          examples: [
+            {
+              title: "Example — Optimization",
+              problem: "Find max area rectangle under curve y = 10 − x (x≥0).",
+              solution: "Area A = x(10 − x) = 10x − x^2; A' = 10 − 2x ⇒ 0 at x = 5; A_max = 25.",
+              steps: [
+                "Set derivative equal to zero, test either sign or second derivative."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Integration techniques: substitution (reverse chain rule), parts (product of functions), and basic trig integrals. Learn to verify by differentiating antiderivative and handle definite integrals with limits.
+
+Applications to physics and area problems demonstrate real-world uses.`,
+          examples: [
+            {
+              title: "Example — Integration by substitution",
+              problem: "∫ x cos(x^2) dx",
+              solution: "Let u = x^2 ⇒ du = 2x dx ⇒ integral = (1/2)∫ cos(u) du = (1/2) sin(u) + C = (1/2) sin(x^2) + C",
+              steps: [
+                "Identify u and du, replace variables, integrate, substitute back."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Definite integrals compute signed areas; practice setting up integrals for area between curves and using symmetry where appropriate. Also cover average value of a function across interval and basic volume calculations (disks/washers).`,
           examples: [
             {
               title: "Example — Area between curves",
-              problem: "Find area between y = x^2 and y = x on [0,1]",
-              solution: "Integrate (top − bottom): ∫_0^1 (x − x^2) dx.",
+              problem: "Area between y = x^2 and y = x from 0 to 1",
+              solution: "Integrate (x − x^2) from 0 to 1 => 1/2 − 1/3 = 1/6",
               steps: [
-                "Antiderivative: 1/2 x^2 − 1/3 x^3, evaluate 0→1 ⇒ 1/2 − 1/3 = 1/6."
-              ]
-            },
-            {
-              title: "Example — Optimization",
-              problem: "Maximize A = x(10 − x) where x ∈ [0,10]",
-              solution: "A = 10x − x^2; derivative A' = 10 − 2x, set to 0 ⇒ x=5",
-              steps: [
-                "Second derivative A'' = −2 < 0 ⇒ maximum at x = 5. A_max = 25."
+                "Identify top and bottom functions, set up integral top − bottom."
               ]
             }
           ]
         },
-        {
-          explanation: `Differential equations model change — first-order ODEs appear in growth/decay, mixing problems, and basic circuits. We introduce separable equations and linear first-order equations using integrating factors. Emphasis is on setting up the DE from problem description, solving analytically where possible, and interpreting the solution physically.
 
-Examples illustrate exponential growth/decay (dy/dt = ky) and population models; we also show how initial conditions produce particular solutions.`,
+        {
+          explanation:
+            `Series introduction emphasizes understanding convergence tests and using geometric/power series to approximate functions. This is a primer to Taylor expansions used later.`,
           examples: [
             {
-              title: "Example — Separable ODE",
-              problem: "Solve dy/dx = 3y, given y(0) = 2",
-              solution: "Separate: dy/y = 3 dx; integrate both sides.",
+              title: "Example — Geometric series",
+              problem: "Express 1/(1 − x) as series for |x| < 1",
+              solution: "1 + x + x^2 + x^3 + ...",
               steps: [
-                "ln|y| = 3x + C ⇒ y = C' e^{3x}. Use y(0)=2 ⇒ C'=2.",
-                "Solution: y = 2 e^{3x}."
+                "Recognize standard geometric expansion and domain of convergence."
               ]
-            },
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Differential equations: separable and linear first-order ODEs. Solve simple population/growth-decay models and mixing problems. Emphasize forming the equation from verbal description.`,
+          examples: [
             {
-              title: "Example — Mixing (conceptual)",
-              problem: "Salt flows in/out of a tank; write basic DE.",
-              solution: "The rate of change = inflow concentration × inflow rate − outflow concentration × outflow rate; set up and solve as linear first-order ODE."
+              title: "Example — Growth model",
+              problem: "dy/dt = ky, y(0)=y0",
+              solution: "Separate and integrate: y = y0 e^{kt}",
+              steps: [
+                "Integrate dy/y = k dt to get ln y = kt + C, exponentiate."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Partial fraction decomposition helps integrate rational functions. Break into linear/quadratic factors and integrate term-by-term.`,
+          examples: [
+            {
+              title: "Example — Partial fractions",
+              problem: "Integrate ∫ 1/(x^2 − 1) dx",
+              solution: "1/(x^2 − 1) = 1/2(1/(x − 1) − 1/(x + 1)), integrate to 1/2 ln| (x−1)/(x+1) | + C",
+              steps: [
+                "Factor denominator, decompose into partial fractions, integrate each term."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Numerical methods: trapezoid rule and simple root-finding ideas (bisection). Useful for approximating definite integrals when analytic methods are hard.`,
+          examples: [
+            {
+              title: "Example — Trapezoid rule (concept)",
+              problem: "Approximate ∫_0^1 e^{x^2} dx with n=2",
+              solution: "Compute endpoints and midpoints in trapezoid formula; this gives a quick approximation (exercise for the student).",
+              steps: [
+                "Divide interval, compute area of trapezoids, sum."
+              ]
             }
           ]
         }
@@ -225,182 +344,280 @@ Examples illustrate exponential growth/decay (dy/dt = ky) and population models;
   ], // End Maths
 
   // ===============================
-  // Chemistry (Chem 101)
+  // Chemistry (Chem 101) - Expanded
   // ===============================
   Chemistry: [
-    // First Semester
     {
       Session: "First Semester",
       Topics: [
-        "Measurements, Units & Laboratory Practice",
+        "Measurements, Units & Lab Practice",
         "Atomic Structure & Electronic Configuration",
-        "Periodic Trends & Chemical Properties",
-        "Chemical Bonding & Molecular Geometry"
+        "Periodic Table & Trends",
+        "Chemical Bonding & Molecular Geometry",
+        "Stoichiometry & Chemical Equations",
+        "States of Matter & Intermolecular Forces",
+        "Solutions & Concentration Units",
+        "Basic Organic Functional Groups"
       ],
       Content: [
         {
-          explanation: `Precise measurement and clear units are the base of chemistry. Learn SI units, significant figures, scientific notation, and error propagation basics. Laboratory practice covers safe handling, glassware recognition, accurate mass/volume measurements, and simple titration/dilution procedures. Good lab technique and record-keeping are emphasized because proper technique reduces experimental error and ensures reproducible data.
-
-We also give examples of converting units, estimating uncertainties, and designing an elementary experiment with control/comparative conditions.`,
+          explanation:
+            `Measurement fundamentals: SI units, significant figures, lab safety, glassware use, and error analysis. Learn how to design controlled experiments, record observations, and report uncertainties. Understanding how measurement precision impacts conclusions is central to good lab practice.`,
           examples: [
             {
               title: "Example — Unit conversion",
-              problem: "Convert 5.0 cm^3 to liters",
-              solution: "1 L = 1000 cm^3; 5.0 cm^3 = 5.0 × 10^{-3} L = 0.005 L.",
+              problem: "Convert 250 mL to liters and cubic centimeters",
+              solution: "250 mL = 0.250 L and 250 cm^3",
               steps: [
-                "Divide by 1000 because cm^3 → L; keep significant figure rules."
+                "1 mL = 1 cm^3 and 1000 mL = 1 L; apply unit conversions."
               ]
             },
             {
               title: "Example — Significant figures",
-              problem: "Add 12.3 + 0.456 + 1.20",
-              solution: "Result limited by least decimal places: 12.3 (1 decimal) => round final to 1 decimal: sum = 13.956 → 14.0 (rounded to 1 decimal)."
-            }
-          ]
-        },
-        {
-          explanation: `Atomic structure explores protons, neutrons, electrons, isotopes, atomic number (Z) and mass number (A). Electronic configuration (shells and subshells) explains chemical behavior: valence electrons drive bonding. We discuss Aufbau principle, Hund's rule, and Pauli exclusion principle briefly and show how configurations predict magnetism and reactivity.
-
-Practice writing electron configurations, identifying valence shell electrons, and deducing ionic charges from the periodic position.`,
-          examples: [
-            {
-              title: "Example — Electronic configuration",
-              problem: "Write configuration for Carbon (Z=6)",
-              solution: "1s^2 2s^2 2p^2; valence: 2s^2 2p^2 (4 valence electrons).",
+              problem: "Multiply 2.50 × 3.4",
+              solution: "Answer should have 2 significant figures (smallest) → 8.5",
               steps: [
-                "Fill from lowest to highest energy using 2,8,18 rules for simple atoms."
+                "Perform multiplication then round to correct sig figs."
               ]
-            },
-            {
-              title: "Example — Isotope notation",
-              problem: "Express Carbon-14",
-              solution: "^{14}C or C-14 (A = 14, Z = 6)."
             }
           ]
         },
-        {
-          explanation: `Periodic trends (atomic radius, ionization energy, electron affinity, electronegativity) arise from nuclear charge and electron shielding. Across a period atomic radius decreases (stronger nuclear pull), while down a group radius increases due to added shells. Ionization energy often shows opposite trends, impacting reactivity — metals lose electrons easily while non-metals tend to gain.
 
-We provide qualitative reasoning for exceptions and examples comparing elements to deduce likely ionic states and bond types.`,
+        {
+          explanation:
+            `Atomic theory: protons, neutrons, electrons; isotopes; mass number vs atomic number. Electronic configuration describes how electrons occupy shells/subshells and explains periodic behavior, magnetism, and valence.`,
           examples: [
             {
-              title: "Example — Trend reasoning",
-              problem: "Which is larger: Na or Cl?",
-              solution: "Na (group 1) is much larger because Cl has more nuclear charge in same period pulling electrons closer; thus atomic radius: Na > Cl."
-            },
-            {
-              title: "Example — Ionization energy",
-              problem: "Which requires more energy to remove an electron: Mg or Na?",
-              solution: "Mg requires more ionization energy (higher nuclear charge for same period and similar shielding)."
-            }
-          ]
-        },
-        {
-          explanation: `Bonding and molecular geometry describe how atoms share or transfer electrons and how 3D shapes determine molecule properties. Learn ionic vs covalent bonding, polar vs nonpolar covalent bonds, and the valence shell electron pair repulsion (VSEPR) model for predicting shapes. Lewis structures show bonding and lone pairs, while hybridization (sp, sp^2, sp^3) helps explain bond angles and molecular symmetry.
-
-Understanding molecular shape allows prediction of dipole moments, boiling points, solubility trends, and reactivity patterns.`,
-          examples: [
-            {
-              title: "Example — Lewis and shape",
-              problem: "Predict shape of CH4 and H2O",
-              solution: "CH4: tetrahedral (sp^3 hybridization) with bond angle ~109.5°; H2O: bent shape due to two lone pairs on O (~104.5°).",
+              title: "Example — Electron configuration",
+              problem: "Write for Neon (Z=10)",
+              solution: "1s^2 2s^2 2p^6 (full shell, noble gas).",
               steps: [
-                "Draw Lewis structures, count bonding pairs and lone pairs, apply VSEPR to predict geometry."
+                "Fill lowest energy subshells first (Aufbau principle)."
               ]
-            },
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Periodic trends: size, ionization, electronegativity, and reactivity. Predicting whether an element more likely forms cations/anions and comparing chemical behavior across groups are covered.`,
+          examples: [
             {
-              title: "Example — Ionic vs covalent",
-              problem: "Compare properties of NaCl and CO2",
-              solution: "NaCl is ionic (solid crystalline, high mp, conducts when molten); CO2 is covalent (molecular, low mp, gas at room temp)."
+              title: "Example — Trend comparison",
+              problem: "Which is more electronegative: O or S?",
+              solution: "Oxygen is more electronegative (higher up the group and smaller radius).",
+              steps: [
+                "Use periodic trend reasoning: across period increases, down group decreases."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Bonding & molecular geometry: ionic vs covalent bonding, polarity, Lewis structures, VSEPR shapes, and hybridization basics. Discuss how shape affects boiling point, solubility and reaction mechanism tendencies.`,
+          examples: [
+            {
+              title: "Example — Lewis & shape",
+              problem: "Predict geometry for NH3",
+              solution: "Trigonal pyramidal (one lone pair), bond angle ~107°.",
+              steps: [
+                "Count electron pairs, apply VSEPR, predict shape."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Stoichiometry & balancing equations: mole concept, mass-to-mole conversions, limiting reagent, and percent yield. We teach step-by-step approaches to multi-step stoichiometry and how to use molar ratios effectively.`,
+          examples: [
+            {
+              title: "Example — Limiting reagent",
+              problem: "If 2 mol H2 reacts with 1 mol O2, how many moles H2O form?",
+              solution: "2 mol H2 + O2 → 2 mol H2O ⇒ 2 mol H2O produced.",
+              steps: [
+                "Use balanced equation to relate moles of reactants and products."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `States of matter and intermolecular forces: compare gases, liquids and solids; explain why H2O has anomalous properties due to hydrogen bonding. Cover phase changes and phase diagrams conceptually.`,
+          examples: [
+            {
+              title: "Example — IMF effect",
+              problem: "Why does ethanol boil lower than water?",
+              solution: "Ethanol has hydrogen bonding but weaker overall than water and lower molar mass → lower bp.",
+              steps: [
+                "Compare strengths of intermolecular interactions and molecular mass."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Solutions: concentration units (molarity, molality, mass percent), colligative properties concept (boiling point elevation, freezing point depression) and dilution calculations.`,
+          examples: [
+            {
+              title: "Example — Dilution",
+              problem: "How to prepare 1.0 L of 0.1 M NaCl from 1.0 M stock?",
+              solution: "C1V1 = C2V2 ⇒ V1 = (0.1 * 1.0)/1.0 = 0.1 L = 100 mL stock, dilute to 1 L.",
+              steps: [
+                "Use dilution formula and measure accurately."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Intro to organic functional groups: alkanes, alkenes, alkynes, alcohols, carbonyls, amines and basic nomenclature. Recognize functional groups and predict simple reactivity patterns.`,
+          examples: [
+            {
+              title: "Example — Functional group ID",
+              problem: "Identify functional groups in CH3CH2OH",
+              solution: "Alcohol (-OH) functional group; molecule is ethanol.",
+              steps: [
+                "Scan molecule for oxygen/hydrogen pattern indicating alcohol."
+              ]
             }
           ]
         }
       ]
     },
-    // Second Semester
+
     {
       Session: "Second Semester",
       Topics: [
-        "Gases: Laws & Kinetic Theory",
-        "Thermochemistry & Energetics",
+        "Gases & Kinetic Theory",
+        "Thermochemistry & Reaction Energetics",
+        "Chemical Kinetics Fundamentals",
         "Chemical Equilibrium & Le Châtelier",
-        "Acids, Bases & pH"
+        "Acid-Base Chemistry & Buffers",
+        "Electrochemistry & Redox Basics",
+        "Intro to Organic Reactions",
+        "Environmental & Industrial Chemistry Overview"
       ],
       Content: [
         {
-          explanation: `Gases obey idealized laws (PV = nRT) and kinetic theory explains macroscopic gas behavior from molecular motion. Learn partial pressures (Dalton's law), gas stoichiometry, and real gas deviations (Van der Waals idea qualitatively). Temperature affects average kinetic energy and root mean square speed.
-
-Work through typical calculation problems: converting between pressure units, using ideal gas law for moles/volume/pressure relationships, and using gas density formulas.`,
+          explanation:
+            `Gas behavior and kinetic theory: ideal gas law, partial pressures, and the molecular interpretation of temperature and pressure. Real gas deviations and qualitative role of intermolecular forces are discussed.`,
           examples: [
             {
-              title: "Example — Ideal gas calculation",
-              problem: "Find moles of gas at 2.0 atm, 5.0 L and 300 K (R = 0.08206 L·atm·mol−1·K−1)",
-              solution: "n = PV/(RT) = 2.0*5.0/(0.08206*300) ≈ 0.406 mol.",
+              title: "Example — Ideal gas use",
+              problem: "Calculate mass of oxygen in 22.4 L at STP (1 mol gas occupies 22.4 L)",
+              solution: "22.4 L → 1 mol O2 → mass 32 g.",
               steps: [
-                "Plug values into PV = nRT and solve for n."
-              ]
-            },
-            {
-              title: "Example — Partial pressures",
-              problem: "Two gases in a container: P_total = 1.0 atm; gas A has 30% mole fraction. Find P_A.",
-              solution: "P_A = x_A * P_total = 0.3 * 1.0 atm = 0.3 atm."
-            }
-          ]
-        },
-        {
-          explanation: `Thermochemistry involves heat transfer (q), internal energy changes (ΔU), enthalpy (ΔH), and calorimetry. Exothermic vs endothermic reactions are categorized by sign of ΔH. Hess's law allows using enthalpy of formation or reaction tables to compute unknown ΔH. Bond enthalpies provide approximate energy changes for reactions.
-
-We also discuss specific heat capacity, calorimeter calculations, and how to determine reaction heat experimentally.`,
-          examples: [
-            {
-              title: "Example — Calorimetry",
-              problem: "How much heat to raise 200 g of water by 10°C? (c = 4.18 J/g·°C)",
-              solution: "q = mcΔT = 200*4.18*10 = 8360 J.",
-              steps: [
-                "Multiply mass, specific heat, and temperature change."
-              ]
-            },
-            {
-              title: "Example — Hess's law",
-              problem: "Use given reaction enthalpies to compute ΔH for overall reaction (exercise).",
-              solution: "Sum the enthalpies according to reaction algebra; flip and multiply as needed."
-            }
-          ]
-        },
-        {
-          explanation: `Chemical equilibrium is the dynamic balance when forward and reverse reaction rates equalize. Understand the equilibrium constant (Kc, Kp) and how it relates to concentrations/partial pressures. Le Châtelier's principle predicts system response to stress (concentration, pressure, temperature changes). We explore equilibrium calculations, equilibrium shifts, and how to set up ICE (Initial-Change-Equilibrium) tables for quantitative problems.
-
-Key concept: K values far from 1 indicate product- or reactant-favored systems; K is temperature-dependent.`,
-          examples: [
-            {
-              title: "Example — ICE table",
-              problem: "For A ⇌ B with initial [A]=1.0 M, [B]=0, Kc=4, find equilibrium concentrations.",
-              solution: "Let change be −x for A, +x for B; solve K = x/(1−x) = 4 ⇒ x = 4(1 − x) ⇒ x = 4 − 4x ⇒ 5x = 4 ⇒ x = 0.8 M; [A]=0.2, [B]=0.8.",
-              steps: [
-                "Set up ICE table, express equilibrium concentrations in terms of x, plug into K expression, solve algebraically."
+                "Use molar volume concept at STP, multiply by molar mass."
               ]
             }
           ]
         },
-        {
-          explanation: `Acids and bases can be treated via Arrhenius, Brønsted-Lowry, and Lewis concepts. pH, pOH, and the relationships between [H+] and [OH−] guide calculations. For weak acids/bases, equilibrium expressions with Ka/Kb determine acid strength and degree of dissociation. Buffer systems combine weak acid and conjugate base to resist pH changes — Henderson-Hasselbalch equation is a practical tool.
 
-We cover titration curves qualitatively and interpret equivalence points and indicator selection.`,
+        {
+          explanation:
+            `Thermochemistry: heats of reaction, Hess's law, enthalpy changes, and calorimetry. We explain energy diagrams for exothermic and endothermic reactions and how to compute reaction heat from tables of formation.`,
           examples: [
             {
-              title: "Example — pH calculation",
-              problem: "Find pH of 0.01 M HCl (strong acid).",
-              solution: "HCl dissociates completely: [H+] = 0.01 ⇒ pH = −log(0.01) = 2.",
+              title: "Example — Enthalpy by Hess",
+              problem: "Compute ΔH of target reaction by combining known reactions (exercise).",
+              solution: "Use algebraic manipulation of reaction enthalpies to arrive at target.",
               steps: [
-                "Recognize strong acid complete dissociation; compute −log[H+]."
+                "Reverse/scale equations as needed and sum enthalpies accordingly."
               ]
-            },
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Reaction kinetics: rate laws, order of reaction, effect of concentration/temperature/catalyst, and activation energy concept. Learn how experiments determine rate law and how to interpret rate constants.`,
+          examples: [
             {
-              title: "Example — Weak acid equilibrium",
-              problem: "Find [H+] for 0.1 M acetic acid (Ka = 1.8×10^{−5}).",
-              solution: "Set up ICE: Ka = x^2/(0.1 − x) ≈ x^2/0.1 ⇒ x = sqrt(Ka*0.1) ≈ sqrt(1.8e-6) ≈ 0.00134 ⇒ pH ≈ 2.87.",
+              title: "Example — Rate reasoning",
+              problem: "If rate doubles when concentration doubles, what is reaction order?",
+              solution: "First order with respect to that reactant (rate ∝ [A]^1).",
               steps: [
-                "Use approximation x << 0.1 to simplify quadratic, then check validity."
+                "Use proportional change to deduce order."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Equilibrium: ICE tables, equilibrium constants, and Le Châtelier's predictions for concentration, pressure and temperature changes. Emphasize algebraic skill for solving K equations and approximations for weak dissociation.`,
+          examples: [
+            {
+              title: "Example — ICE table solve",
+              problem: "A ⇌ B with K=4 and initial A=1 M, B=0. Find equilibrium.",
+              solution: "Let x = [B] at equilibrium ⇒ x/(1 − x)=4 ⇒ x = 0.8, [A]=0.2",
+              steps: [
+                "Build ICE table, substitute into K expression, solve, check reasonableness."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Acids, bases & buffers: pH/pOH calculations, strong vs weak acids, Ka/Kb use, buffer design and Henderson-Hasselbalch equation. Titration curves and equivalence point reasoning are explained qualitatively.`,
+          examples: [
+            {
+              title: "Example — Buffer pH",
+              problem: "Given acetic acid 0.1 M and acetate 0.1 M (Ka=1.8E-5), estimate pH.",
+              solution: "Henderson-Hasselbalch: pH = pKa + log([A-]/[HA]) = 4.74 + 0 = 4.74",
+              steps: [
+                "Use equal concentrations to cancel ratio term."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Electrochemistry basics: redox balancing, galvanic cells, standard reduction potentials and calculating cell EMF. Introduce corrosion and simple electroplating concepts.`,
+          examples: [
+            {
+              title: "Example — Cell potential concept",
+              problem: "Use standard potentials to decide spontaneity (exercise).",
+              solution: "Compute Ecell = E°cathode − E°anode; Ecell > 0 implies spontaneous reaction.",
+              steps: [
+                "Find half-reactions, use tabulated E° values, subtract properly."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Intro to organic reactions: substitution, elimination and addition reaction basics; understand reaction types for alkanes, alkenes and simple functional group interconversions.`,
+          examples: [
+            {
+              title: "Example — Addition to alkenes",
+              problem: "Hydrogenation of ethene yields ethane. Mechanism conceptually involves addition across double bond.",
+              solution: "Add H2 across C=C with a metal catalyst to give saturated product.",
+              steps: [
+                "Recognize addition reduces unsaturation; identify reagents and product."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Environmental and industrial chemistry: fuel chemistry, pollution basics (SOx, NOx, CO2), water treatment overview and industrial chemical processes insight (overview of distillation, cracking).`,
+          examples: [
+            {
+              title: "Example — Fuel energy",
+              problem: "Compare energy density of petrol vs ethanol qualitatively.",
+              solution: "Petrol has higher energy per unit mass; ethanol burns cleaner but lower energy output per volume.",
+              steps: [
+                "Consider carbon content and combustion enthalpy differences."
               ]
             }
           ]
@@ -410,149 +627,276 @@ We cover titration curves qualitatively and interpret equivalence points and ind
   ], // End Chemistry
 
   // ===============================
-  // Physics (Phys 101)
+  // Physics (Phys 101) - Expanded
   // ===============================
   Physics: [
-    // First Semester
     {
       Session: "First Semester",
       Topics: [
         "Units, Vectors & Dimensional Analysis",
-        "Kinematics in One & Two Dimensions",
-        "Newton's Laws & Dynamics",
-        "Work, Energy & Power"
+        "Kinematics (1D & 2D) & Projectile Motion",
+        "Newton's Laws, Friction & Applications",
+        "Work, Energy & Power",
+        "Momentum & Collisions (Intro)",
+        "Statics & Equilibrium Basics",
+        "Fluid Mechanics Intro",
+        "Thermal Concepts & Heat Transfer Basics"
       ],
       Content: [
         {
-          explanation: `Physics begins with clearly defined units and vector reasoning. Dimensional analysis helps check equations and convert units reliably. Vectors represent quantities with direction (displacement, velocity, force) and are manipulated via components, dot product, and (later) cross product for 3D contexts. Understanding vectors is necessary to analyze motion and forces in multiple dimensions.
+          explanation:
+            `Start with units and dimensional checks to avoid algebra mistakes. Vectors represent directed quantities; practice components and vector addition. Dimensional analysis is a quick way to verify formulas and catch incorrect terms.
 
-We include examples of resolving vectors into components, vector addition, and interpreting magnitudes/angles from component form.`,
+We include problems converting units, decomposing vectors and solving vector geometry problems.`,
           examples: [
             {
-              title: "Example — Vector components",
-              problem: "Resolve vector 10 N at 30° above horizontal into x and y components.",
-              solution: "Fx = 10 cos30 ≈ 8.66 N, Fy = 10 sin30 = 5 N.",
+              title: "Example — Dimensional check",
+              problem: "Verify that kinetic energy 1/2 mv^2 has units of energy",
+              solution: "m [kg] × v^2 [m^2/s^2] = kg·m^2/s^2 = Joules.",
               steps: [
-                "Use cosine for adjacent/horizontal and sine for vertical."
+                "Multiply units and compare to Joule definition."
               ]
             }
           ]
         },
-        {
-          explanation: `Kinematics studies motion without considering forces. We examine position, displacement, velocity, and acceleration in 1D and 2D. Constant-acceleration equations (v = u + at; s = ut + 1/2 at^2; v^2 = u^2 + 2as) are applied to problems including projectiles. For 2D motion, treat orthogonal components independently (horizontal motion constant if no horizontal force).
 
-Graphical interpretation of motion (position–time, velocity–time) provides insight into instantaneous and average quantities.`,
+        {
+          explanation:
+            `Kinematics covers displacement, velocity, acceleration and the equations for constant acceleration. For 2D projectile motion, treat horizontal and vertical motions independently. Graphs (x–t, v–t) give additional intuition.
+
+We'll solve multi-step projectile problems with careful component decomposition.`,
           examples: [
             {
-              title: "Example — Projectile motion",
-              problem: "A projectile launched at 20 m/s at 30°; find time of flight and range (g=9.8 m/s^2).",
-              solution: "vx = 20 cos30 ≈ 17.32 m/s; vy = 20 sin30 = 10 m/s; time = 2vy/g ≈ 2.04 s; range = vx × time ≈ 35.34 m.",
+              title: "Example — Projectile with angle",
+              problem: "Launch 25 m/s at 45°. Find range (g=9.8).",
+              solution: "vx=25 cos45≈17.68, vy≈17.68, time=2vy/g≈3.61 s, range ≈ 63.9 m.",
               steps: [
-                "Compute horizontal and vertical components, use vertical motion to find flight time, multiply by horizontal speed for range."
+                "Compute components, time-of-flight, multiply for range."
               ]
             }
           ]
         },
-        {
-          explanation: `Newton's laws link forces to motion. Free-body diagrams help translate physical situations into equations (ΣF = ma). We'll handle friction (static and kinetic), normal force calculations, tension, and combined mass systems. Use component resolution for inclined planes and pulleys. Real problems require isolating objects, writing ΣF along chosen axes, and solving for unknown acceleration or force.
 
-Practice constructing FBDs carefully and checking units.`,
+        {
+          explanation:
+            `Newton's Laws: formulation and problem solving using free-body diagrams. Include friction (static vs kinetic) and examples with pulleys and inclines. Real-world modeling often simplifies to components so algebra is tractable.`,
           examples: [
             {
-              title: "Example — Inclined plane (frictionless)",
-              problem: "5 kg block on 30° incline; find acceleration down the plane (no friction).",
-              solution: "a = g sin30 = 9.8 × 0.5 = 4.9 m/s^2.",
+              title: "Example — Friction on incline",
+              problem: "Block m on incline θ with μ_k given; find acceleration.",
+              solution: "a = g sinθ − μ_k g cosθ (if sliding down).",
               steps: [
-                "Resolve gravity into components parallel (mg sinθ) and perpendicular (mg cosθ); set ΣF = mg sinθ = ma."
+                "Resolve forces along plane; subtract friction; use F=ma."
               ]
             }
           ]
         },
-        {
-          explanation: `Work and energy concepts provide powerful global methods for solving problems. Work equals force times displacement in the direction of force; energy appears as kinetic and potential forms. Conservation of energy simplifies many problems where forces are conservative (gravity, spring). Power measures rate of doing work. We'll practice energy conservation in collisions (when applicable) and in potential-to-kinetic transformations.
 
-The energy method often avoids vector component algebra and yields simpler paths to solutions.`,
+        {
+          explanation:
+            `Work-energy theorem and conservation of energy provide global methods for dynamics. Understand potential energy forms and when mechanical energy is conserved vs dissipated (non-conservative forces). Learn to compute power delivered by a force.`,
           examples: [
             {
-              title: "Example — Energy conversion",
-              problem: "2 kg mass falls 3 m. Find speed before impact (ignore air resistance).",
-              solution: "Use conservation: mgh = 1/2 mv^2 ⇒ v = sqrt(2gh) ≈ sqrt(2*9.8*3) ≈ 7.67 m/s.",
+              title: "Example — Work done by variable force",
+              problem: "Compute work under force F(x)=kx from 0 to x_0 (elastic spring)",
+              solution: "W = ∫_0^{x0} kx dx = 1/2 k x0^2.",
               steps: [
-                "Compute potential energy drop and equate to kinetic energy gain."
+                "Integrate force over displacement to find work."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Momentum and collisions: impulse concept and conservation. Distinguish elastic and perfectly inelastic collisions and analyze example collisions, using conservation laws appropriately.`,
+          examples: [
+            {
+              title: "Example — Perfectly inelastic collision",
+              problem: "m1=1kg at 4 m/s collides with m2=2kg at rest and they stick. Find final speed.",
+              solution: "Total momentum 4 kg·m/s, total mass 3 kg ⇒ v = 4/3 ≈ 1.33 m/s.",
+              steps: [
+                "Conserve momentum, compute final common velocity."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Statics: equilibrium conditions for rigid bodies, torque and simple structures. Learn when to apply ΣF=0 and Στ=0 to solve for unknown forces and reactions.`,
+          examples: [
+            {
+              title: "Example — Torque balance",
+              problem: "Find reaction force given beam with load and pivot (exercise).",
+              solution: "Set sum of torques about pivot to zero and solve.",
+              steps: [
+                "Take moments, ensure sign consistent, solve for unknown."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Fluid mechanics basics: density, pressure, buoyancy (Archimedes principle) and continuity. Qualitative Bernoulli ideas introduced to connect pressure and flow speed.`,
+          examples: [
+            {
+              title: "Example — Buoyancy",
+              problem: "Will an object of density 500 kg/m^3 float in water?",
+              solution: "Yes — density less than water (1000 kg/m^3) so floats; displaced volume gives buoyant force.",
+              steps: [
+                "Compare densities, recall buoyant force equals weight of displaced fluid."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Thermal concepts covering heat transfer modes and calorimetry; first-law intro linking heat, work and internal energy. Provide practice on specific heat and latent heat computations.`,
+          examples: [
+            {
+              title: "Example — Specific heat",
+              problem: "Heat required to raise 0.2 kg water by 30°C (c=4186 J/kg·°C).",
+              solution: "q = m c ΔT = 0.2*4186*30 = 25116 J.",
+              steps: [
+                "Multiply mass, specific heat, and temperature change."
               ]
             }
           ]
         }
       ]
     },
-    // Second Semester
+
     {
       Session: "Second Semester",
       Topics: [
-        "Momentum, Impulse & Collisions",
-        "Circular Motion & Gravitation",
-        "Waves & Sound",
-        "Thermal Physics & Heat"
+        "Circular motion & centripetal force",
+        "Gravitation & orbits",
+        "Simple harmonic motion & waves",
+        "Sound & Doppler effect",
+        "Electric fields & basic circuits",
+        "Magnetism & electromagnetic induction (intro)",
+        "Optics: reflection & refraction basics",
+        "Modern physics overview (photoelectric)"
       ],
       Content: [
         {
-          explanation: `Momentum (p = mv) and impulse (Δp = FΔt) are conservation-friendly tools especially useful for collisions. Distinguish elastic collisions (kinetic energy conserved) and inelastic collisions (some KE lost). Use conservation of momentum for closed systems and combine with energy conservation for elastic collisions to solve final velocities; for inelastic collisions compute common velocity after impact.
-
-These methods are crucial for analyzing interactions in mechanics and engineering contexts.`,
+          explanation:
+            `Circular motion: centripetal acceleration and force formula, rotating frames intuition (centrifugal as perceived), and uniform vs non-uniform circular motion examples.`,
           examples: [
             {
-              title: "Example — Elastic collision (1D)",
-              problem: "Two masses m1 = 1 kg (v1 = 3 m/s) and m2 = 2 kg (v2 = 0) collide elastically. Find final velocities.",
-              solution: "Use conservation of momentum and kinetic energy (or standard elastic collision formulas).",
+              title: "Example — Centripetal acceleration",
+              problem: "Car takes curve radius 40 m at 15 m/s, compute a_c",
+              solution: "a_c = v^2/r = 225/40 = 5.625 m/s^2.",
               steps: [
-                "Momentum: m1 v1 + m2 v2 = m1 v1' + m2 v2'.",
-                "Kinetic energy: 0.5 m1 v1^2 + 0.5 m2 v2^2 = 0.5 m1 v1'^2 + 0.5 m2 v2'^2.",
-                "Solve simultaneously (algebra) to find v1' and v2'."
+                "Apply formula directly and interpret direction toward center."
               ]
             }
           ]
         },
-        {
-          explanation: `Uniform circular motion involves centripetal acceleration a_c = v^2/r and centripetal force F_c = m v^2/r directed toward center. Gravitational interactions are described by Newton's law of universal gravitation and lead to orbital motion mechanics (centripetal force provided by gravity for satellites). Learn to compute orbital speed, period, and escape velocity using energy or force balances.
 
-Applications include designing safe curves, banking roads, and understanding planetary motion approximations.`,
+        {
+          explanation:
+            `Gravitation: Newton's law of universal gravitation, orbital motion basics, escape velocity and energy perspective for orbits. Estimate satellite period for circular orbit.`,
           examples: [
             {
-              title: "Example — Circular speed",
-              problem: "A car takes a turn of radius 50 m at speed 20 m/s; compute centripetal acceleration.",
-              solution: "a_c = v^2/r = 400/50 = 8 m/s^2.",
+              title: "Example — Orbital speed (concept)",
+              problem: "Find speed for low-earth orbit (qualitative exercise).",
+              solution: "Use v = sqrt(GM/R) using Earth mass M and radius R; compute numeric approximation for LEO.",
               steps: [
-                "Plug numbers into v^2/r and interpret direction toward center."
+                "Plug values from constants table and compute."
               ]
             }
           ]
         },
-        {
-          explanation: `Waves transmit energy; understand transverse vs longitudinal waves, parameters (wavelength, frequency, period), and relationships v = f λ. Superposition and interference explain beats and standing waves (nodes/antinodes). Sound specifics include intensity, decibel scale, and Doppler effect (frequency shift due to relative motion).
 
-We'll work through problems: wave speeds on strings, frequency calculations, and simple interference patterns.`,
+        {
+          explanation:
+            `SHM and waves: simple harmonic oscillator models (spring-mass), period, frequency relations, and superposition leading to beats. Waves include transverse/longitudinal and parameter relations v = f λ.`,
           examples: [
             {
-              title: "Example — Wave speed",
-              problem: "A wave with frequency 5 Hz and wavelength 2 m travels on a string. Find speed.",
-              solution: "v = f λ = 5 * 2 = 10 m/s.",
+              title: "Example — SHM period",
+              problem: "Period of mass-spring: T = 2π sqrt(m/k).",
+              solution: "Compute T with given m and k values (exercise).",
               steps: [
-                "Multiply frequency by wavelength; ensure units are consistent."
+                "Plug into formula and interpret units."
               ]
             }
           ]
         },
-        {
-          explanation: `Thermal physics covers temperature scales, heat transfer modes (conduction, convection, radiation), specific heat, calorimetry, and the first law of thermodynamics (energy conservation for thermodynamic systems). Real applications include heating/cooling problems, phase changes with latent heat, and estimations using specific heat formulas (q = mcΔT).
 
-We also introduce ideal gas law connections to thermal concepts and basic engine efficiency ideas conceptually.`,
+        {
+          explanation:
+            `Sound properties and Doppler shift: frequency, wavelength, intensity, and shifts due to source/observer motion. Applications in sonar and speed measurement.`,
           examples: [
             {
-              title: "Example — Calorimetry",
-              problem: "How much heat to raise 0.5 kg of water by 20°C (c=4186 J/kg·°C)?",
-              solution: "q = mcΔT = 0.5*4186*20 = 41860 J.",
+              title: "Example — Doppler (qualitative)",
+              problem: "Predict frequency change when ambulance approaches",
+              solution: "Observer hears higher frequency while approaching; use Doppler formula for quantitative estimate.",
               steps: [
-                "Plug into q = m c ΔT and compute; convert units if needed."
+                "Set relative velocities and plug into formula."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Electric fields, potential and DC circuits: Coulomb's law, field lines, potential difference, series & parallel resistors, Ohm's law, Kirchhoff's rules in simple circuits.`,
+          examples: [
+            {
+              title: "Example — Series resistor",
+              problem: "Equivalent resistance of 10Ω and 20Ω in series",
+              solution: "R_eq = 30Ω; use Ohm's law for current/value if voltage given.",
+              steps: [
+                "Sum resistances directly for series arrangement."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Magnetism & induction basics: magnetic forces on currents, Faraday's law qualitatively, and simple circuit EM induction examples.`,
+          examples: [
+            {
+              title: "Example — Induced EMF (qualitative)",
+              problem: "A changing magnetic flux in a loop induces EMF per Faraday's law.",
+              solution: "Rate of change of flux determines induced voltage direction per Lenz's law.",
+              steps: [
+                "Apply sign conventions and physical reasoning."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Optics: reflection/refraction, Snell's law, total internal reflection, and lens equation for thin lenses; applications to imaging and instrument basics.`,
+          examples: [
+            {
+              title: "Example — Snell",
+              problem: "n1 sinθ1 = n2 sinθ2, compute angle in second medium given angle and indices.",
+              solution: "Rearrange and compute using inverse sine.",
+              steps: [
+                "Ensure angles measured from normal and units correct."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Modern physics: photoelectric effect, basic quantum ideas and atomic models; explain experimental evidence that led to quantum concepts.`,
+          examples: [
+            {
+              title: "Example — Photoelectric (concept)",
+              problem: "Light below threshold frequency produces no electrons regardless of intensity.",
+              solution: "Explain particle nature of photons and energy quantization.",
+              steps: [
+                "Relate photon energy E = hf to work function of metal."
               ]
             }
           ]
@@ -562,124 +906,177 @@ We also introduce ideal gas law connections to thermal concepts and basic engine
   ], // End Physics
 
   // ===============================
-  // GST (English / Study Skills)
+  // GST (English / Study Skills) - Expanded
   // ===============================
   Gst: [
-    // First Semester
     {
       Session: "First Semester",
       Topics: [
-        "Study Skills & Time Management",
-        "Grammar Essentials & Sentence Construction",
-        "Academic Writing: Paragraphs & Essays",
-        "Reading Comprehension Techniques"
+        "Study Skills, Time Management & Active Recall",
+        "Grammar Essentials: Parts of Speech & Sentence Structure",
+        "Paragraph & Essay Writing (Structure)",
+        "Reading Comprehension & Critical Reading",
+        "Referencing, Avoiding Plagiarism & Academic Integrity",
+        "Note-taking Systems & Revision Strategies"
       ],
       Content: [
         {
-          explanation: `Academic success depends on effective study techniques. Learn active recall, spaced repetition, Pomodoro-style focused study sessions, and how to build a realistic study timetable. We emphasize planning (setting goals, chunking material), effective note-taking (Cornell method), and deliberate practice with feedback loops. Reducing passive rereading and increasing self-testing boosts retention significantly.
-
-Practical examples include designing a two-week revision schedule for a subject, balancing breadth and depth, and integrating past questions for retrieval practice.`,
+          explanation:
+            `Study skills are practical techniques that dramatically improve retention: active recall (self-testing), spaced repetition scheduling, interleaving topics, and deliberate practice. Time-blocking and Pomodoro techniques aid concentration. We show how to create micro-goals, measure progress and iterate study plans based on past papers and weak topics.`,
           examples: [
             {
-              title: "Example — Study plan",
-              problem: "Design a 2-week revision plan for four topics with spaced repetition.",
-              solution: "Divide topics across days, revisit each topic after increasing intervals (1 day, 3 days, 7 days). Use active recall and short practice tests to strengthen memory."
+              title: "Example — Spaced repetition plan",
+              problem: "Design a 10-day plan for 4 topics",
+              solution: "Rotate topics with increasing intervals (1d,3d,7d), include short retrieval quizzes each revisit.",
+              steps: [
+                "Map days and allocate review slots; prioritize problem practice over rereading."
+              ]
             }
           ]
         },
-        {
-          explanation: `Grammar essentials include parts of speech (nouns, verbs, adjectives, adverbs), subject-verb agreement, tense consistency, and punctuation rules for clarity. We'll practice identifying sentence fragments, run-on sentences, and common misuse patterns (their/there/they're, it's/its). Strong grammar builds crisp academic writing and avoids miscommunication.
 
-Exercises include correcting poorly written sentences and rewriting for clarity and concision.`,
+        {
+          explanation:
+            `Grammar essentials: identify parts of speech, subject-verb agreement, tense usage and punctuation. Practice rewriting complex sentences for clarity and learn commonly confused words. Good grammar strengthens formal writing and clarity of thought.`,
           examples: [
             {
-              title: "Example — Subject-verb agreement",
-              problem: "Choose correct verb: 'The list of items (is/are) on the table.'",
-              solution: "Correct: 'is' because 'list' is the subject (singular); 'of items' is a prepositional phrase."
+              title: "Example — Tense consistency",
+              problem: "Correct: 'She went to the store and buys milk.'",
+              solution: "'She went to the store and bought milk.' Maintain past tense throughout.",
+              steps: [
+                "Identify tense mismatch, change verb to match narrative time frame."
+              ]
             }
           ]
         },
-        {
-          explanation: `Academic writing focuses on structure and logic: paragraph unity (topic sentence, supporting details, concluding sentence), coherent essay structure (introduction with thesis, body paragraphs with evidence, conclusion with synthesis), and formal tone. Learn paraphrasing, summarizing, quoting, and basic referencing to avoid plagiarism.
 
-We show how to build a strong thesis, decide on evidence hierarchy, and craft transitions that guide the reader.`,
+        {
+          explanation:
+            `Essay writing: craft thesis statements, structure paragraphs (topic sentence, supporting sentences, concluding sentence), and use evidence effectively. Discuss planning, drafting and editing phases and how to adapt tone for academic audiences.`,
           examples: [
             {
-              title: "Example — Paragraph structure",
-              problem: "Write a paragraph supporting the claim that renewable energy creates jobs.",
-              solution: "Start with a topic sentence, present evidence (statistics, case studies), explain significance, and end with a concluding sentence linking back to thesis."
+              title: "Example — Thesis crafting",
+              problem: "Write thesis for essay on renewable energy benefits",
+              solution: "\"Investing in renewable energy increases energy security, reduces emissions, and creates skilled jobs in emerging industries.\"",
+              steps: [
+                "State clear claim and list supporting points to be developed."
+              ]
             }
           ]
         },
-        {
-          explanation: `Reading comprehension improves by active strategies: previewing text, forming questions, skimming for main ideas, scanning for details, and summarizing content in your own words. We emphasize critical reading—evaluating author claims and evidence, recognizing bias, and synthesizing multiple sources.
 
-Practice exercises include timed passages with targeted questions and structured note-taking templates.`,
+        {
+          explanation:
+            `Reading comprehension techniques: previewing text, forming reading questions (who/what/why), annotating, summarizing, and synthesizing information across sources. Interpret author's intent and evaluate evidence quality.`,
           examples: [
             {
-              title: "Example — Skimming & scanning",
-              problem: "Given a passage, identify the thesis sentence and three supporting arguments quickly.",
-              solution: "Scan headings, first and last sentences of paragraphs for main idea; then read key paragraphs for evidence."
+              title: "Example — Passage summary",
+              problem: "Summarize a short passage in 2 sentences",
+              solution: "Identify main idea and supporting details, condense with your own phrasing.",
+              steps: [
+                "Underline thesis sentence, note three key supporting points, combine into concise summary."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Referencing and plagiarism avoidance: learn citation basics (APA/Harvard), paraphrasing correctly and using quotations sparingly. Understand academic integrity policies and how to document sources for credibility.`,
+          examples: [
+            {
+              title: "Example — Quick citation",
+              problem: "How to cite book author in text (APA)",
+              solution: "Use (Author, Year) e.g., (Smith, 2020) and include full reference in bibliography.",
+              steps: [
+                "Format per chosen style guide; use reference manager for many sources."
+              ]
+            }
+          ]
+        },
+
+        {
+          explanation:
+            `Note-taking systems: Cornell method, outline method, and mind-mapping for different tasks. Combine notes with active recall prompts and convert notes into short practice tests for self-assessment.`,
+          examples: [
+            {
+              title: "Example — Cornell notes",
+              problem: "Structure notes for lecture on photosynthesis",
+              solution: "Left column: keywords, right column: notes, summary at bottom; create 3 recall questions from key points.",
+              steps: [
+                "Segment notes during lecture, then generate questions for later study."
+              ]
             }
           ]
         }
       ]
     },
-    // Second Semester
+
     {
       Session: "Second Semester",
       Topics: [
-        "Research Skills & Referencing",
-        "Presentation & Oral Communication",
-        "CV, Cover Letter & Interview Essentials",
-        "Exam Strategy & Stress Management"
+        "Research & Source Evaluation",
+        "Presentation Skills & Slide Design",
+        "CV/Interview Prep & Professional Communication",
+        "Exam Strategy, Stress Management & Mindset"
       ],
       Content: [
         {
-          explanation: `Research skills include using library databases, distinguishing primary vs secondary sources, evaluating source credibility, and synthesizing evidence across papers. Referencing (APA/Harvard) shows academic honesty and allows readers to trace claims. We demonstrate citation basics, paraphrasing rules, and quick tools for managing references (e.g., using simple citation managers).
-
-Practice includes building a short annotated bibliography and writing a research question with appropriate search terms.`,
+          explanation:
+            `Research skills include forming search queries, evaluating source credibility, distinguishing peer-reviewed from non-reviewed, and building an annotated bibliography. We also show how to find primary data and interpret graphs/tables critically.`,
           examples: [
             {
-              title: "Example — Evaluating sources",
-              problem: "Given two web articles, decide which is more credible and why.",
-              solution: "Use authority (author credentials), accuracy (citations), currency (date), and purpose (bias) as evaluation metrics."
+              title: "Example — Evaluate a web source",
+              problem: "Assess a blog post claiming 'miracle' study results",
+              solution: "Check author credentials, check for peer-review, verify claims with primary sources, evaluate sample size/methodology.",
+              steps: [
+                "Use CRAAP test: Currency, Relevance, Authority, Accuracy, Purpose."
+              ]
             }
           ]
         },
-        {
-          explanation: `Good presentations combine clear structure, concise slides, and confident delivery. Learn to craft an opening, three key points, and a memorable close. Slide design should favor readability (large fonts, minimal text, clear visuals). Practice voice projection, pacing, and handling Q&A. We include use of storytelling and signposting to keep audiences engaged.
 
-Also cover remote presentation etiquette and using basic software tools effectively.`,
+        {
+          explanation:
+            `Presentation skills: story arc for talks, clear slide layouts (minimal text, readable fonts, good contrast), and practice techniques to manage stage fright. Tips for remote presentations and Q&A handling are included.`,
           examples: [
             {
-              title: "Example — Slide outline",
-              problem: "Create a 5-slide structure for a 7-minute talk on plastic pollution.",
-              solution: "Slides: Title & hook; Problem statement & data; Causes; Solutions & examples; Conclusion & call-to-action."
+              title: "Example — Slide checklist",
+              problem: "Design slide for a key statistic",
+              solution: "Use big number, brief caption, single supporting image; cite the source.",
+              steps: [
+                "Avoid clutter, use high contrast, ensure number is prominent."
+              ]
             }
           ]
         },
-        {
-          explanation: `Job application readiness includes crafting a results-focused CV, tailoring cover letters to job descriptions, and preparing STAR-style answers for interviews. Practical tips: quantify achievements, keep CV concise (1–2 pages), and practice mock interviews focusing on specific examples of experience and skills.
 
-We show good vs poor CV examples and provide checklists for interview preparation.`,
+        {
+          explanation:
+            `Career readiness: craft achievement-oriented CVs, write tailored cover letters, and practice STAR method for interviews. Practical tips: quantify achievements, keep CV concise (1–2 pages), and practice mock interviews focusing on specific examples of experience and skills.`,
           examples: [
             {
               title: "Example — STAR answer",
-              problem: "Describe a time you solved a team problem (use STAR).",
-              solution: "Situation: team missed a deadline; Task: coordinate catch-up; Action: reorganized tasks and communicated clearly; Result: completed project with improved process and met stakeholders' needs."
+              problem: "Answer: Describe a time you improved a process (STAR).",
+              solution: "Situation: backlog caused delays; Task: coordinate catch-up; Action: reorganized tasks and communicated clearly; Result: completed project with improved process and met stakeholders' needs.",
+              steps: [
+                "Frame answer concisely with Situation, Task, Action, Result."
+              ]
             }
           ]
         },
-        {
-          explanation: `Exam strategy includes active recall, spaced repetition, practice under timed conditions, and smart review cycles. Stress management techniques (breathing, sleep, nutrition, realistic planning) help performance. Learn how to analyze past papers to identify recurring topics and allocate study time accordingly.
 
-We include a practical pre-exam checklist and day-of tips to optimize recall and reduce anxiety.`,
+        {
+          explanation:
+            `Exam strategy & mindset: active review, practice under timed conditions, targeted revision of weak areas, and psychological techniques (sleep, nutrition, breathing) to optimize performance. Build a pre-exam checklist and debrief routine.`,
           examples: [
             {
-              title: "Example — Timed practice",
-              problem: "Design a 60-minute mock test session for 3 topics.",
-              solution: "Split 60 minutes into 45 minutes of focused problem-solving (15 min per topic) and 15 minutes review. Mark mistakes and plan targeted follow-up."
+              title: "Example — Mock exam plan",
+              problem: "Create plan to tackle past-paper practice",
+              solution: "Simulate exam conditions, time strictly, then mark and review mistakes to set a focused follow-up plan.",
+              steps: [
+                "Use timed blocks, keep a log of common errors, and prioritize topics with highest error rate."
+              ]
             }
           ]
         }
