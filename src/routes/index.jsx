@@ -61,15 +61,15 @@ export default function AppRouter() {
         },
          {
           path: 'learning-system',
-          element: <LearningSystem />
-        },
+          element: (<> <LearningSystem /><TrackPageViews /></>) 
+         },
         {
           path: 'past-questions',
-          element: <PastQuestions />
+          element: (<> <PastQuestions /><TrackPageViews /></>)
         },
         {
           path: 'my-tests',
-          element: <MyTest />
+          element: (<> <MyTest /> <TrackPageViews /></>) 
         },
         {
           path: 'tests',
@@ -77,11 +77,11 @@ export default function AppRouter() {
         },
         {
           path: 'materials-management',
-          element: <MaterialsManagement />
+          element: (<><MaterialsManagement /> <TrackPageViews /></>) 
         },
         {
           path: 'create-group-test',
-          element: <CreateGroupTest />
+          element:(<><CreateGroupTest /> <TrackPageViews /></>) 
         },
         {
           path: 'petromark-ai',
@@ -89,7 +89,7 @@ export default function AppRouter() {
         },
         {
           path: 'tools',
-          element: <Tools/>
+          element: (<><Tools/> <TrackPageViews/> </>),
         },
         {
           path: 'chat',
@@ -97,7 +97,8 @@ export default function AppRouter() {
         },
         {
           path: "campus-navigator",
-          element: <CampusNavigator />,
+          element: (<><CampusNavigator /> <TrackPageViews /></>),
+          
         },
         {
           path: 'settings',
