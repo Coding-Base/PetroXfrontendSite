@@ -6,6 +6,15 @@ export const navItems = [
     label: 'Dashboard'
   },
   {
+    title: "Learning System",
+    icon: "Book",
+    href: "/dashboard/learning-system",
+    disabled: false,
+    label: 'Learning System'
+  },
+
+
+  {
     title: "Campus Navigator",
     icon: "Compass",
     href: "/dashboard/campus-navigator",
@@ -39,7 +48,8 @@ export const navItems = [
     title: 'Settings',
     href: '/dashboard/settings',
     icon: 'settings',
-    label: 'Settings'
+    label: 'Settings',
+    disabled: true
   },
    {
     title: 'Tools',
