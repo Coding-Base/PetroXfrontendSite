@@ -266,11 +266,11 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
             {!atEnd ? (
               <>
                 <button onClick={() => { setIndex(i => Math.min(i + 1, total - 1)); setShowAllExamples(false); toast.success("Progress saved"); }} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Next Topic</button>
-                <a href="/dashboard/mytest" className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Take Test</a>
+                <a href="/dashboard/my-tests" className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Take Test</a>
               </>
             ) : (
               <>
-                <a href="/dashboard/mytest" className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Take Test for {courseLabel}</a>
+                <a href="/dashboard/my-tests" className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Take Test for {courseLabel}</a>
                 <button onClick={onStudyAnother} className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Study Another Course</button>
               </>
             )}
@@ -406,3 +406,4 @@ export default function LessonPath() {
     </div>
   );
 }
+
