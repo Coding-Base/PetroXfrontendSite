@@ -345,7 +345,7 @@ const LandingPage = () => {
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
                 {stats.users.toLocaleString()}+
               </div>
-              <div className="mt-2 text-base font-medium md:text-lg">Active Students</div>
+              <div className="mt-2 text-base font-medium md:text-lg">Current Users</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
@@ -1021,4 +1021,5 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
