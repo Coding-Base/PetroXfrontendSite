@@ -23,6 +23,7 @@ const Tools = lazy(() => import('../Layouts/ToolPage'));
 const NotFounds = lazy(() => import('../pages/NotFound'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
+const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 
 // ----------------------------------------------------------------------
 
@@ -57,6 +58,10 @@ export default function AppRouter() {
         {
           path: 'group-test/:testId',
           element: <GroupTestPage />
+        },
+         {
+          path: 'learning-system',
+          element: <LearningSystem />
         },
         {
           path: 'past-questions',
