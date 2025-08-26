@@ -1,9 +1,12 @@
 // src/components/lesson/LessonPath.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import LessonContent from "./LessonContent";
 
+/* Tailwind classes assumed.
+   Adds .lms-scroll style for mobile scrolling and friendly scrollbars.
+*/
 const LEVELS = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"];
 const COURSES_100 = [
   { key: "Maths", label: "Mathematics 101" },
@@ -14,6 +17,30 @@ const COURSES_100 = [
 const SEMESTERS = ["First Semester", "Second Semester"];
 
 const storageKey = (courseKey, semester) => `petrox_lms_${courseKey}_${semester}`;
+
+/* Scrollbar / mobile scroll styles */
+const ScrollbarStyles = () => (
+  <style>{`
+    .lms-scroll {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(79,70,229,0.8) rgba(229,231,235,0.8);
+    }
+    .lms-scroll::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .lms-scroll::-webkit-scrollbar-track {
+      background: rgba(229,231,235,0.8);
+      border-radius: 10px;
+    }
+    .lms-scroll::-webkit-scrollbar-thumb {
+      background-color: rgba(79,70,229,0.85);
+      border-radius: 10px;
+      border: 2px solid rgba(229,231,235,0.8);
+    }
+  `}</style>
+);
 
 const Modal = ({ open, onClose, title, children }) => {
   return (
@@ -35,7 +62,7 @@ const Modal = ({ open, onClose, title, children }) => {
               <h3 className="text-lg font-semibold">{title}</h3>
               <button onClick={onClose} className="rounded-full px-3 py-1 text-sm text-gray-600 hover:bg-gray-100">✕</button>
             </div>
-            <div className="p-5">{children}</div>
+            <div className="p-5 lms-scroll max-h-[70vh] sm:max-h-[60vh] overflow-y-auto">{children}</div>
           </motion.div>
         </motion.div>
       )}
@@ -87,13 +114,36 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
   const topicData = session.Content[index];
   const atEnd = index >= total - 1;
 
-  const onNext = () => {
+  // Suggested topics: next up to N topics after current (wrap-around not used)
+  const suggestionCount = 3;
+  const suggestions = [];
+  for (let i = index + 1; i <= Math.min(index + suggestionCount, total - 1); i++) {
+    suggestions.push({ idx: i, title: session.Topics[i] });
+  }
+
+  const advanceTo = (i) => {
+    const nextIdx = Math.min(Math.max(i, 0), total - 1);
+    setIndex(nextIdx);
+    toast.success(`Loaded: ${session.Topics[nextIdx]}`);
+  };
+
+  const markAsDone = (i) => {
+    // If marking a future topic as done, we move current index forward to i (or to i+1)
+    // Simpler behavior: if i > index, set index = i (so user lands there) and save
+    if (i <= index) {
+      toast("Already passed that topic", { icon: "ℹ️" });
+      return;
+    }
+    setIndex(i);
+    toast.success(`Marked "${session.Topics[i]}" as done and moved to it`);
+  };
+
+  const skipCurrent = () => {
     if (!atEnd) {
       setIndex(i => Math.min(i + 1, total - 1));
-      toast.success("Progress saved locally");
+      toast.success("Topic skipped — progress saved");
     } else {
-      toast.success(`You finished ${courseLabel} • ${semester}`);
-      onStudyAnother();
+      toast("This is the last topic", { icon: "ℹ️" });
     }
   };
 
@@ -106,13 +156,12 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
       <div className="space-y-6">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border bg-white p-6 shadow-sm">
+        {/* lesson body scrollable for mobile */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border bg-white p-6 shadow-sm lms-scroll max-h-[68vh] overflow-y-auto">
           <div className="mb-4 text-xs uppercase tracking-wide text-gray-500">{courseLabel} • {semester}</div>
           <h2 className="mb-3 text-2xl font-bold">{topicTitle}</h2>
 
-          {/* Explanation */}
           <article className="prose max-w-none prose-p:leading-relaxed text-gray-800">
-            {/* topicData.explanation is a multi-paragraph string, render as paragraphs */}
             {topicData.explanation.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
           </article>
 
@@ -120,7 +169,7 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
           <div className="mt-6 space-y-4">
             {topicData.examples.map((ex, i) => (
               <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg border bg-gray-50 p-4">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-gray-800">{ex.title}</div>
                     <div className="mt-1 text-sm"><strong>Problem:</strong> {ex.problem}</div>
@@ -134,24 +183,54 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
                   <details className="min-w-[120px] rounded border bg-white p-3">
                     <summary className="cursor-pointer text-sm font-semibold text-indigo-700">More</summary>
                     <div className="mt-2 text-sm text-gray-800">
-                      {/* optional extra commentary */}
+                      {ex.hint && <div className="text-xs text-gray-600">Hint: {ex.hint}</div>}
                     </div>
                   </details>
                 </div>
               </motion.div>
             ))}
           </div>
+
+          {/* Suggested topics & Skip */}
+          <div className="mt-6 rounded-xl border bg-white p-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-gray-700">Suggested topics</h4>
+              <div className="text-xs text-gray-500">You can jump or mark-as-done</div>
+            </div>
+
+            {suggestions.length === 0 ? (
+              <div className="mt-3 text-sm text-gray-600">No suggested topics — you are at the end of this session.</div>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {suggestions.map(s => (
+                  <li key={s.idx} className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-gray-800">{s.title}</div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => advanceTo(s.idx)} className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700">Jump</button>
+                      <button onClick={() => markAsDone(s.idx)} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100">Mark as done</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-4 flex items-center gap-3">
+              <button onClick={skipCurrent} className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Skip this topic</button>
+              <div className="text-xs text-gray-500">or use the Next Topic button below</div>
+            </div>
+          </div>
         </motion.div>
 
+        {/* Navigation */}
         <div className="flex flex-wrap items-center gap-3">
           {!atEnd ? (
             <>
-              <button onClick={onNext} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Next Topic</button>
-              <a href="/dashboard/my-tests" className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Take Test</a>
+              <button onClick={() => { setIndex(i => Math.min(i + 1, total - 1)); toast.success("Progress saved"); }} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Next Topic</button>
+              <a href="/dashboard/mytest" className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Take Test</a>
             </>
           ) : (
             <>
-              <a href="/dashboard/my-tests" className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Take Test for {courseLabel}</a>
+              <a href="/dashboard/mytest" className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Take Test for {courseLabel}</a>
               <button onClick={onStudyAnother} className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Study Another Course</button>
             </>
           )}
@@ -159,12 +238,13 @@ const LessonPlayer = ({ courseKey, courseLabel, semester, onStudyAnother }) => {
         </div>
       </div>
 
+      {/* Right column */}
       <aside className="space-y-4">
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border bg-white p-5 shadow-sm lms-scroll max-h-[68vh] overflow-y-auto">
           <Progress current={index} total={total} />
         </div>
 
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border bg-white p-5 shadow-sm lms-scroll max-h-[68vh] overflow-y-auto">
           <h4 className="mb-3 text-sm font-semibold text-gray-700">Lesson Outline</h4>
           <ol className="space-y-2 text-sm">
             {session.Topics.map((t, i) => (
@@ -193,7 +273,6 @@ export default function LessonPath() {
   const [course, setCourse] = useState(null);
   const [semester, setSemester] = useState(null);
 
-  // Open the level modal when user clicks the launcher
   const beginFlow = () => {
     setLevel(null);
     setCourse(null);
@@ -202,7 +281,7 @@ export default function LessonPath() {
   };
 
   useEffect(() => {
-    // no auto-open — user triggers the launcher
+    // nothing auto-opened; manual launch
   }, []);
 
   const onStudyAnother = () => {
@@ -212,20 +291,18 @@ export default function LessonPath() {
     setOpenCourse(true);
   };
 
-  // Handle level selection (toaster for non-100)
   const handleSelectLevel = (lvl) => {
     setLevel(lvl);
     setOpenLevel(false);
     setOpenCourse(true);
-
     if (lvl !== "100 Level") {
-      // show friendly toast and keep course modal open with message
       toast.error("The Learning Management for this level has not been set up yet — only 100 Level is available now.");
     }
   };
 
   return (
     <div className="w-full">
+      <ScrollbarStyles />
       <Toaster position="top-right" />
 
       <button onClick={beginFlow} className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700">
@@ -286,7 +363,7 @@ export default function LessonPath() {
               key={s}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => { setSemester(s); setOpenSemester(false); toast.success(`${s} loaded`); }}
+              onClick={() => { setSemester(s); setOpenSemester(false); toast.success(`${s} loaded`) }}
               className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
             >
               {s}
