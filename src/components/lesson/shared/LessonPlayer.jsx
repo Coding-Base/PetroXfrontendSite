@@ -4,10 +4,13 @@ import toast from "react-hot-toast";
 
 /**
  * LessonPlayer.jsx
- * Update: Mobile sticky bar always shows Take Test and Reset buttons (plus Next and Outline).
+ * Mobile outline overflow fixes:
+ *  - top-level overflow-x-hidden
+ *  - outline drawer items use w-full and box-border
+ *  - Jump / Mark buttons stack on mobile (no overflow)
+ *  - outline drawer prevents horizontal scroll (overflow-x hidden)
  *
- * Replace your existing src/components/lesson/shared/LessonPlayer.jsx with this file.
- * Assumes tailwindcss, framer-motion and react-hot-toast are available.
+ * Replace your existing LessonPlayer.jsx with this file.
  */
 
 export default function LessonPlayer({ courseLabel, courseContent, semester, onStudyAnother }) {
@@ -116,7 +119,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowOutlineMobile(false);
   };
 
-  /* ---------- Mobile sticky bar: Always show Take Test and Reset ---------- */
+  /* ---------- Mobile sticky bar ---------- */
   const MobileStickyBar = () => {
     const pct = Math.round(((index + 1) / total) * 100);
     return (
@@ -130,7 +133,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
         aria-label="Lesson controls"
       >
         <div className="flex items-center gap-3">
-          {/* Outline button (left) */}
           <button
             onClick={() => setShowOutlineMobile(true)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-white text-sm text-gray-700"
@@ -140,7 +142,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             ☰
           </button>
 
-          {/* Progress + title */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <div className="truncate text-sm font-medium text-gray-800">{topicTitle}</div>
@@ -155,9 +156,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             </div>
           </div>
 
-          {/* Action buttons (Next, Take Test, Reset) */}
           <div className="flex shrink-0 items-center gap-2">
-            {/* Next */}
             <button
               onClick={() => {
                 setIndex((i) => Math.min(i + 1, total - 1));
@@ -172,7 +171,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
               Next
             </button>
 
-            {/* Take Test - always visible */}
             <a
               href="/dashboard/mytest"
               className="h-10 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white inline-flex items-center justify-center"
@@ -182,7 +180,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
               Test
             </a>
 
-            {/* Reset - always visible */}
             <button
               onClick={resetProgress}
               className="h-10 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
@@ -197,11 +194,11 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     );
   };
 
-  /* ---------- Mobile Outline Drawer ---------- */
+  /* ---------- Mobile Outline Drawer (fixed, responsive, no horizontal overflow) ---------- */
   const MobileOutlineDrawer = () => {
     return (
       <div
-        className={`fixed inset-0 z-60 flex h-full w-full flex-col bg-white transition-all ${
+        className={`fixed inset-0 z-60 flex h-full w-full flex-col bg-white transition-all overflow-hidden ${
           showOutlineMobile ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!showOutlineMobile}
@@ -221,26 +218,33 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
           </div>
         </div>
 
-        <div className="overflow-y-auto p-4">
+        {/* content area: vertical scroll only */}
+        <div className="overflow-y-auto px-4 py-3">
           <ol className="space-y-3">
             {session.Topics.map((t, i) => (
-              <li key={i} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                <div className="flex items-start gap-3">
-                  <div className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm ${i === index ? "bg-indigo-600 text-white" : "border text-gray-700"}`}>
+              <li
+                key={i}
+                className="w-full box-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                {/* left: number + text */}
+                <div className="flex w-full items-start gap-3 min-w-0">
+                  <div
+                    className={`inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm ${i === index ? "bg-indigo-600 text-white" : "border text-gray-700"}`}
+                  >
                     {i + 1}
                   </div>
-                  <div className="min-w-0">
+
+                  <div className="min-w-0 w-full">
                     <div className="truncate font-medium">{t}</div>
                     <div className="mt-1 text-xs text-gray-500">{i === index ? "Current topic" : `Topic ${i + 1}`}</div>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                {/* right: controls (stack on mobile, row on sm+) */}
+                <div className="flex w-full sm:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3 sm:mt-0">
                   <button
-                    onClick={() => {
-                      goTo(i);
-                    }}
-                    className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white"
+                    onClick={() => goTo(i)}
+                    className="w-full sm:w-auto rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
                   >
                     Jump
                   </button>
@@ -251,7 +255,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                       toast.success(`Moved to ${t}`);
                       setShowOutlineMobile(false);
                     }}
-                    className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-xs"
+                    className="w-full sm:w-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700"
                   >
                     Mark
                   </button>
@@ -260,33 +264,36 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             ))}
           </ol>
 
-          <div className="mt-6 flex items-center justify-between gap-3">
-            <button
-              onClick={() => {
-                setIndex(0);
-                toast.success("Jumped to first topic");
-                setShowOutlineMobile(false);
-              }}
-              className="rounded-md border px-3 py-2 text-sm"
-            >
-              First Topic
-            </button>
-            <button
-              onClick={() => {
-                setIndex(total - 1);
-                toast.success("Jumped to last topic");
-                setShowOutlineMobile(false);
-              }}
-              className="rounded-md border px-3 py-2 text-sm"
-            >
-              Last Topic
-            </button>
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex w-full gap-3">
+              <button
+                onClick={() => {
+                  setIndex(0);
+                  toast.success("Jumped to first topic");
+                  setShowOutlineMobile(false);
+                }}
+                className="w-full sm:w-auto rounded-md border px-3 py-2 text-sm"
+              >
+                First Topic
+              </button>
+              <button
+                onClick={() => {
+                  setIndex(total - 1);
+                  toast.success("Jumped to last topic");
+                  setShowOutlineMobile(false);
+                }}
+                className="w-full sm:w-auto rounded-md border px-3 py-2 text-sm"
+              >
+                Last Topic
+              </button>
+            </div>
+
             <button
               onClick={() => {
                 resetProgress();
                 setShowOutlineMobile(false);
               }}
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="w-full sm:w-auto rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
             >
               Reset Progress
             </button>
@@ -298,8 +305,8 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
 
   /* ---------- Main JSX ---------- */
   return (
-    // Increased bottom padding so mobile sticky bar can't overlay page interactive elements
-    <div className="pb-32 md:pb-0">
+    // Prevent horizontal overflow globally inside this component
+    <div className="overflow-x-hidden pb-32 md:pb-0">
       <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
         <div className="space-y-6">
           {/* main scrollable lesson content */}
