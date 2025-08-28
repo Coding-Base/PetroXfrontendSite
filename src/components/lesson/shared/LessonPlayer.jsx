@@ -3,14 +3,15 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 /**
- * Props:
- * - courseLabel: string
- * - courseContent: array of sessions [{ Session: "First Semester", Topics:[], Content:[] }]
- * - semester: "First Semester" | "Second Semester"
- * - onStudyAnother: callback to reopen course chooser
+ * LessonPlayer.jsx (updated mobile-safe spacing)
  *
- * This is the generic lesson player used by each course component.
+ * Key changes:
+ * - Wrap everything in a container with `pb-28 md:pb-0` so fixed mobile sticky bar
+ *   doesn't overlay bottom page controls.
+ * - Mobile sticky bar given explicit height `h-[76px]` and internal padding to
+ *   ensure buttons are visible and accessible.
  */
+
 export default function LessonPlayer({ courseLabel, courseContent, semester, onStudyAnother }) {
   const session = (courseContent || []).find((s) => s.Session === semester) || null;
   const total = session ? session.Topics.length : 0;
@@ -56,6 +57,9 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowAllExamples(false);
     setRevealAnswers(false);
     toast.success(`Loaded: ${session.Topics[next]}`);
+    // scroll to top of lesson content on topic change (helpful on mobile)
+    const el = document.querySelector(".lms-scroll-top");
+    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const skipCurrent = () => {
@@ -75,49 +79,83 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowAllExamples(false);
     setRevealAnswers(false);
     toast("Progress reset");
+    // also scroll to top for clarity
+    const el = document.querySelector(".lms-scroll-top");
+    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // mobile sticky controls
   const MobileStickyBar = () => (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-white p-3">
-      <div className="flex items-center gap-3">
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-white p-3 h-[76px] safe-area-inset"
+      style={{ boxShadow: "0 -6px 18px rgba(15,23,42,0.06)" }}
+    >
+      <div className="flex items-center gap-3 h-full">
         <div className="w-full">
           <div className="text-xs text-gray-600 flex items-center justify-between">
-            <div className="truncate max-w-[60%]">{topicTitle}</div>
-            <div className="font-medium">{Math.round(((index + 1) / total) * 100)}%</div>
+            <div className="truncate max-w-[58%] text-sm font-medium">{topicTitle}</div>
+            <div className="font-medium text-sm">{Math.round(((index + 1) / total) * 100)}%</div>
           </div>
           <div className="mt-2 h-2 w-full rounded-full bg-gray-200">
-            <div className="h-2 rounded-full bg-indigo-600" style={{ width: `${((index + 1) / total) * 100}%` }} />
+            <div
+              className="h-2 rounded-full bg-indigo-600 transition-all"
+              style={{ width: `${((index + 1) / total) * 100}%` }}
+            />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {!atEnd ? (
             <button
-              onClick={() => { setIndex(i => Math.min(i + 1, total - 1)); setShowAllExamples(false); setRevealAnswers(false); toast.success("Progress saved"); }}
+              onClick={() => {
+                setIndex((i) => Math.min(i + 1, total - 1));
+                setShowAllExamples(false);
+                setRevealAnswers(false);
+                toast.success("Progress saved");
+              }}
               className="whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
             >
               Next
             </button>
           ) : (
-            <a href="/dashboard/mytest" className="whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Take Test</a>
+            <a
+              href="/dashboard/mytest"
+              className="whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
+            >
+              Take Test
+            </a>
           )}
-          <button onClick={resetProgress} className="whitespace-nowrap rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">Reset</button>
+          <button
+            onClick={resetProgress}
+            className="whitespace-nowrap rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
+          >
+            Reset
+          </button>
         </div>
       </div>
     </div>
   );
 
   return (
-    <>
+    // <-- IMPORTANT: padding-bottom added here so mobile fixed sticky bar doesn't cover bottom page buttons
+    <div className="pb-28 md:pb-0">
       <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
         <div className="space-y-6">
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border bg-white p-6 shadow-sm lms-scroll max-h-[68vh] overflow-y-auto">
-            <div className="mb-4 text-xs uppercase tracking-wide text-gray-500">{courseLabel} • {semester}</div>
+          {/* main scrollable lesson content */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border bg-white p-6 shadow-sm lms-scroll lms-scroll-top max-h-[68vh] overflow-y-auto pb-6"
+          >
+            <div className="mb-4 text-xs uppercase tracking-wide text-gray-500">
+              {courseLabel} • {semester}
+            </div>
             <h2 className="mb-3 text-2xl font-bold">{topicTitle}</h2>
 
             <article className="prose max-w-none prose-p:leading-relaxed text-gray-800">
-              {topicData.explanation.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
+              {topicData.explanation.split("\n\n").map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
             </article>
 
             <div className="mt-6 space-y-4">
@@ -126,11 +164,23 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-gray-800">{ex.title}</div>
-                      {ex.problem && <div className="mt-1 text-sm"><strong>Problem:</strong> {ex.problem}</div>}
-                      {ex.solution && <div className="mt-2 text-sm text-gray-800"><strong>Solution:</strong> {ex.solution}</div>}
+                      {ex.problem && (
+                        <div className="mt-1 text-sm">
+                          <strong>Problem:</strong> {ex.problem}
+                        </div>
+                      )}
+                      {ex.solution && (
+                        <div className="mt-2 text-sm text-gray-800">
+                          <strong>Solution:</strong> {ex.solution}
+                        </div>
+                      )}
                       {ex.steps && ex.steps.length > 0 && (
                         <ol className="mt-2 ml-4 list-decimal text-sm text-gray-700">
-                          {ex.steps.map((s, j) => <li key={j} className="mb-1 whitespace-pre-line">{s}</li>)}
+                          {ex.steps.map((s, j) => (
+                            <li key={j} className="mb-1 whitespace-pre-line">
+                              {s}
+                            </li>
+                          ))}
                         </ol>
                       )}
                     </div>
@@ -146,7 +196,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
 
               {examples.length > 2 && (
                 <div className="mt-2">
-                  <button onClick={() => setShowAllExamples(s => !s)} className="text-sm font-semibold text-indigo-700 hover:underline">
+                  <button onClick={() => setShowAllExamples((s) => !s)} className="text-sm font-semibold text-indigo-700 hover:underline">
                     {showAllExamples ? "Show fewer examples" : `Show ${examples.length - 2} more example${examples.length - 2 > 1 ? "s" : ""}`}
                   </button>
                 </div>
@@ -164,15 +214,13 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                 {(topicData.quiz || []).map((q, i) => (
                   <li key={i} className="rounded-md border p-3 bg-gray-50">
                     <div className="font-medium">Q{i + 1}. {q.q}</div>
-                    <div className="mt-2 text-gray-600">
-                      {!revealAnswers ? <em>Attempt the question on paper, then click Reveal Answers</em> : <div><strong>Answer:</strong> {q.a}</div>}
-                    </div>
+                    <div className="mt-2 text-gray-600">{!revealAnswers ? <em>Attempt the question on paper, then click Reveal Answers</em> : <div><strong>Answer:</strong> {q.a}</div>}</div>
                   </li>
                 ))}
               </ul>
 
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => setRevealAnswers(r => !r)} className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">{revealAnswers ? "Hide Answers" : "Reveal Answers"}</button>
+                <button onClick={() => setRevealAnswers((r) => !r)} className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">{revealAnswers ? "Hide Answers" : "Reveal Answers"}</button>
                 <button onClick={skipCurrent} className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Skip this topic</button>
               </div>
             </div>
@@ -188,7 +236,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                 <div className="mt-3 text-sm text-gray-600">No suggested topics — you are at the end of this session.</div>
               ) : (
                 <ul className="mt-3 space-y-3">
-                  {suggestions.map(s => (
+                  {suggestions.map((s) => (
                     <li key={s.idx} className="flex items-center justify-between gap-3">
                       <div className="text-sm text-gray-800">{s.title}</div>
                       <div className="flex items-center gap-2">
@@ -205,7 +253,17 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
           <div className="flex flex-wrap items-center gap-3">
             {!atEnd ? (
               <>
-                <button onClick={() => { setIndex(i => Math.min(i + 1, total - 1)); setShowAllExamples(false); setRevealAnswers(false); toast.success("Progress saved"); }} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Next Topic</button>
+                <button
+                  onClick={() => {
+                    setIndex((i) => Math.min(i + 1, total - 1));
+                    setShowAllExamples(false);
+                    setRevealAnswers(false);
+                    toast.success("Progress saved");
+                  }}
+                  className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+                >
+                  Next Topic
+                </button>
                 <a href="/dashboard/mytest" className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Take Test</a>
               </>
             ) : (
@@ -252,6 +310,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
       <div className="md:hidden">
         <MobileStickyBar />
       </div>
-    </>
+    </div>
   );
 }
