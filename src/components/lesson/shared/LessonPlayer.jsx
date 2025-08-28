@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 /**
- * LessonPlayer.jsx (updated mobile-safe spacing)
+ * LessonPlayer.jsx
+ * Updated: automatically scroll to the top of the loaded topic whenever `index` changes.
  *
- * Key changes:
- * - Wrap everything in a container with `pb-28 md:pb-0` so fixed mobile sticky bar
- *   doesn't overlay bottom page controls.
- * - Mobile sticky bar given explicit height `h-[76px]` and internal padding to
- *   ensure buttons are visible and accessible.
+ * Key behavior:
+ * - scrollRef points to the scrollable lesson container
+ * - useEffect listens to `index` and scrolls that container to top smoothly
+ * - fallbacks included (rAF + small timeout) for best cross-device reliability
  */
 
 export default function LessonPlayer({ courseLabel, courseContent, semester, onStudyAnother }) {
@@ -31,12 +31,64 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
   const [showAllExamples, setShowAllExamples] = useState(false);
   const [revealAnswers, setRevealAnswers] = useState(false);
 
+  // ref for main scrollable lesson container
+  const scrollRef = useRef(null);
+
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify({ topicIndex: index }));
   }, [index, storageKey]);
 
+  // Whenever index changes, scroll the lesson container to top.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // Use requestAnimationFrame to wait for a render pass, then smooth scroll.
+    // Also guard with a small timeout to handle some browsers/layouts where rAF alone isn't enough.
+    const fn = () => {
+      try {
+        if (typeof el.scrollTo === "function") {
+          el.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          el.scrollTop = 0;
+        }
+      } catch {
+        // fallback
+        el.scrollTop = 0;
+      }
+    };
+
+    const rafId = requestAnimationFrame(() => {
+      // tiny delay to ensure any content reflow completes
+      const t = setTimeout(fn, 40);
+      // cleanup for timeout if necessary
+      const cleanup = () => clearTimeout(t);
+      // attach cleanup to raf closure (no-op here) — we'll cancel via returned cleanup below
+      return cleanup;
+    });
+
+    // also set a safety timeout
+    const safety = setTimeout(() => {
+      try {
+        if (typeof el.scrollTo === "function") el.scrollTo({ top: 0, behavior: "smooth" });
+        else el.scrollTop = 0;
+      } catch {
+        el.scrollTop = 0;
+      }
+    }, 250);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(safety);
+    };
+  }, [index]);
+
   if (!session) {
-    return <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">No lessons found for this selection.</div>;
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+        No lessons found for this selection.
+      </div>
+    );
   }
 
   const topicTitle = session.Topics[index];
@@ -57,9 +109,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowAllExamples(false);
     setRevealAnswers(false);
     toast.success(`Loaded: ${session.Topics[next]}`);
-    // scroll to top of lesson content on topic change (helpful on mobile)
-    const el = document.querySelector(".lms-scroll-top");
-    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+    // scroll handled by useEffect watching `index`
   };
 
   const skipCurrent = () => {
@@ -68,6 +118,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
       setShowAllExamples(false);
       setRevealAnswers(false);
       toast.success("Topic skipped — progress saved");
+      // scroll handled by useEffect
     } else {
       toast("This is the last topic");
     }
@@ -79,9 +130,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowAllExamples(false);
     setRevealAnswers(false);
     toast("Progress reset");
-    // also scroll to top for clarity
-    const el = document.querySelector(".lms-scroll-top");
-    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+    // scroll handled by useEffect
   };
 
   // mobile sticky controls
@@ -137,7 +186,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
   );
 
   return (
-    // <-- IMPORTANT: padding-bottom added here so mobile fixed sticky bar doesn't cover bottom page buttons
+    // keep bottom padding so mobile fixed sticky bar doesn't overlap content
     <div className="pb-28 md:pb-0">
       <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
         <div className="space-y-6">
@@ -145,6 +194,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            ref={scrollRef}
             className="rounded-2xl border bg-white p-6 shadow-sm lms-scroll lms-scroll-top max-h-[68vh] overflow-y-auto pb-6"
           >
             <div className="mb-4 text-xs uppercase tracking-wide text-gray-500">
