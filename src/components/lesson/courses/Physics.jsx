@@ -111,7 +111,7 @@ Two methods for addition:
 Component method:
 - For a 2D vector V at angle θ (from +x axis): Vx = V cosθ, Vy = V sinθ.
 - To add vectors, sum x-components and y-components separately, then recombine: R = √(Rx^2 + Ry^2), angle = arctan(Ry / Rx).
-- Use `min-w-0` and `truncate` in UI to avoid long labels when showing vectors — but conceptually always decompose onto orthogonal axes.
+- Use "min-w-0" and "truncate" in UI to avoid long labels when showing vectors — but conceptually always decompose onto orthogonal axes.
 
 Remember:
 - Choose a consistent sign convention (right/up positive).
@@ -924,4 +924,5 @@ export default function Physics({ semester }) {
   // LessonPlayer expects courseContent and a semester string like "First Semester"
   return <LessonPlayer courseLabel="Physics 101" courseContent={PhysicsContent} semester={semester} />;
 }
+
 
