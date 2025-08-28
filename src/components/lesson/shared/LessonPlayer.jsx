@@ -4,13 +4,9 @@ import toast from "react-hot-toast";
 
 /**
  * LessonPlayer.jsx
+ * Update: Mobile sticky bar always shows Take Test and Reset buttons (plus Next and Outline).
  *
- * Mobile UX fixes:
- * - Dedicated mobile sticky bar containing Next/Take Test, Reset, and Outline (so controls are never hidden).
- * - Mobile Outline opens a full-screen drawer with topic list (so lesson outline is accessible on mobile).
- * - Increased bottom padding on page wrapper so sticky bar never overlays content/buttons.
- * - Auto-scroll to top of topic when topic index changes (keeps behavior from your previous change).
- *
+ * Replace your existing src/components/lesson/shared/LessonPlayer.jsx with this file.
  * Assumes tailwindcss, framer-motion and react-hot-toast are available.
  */
 
@@ -59,7 +55,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
 
     const rafId = requestAnimationFrame(() => {
       const t = setTimeout(fn, 30);
-      // clear will be handled in cleanup below
       return () => clearTimeout(t);
     });
 
@@ -97,8 +92,6 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowAllExamples(false);
     setRevealAnswers(false);
     toast.success(`Loaded: ${session.Topics[next]}`);
-    // scroll handled by useEffect
-    // ensure mobile outline closes if open
     setShowOutlineMobile(false);
   };
 
@@ -123,7 +116,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     setShowOutlineMobile(false);
   };
 
-  /* ---------- Mobile sticky bar ---------- */
+  /* ---------- Mobile sticky bar: Always show Take Test and Reset ---------- */
   const MobileStickyBar = () => {
     const pct = Math.round(((index + 1) / total) * 100);
     return (
@@ -131,13 +124,13 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-3 py-2"
         style={{
           boxShadow: "0 -6px 18px rgba(15,23,42,0.06)",
-          // include safe area padding for notched devices
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
         }}
         role="toolbar"
         aria-label="Lesson controls"
       >
         <div className="flex items-center gap-3">
+          {/* Outline button (left) */}
           <button
             onClick={() => setShowOutlineMobile(true)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-white text-sm text-gray-700"
@@ -147,6 +140,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             ☰
           </button>
 
+          {/* Progress + title */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <div className="truncate text-sm font-medium text-gray-800">{topicTitle}</div>
@@ -161,42 +155,42 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             </div>
           </div>
 
+          {/* Action buttons (Next, Take Test, Reset) */}
           <div className="flex shrink-0 items-center gap-2">
-            {/* Reset visible in mobile sticky */}
+            {/* Next */}
+            <button
+              onClick={() => {
+                setIndex((i) => Math.min(i + 1, total - 1));
+                setShowAllExamples(false);
+                setRevealAnswers(false);
+                toast.success("Progress saved");
+              }}
+              className="h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
+              aria-label="Next topic"
+              title="Next topic"
+            >
+              Next
+            </button>
+
+            {/* Take Test - always visible */}
+            <a
+              href="/dashboard/mytest"
+              className="h-10 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white inline-flex items-center justify-center"
+              aria-label="Take test"
+              title="Take test"
+            >
+              Test
+            </a>
+
+            {/* Reset - always visible */}
             <button
               onClick={resetProgress}
-              className="hidden sm:inline-flex h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700"
+              className="h-10 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
               aria-label="Reset progress"
               title="Reset"
             >
               Reset
             </button>
-
-            {/* Primary action: Next or Take Test */}
-            {!atEnd ? (
-              <button
-                onClick={() => {
-                  setIndex((i) => Math.min(i + 1, total - 1));
-                  setShowAllExamples(false);
-                  setRevealAnswers(false);
-                  toast.success("Progress saved");
-                }}
-                className="h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
-                aria-label="Next topic"
-                title="Next topic"
-              >
-                Next
-              </button>
-            ) : (
-              <a
-                href="/dashboard/mytest"
-                className="h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white inline-flex items-center justify-center"
-                aria-label="Take test"
-                title="Take test"
-              >
-                Take Test
-              </a>
-            )}
           </div>
         </div>
       </div>
@@ -304,7 +298,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
 
   /* ---------- Main JSX ---------- */
   return (
-    // IMPORTANT: increased bottom padding so mobile sticky bar never overlays page interactive elements
+    // Increased bottom padding so mobile sticky bar can't overlay page interactive elements
     <div className="pb-32 md:pb-0">
       <div className="grid gap-6 lg:grid-cols-[1fr,340px]">
         <div className="space-y-6">
