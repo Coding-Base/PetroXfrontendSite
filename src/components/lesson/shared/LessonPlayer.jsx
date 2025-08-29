@@ -4,14 +4,55 @@ import toast from "react-hot-toast";
 
 /**
  * LessonPlayer.jsx
- * Mobile outline overflow fixes:
- *  - top-level overflow-x-hidden
- *  - outline drawer items use w-full and box-border
- *  - Jump / Mark buttons stack on mobile (no overflow)
- *  - outline drawer prevents horizontal scroll (overflow-x hidden)
  *
- * Replace your existing LessonPlayer.jsx with this file.
+ * Updates:
+ * - Converts **bold** markers inside lesson text to <strong> nodes (teacher emphasis).
+ * - Applies the conversion to: explanation paragraphs, example problem/solution/steps/hint,
+ *   and quiz questions/answers.
+ * - Keeps all previous behavior: mobile sticky bar, outline drawer, localStorage progress,
+ *   automatic scroll-to-top on topic change, no horizontal overflow, etc.
+ *
+ * Usage: drop into your project replacing your existing LessonPlayer.
  */
+
+/* ---------- Small inline parser ----------
+   Converts strings containing **bold** markers into an array of React nodes,
+   where **something** becomes <strong>something</strong>.
+   It is intentionally simple and non-markdown — just handles inline bold markers.
+*/
+function formatInline(text) {
+  if (typeof text !== "string" || text.length === 0) return text;
+
+  // Split into tokens where tokens that match **...** are preserved as separate tokens
+  // e.g. "This is **Important:** read" -> ["This is ", "**Important:**", " read"]
+  const tokens = text.split(/(\*\*.+?\*\*)/g);
+
+  return tokens.map((tok, i) => {
+    const m = tok.match(/^\*\*(.+)\*\*$/);
+    if (m) {
+      // inner content m[1] may itself contain more markers, but our split handles simple inline bolds
+      return (
+        <strong key={i} className="font-semibold">
+          {m[1]}
+        </strong>
+      );
+    }
+    // preserve plain string (React will render it)
+    return <React.Fragment key={i}>{tok}</React.Fragment>;
+  });
+}
+
+/* Split a long explanation into paragraphs and format inline bold markers */
+function renderParagraphs(text) {
+  if (!text) return null;
+  // split on double newline sequences (consistent with how content is authored)
+  const paras = text.split("\n\n");
+  return paras.map((p, i) => (
+    <p key={i} className="mb-4">
+      {formatInline(p)}
+    </p>
+  ));
+}
 
 export default function LessonPlayer({ courseLabel, courseContent, semester, onStudyAnother }) {
   const session = (courseContent || []).find((s) => s.Session === semester) || null;
@@ -322,9 +363,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
             <h2 className="mb-3 text-2xl font-bold">{topicTitle}</h2>
 
             <article className="prose max-w-none prose-p:leading-relaxed text-gray-800">
-              {topicData.explanation.split("\n\n").map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+              {renderParagraphs(topicData.explanation)}
             </article>
 
             <div className="mt-6 space-y-4">
@@ -332,22 +371,22 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                 <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg border bg-gray-50 p-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-gray-800">{ex.title}</div>
+                      <div className="text-sm font-semibold text-gray-800">{formatInline(ex.title)}</div>
                       {ex.problem && (
                         <div className="mt-1 text-sm">
-                          <strong>Problem:</strong> {ex.problem}
+                          <strong>Problem:</strong> {formatInline(ex.problem)}
                         </div>
                       )}
                       {ex.solution && (
                         <div className="mt-2 text-sm text-gray-800">
-                          <strong>Solution:</strong> {ex.solution}
+                          <strong>Solution:</strong> {formatInline(ex.solution)}
                         </div>
                       )}
                       {ex.steps && ex.steps.length > 0 && (
                         <ol className="mt-2 ml-4 list-decimal text-sm text-gray-700">
                           {ex.steps.map((s, j) => (
                             <li key={j} className="mb-1 whitespace-pre-line">
-                              {s}
+                              {formatInline(s)}
                             </li>
                           ))}
                         </ol>
@@ -356,7 +395,7 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
                     <details className="min-w-[120px] rounded border bg-white p-3">
                       <summary className="cursor-pointer text-sm font-semibold text-indigo-700">More</summary>
                       <div className="mt-2 text-sm text-gray-800">
-                        {ex.hint ? <div className="text-xs text-gray-600">Hint: {ex.hint}</div> : <div className="text-xs text-gray-600">No extra hints available.</div>}
+                        {ex.hint ? <div className="text-xs text-gray-600">Hint: {formatInline(ex.hint)}</div> : <div className="text-xs text-gray-600">No extra hints available.</div>}
                       </div>
                     </details>
                   </div>
@@ -382,9 +421,9 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
               <ul className="mt-3 space-y-3 text-sm">
                 {(topicData.quiz || []).map((q, i) => (
                   <li key={i} className="rounded-md border p-3 bg-gray-50">
-                    <div className="font-medium">Q{i + 1}. {q.q}</div>
+                    <div className="font-medium">Q{i + 1}. {formatInline(q.q)}</div>
                     <div className="mt-2 text-gray-600">
-                      {!revealAnswers ? <em>Attempt the question on paper, then click Reveal Answers</em> : <div><strong>Answer:</strong> {q.a}</div>}
+                      {!revealAnswers ? <em>Attempt the question on paper, then click Reveal Answers</em> : <div><strong>Answer:</strong> {formatInline(q.a)}</div>}
                     </div>
                   </li>
                 ))}
@@ -488,4 +527,3 @@ export default function LessonPlayer({ courseLabel, courseContent, semester, onS
     </div>
   );
 }
-
