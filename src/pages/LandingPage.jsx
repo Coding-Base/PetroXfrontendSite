@@ -46,7 +46,7 @@ const LandingPage = () => {
       image: 'https://plus.unsplash.com/premium_photo-1683135216954-ab7130031b44?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmxhY2slMjBzdHVkZW50c3xlbnwwfHwwfHx8MA%3D%3D'
     },
     {
-      title: 'Access 482+ Past Questions',
+      title: 'Access 538+ Past Questions',
       subtitle: 'Comprehensive exam preparation resources',
       image: image1,
     }
@@ -1021,6 +1021,7 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
 
