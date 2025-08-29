@@ -78,7 +78,7 @@ const LandingPage = () => {
       setStats({
         users: 94,
         questions: 538,
-        downloads: 20
+        downloadable: 20
       });
     } finally {
       setLoading(false);
@@ -357,7 +357,7 @@ const LandingPage = () => {
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
                 {stats.downloads.toLocaleString()}+
               </div>
-              <div className="mt-2 text-base font-medium md:text-lg">Resources Downloaded</div>
+              <div className="mt-2 text-base font-medium md:text-lg">Resources Downloadable</div>
             </div>
           </div>
         </div>
@@ -1021,6 +1021,7 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
 
