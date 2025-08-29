@@ -62,14 +62,14 @@ const LandingPage = () => {
         setStats({
           users: data.total_users || 94,
           questions: data.total_questions || 538,
-          downloads: data.total_downloads || 14
+          downloads: data.total_downloads || 20
         });
       } else {
         // Fallback to default values if API fails
         setStats({
           users: 94,
           questions: 538,
-          downloadable: 14
+          downloadable: 20
         });
       }
     } catch (error) {
@@ -78,7 +78,7 @@ const LandingPage = () => {
       setStats({
         users: 94,
         questions: 538,
-        downloads: 14
+        downloads: 20
       });
     } finally {
       setLoading(false);
@@ -1021,6 +1021,7 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
 
