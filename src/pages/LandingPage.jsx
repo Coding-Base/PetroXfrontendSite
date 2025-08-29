@@ -60,14 +60,14 @@ const LandingPage = () => {
       if (response.ok) {
         const data = await response.json();
         setStats({
-          users: data.total_users || 80,
+          users: data.total_users || 94+,
           questions: data.total_questions || 538,
           downloads: data.total_downloads || 14
         });
       } else {
         // Fallback to default values if API fails
         setStats({
-          users: 80,
+          users: 94,
           questions: 538,
           downloadable: 14
         });
@@ -76,8 +76,8 @@ const LandingPage = () => {
       console.error('Error fetching stats:', error);
       // Fallback to default values
       setStats({
-        users: 80,
-        questions: 482,
+        users: 94,
+        questions: 538,
         downloads: 14
       });
     } finally {
@@ -1021,6 +1021,7 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
 
