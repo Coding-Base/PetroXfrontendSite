@@ -61,7 +61,7 @@ const LandingPage = () => {
         const data = await response.json();
         setStats({
           users: data.total_users || 80,
-          questions: data.total_questions || 482,
+          questions: data.total_questions || 538,
           downloads: data.total_downloads || 14
         });
       } else {
@@ -1021,5 +1021,6 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
