@@ -68,8 +68,8 @@ const LandingPage = () => {
         // Fallback to default values if API fails
         setStats({
           users: 80,
-          questions: 482,
-          downloads: 14
+          questions: 538,
+          downloadable: 14
         });
       }
     } catch (error) {
@@ -1021,6 +1021,7 @@ const resources = [
 ];
 
 export default LandingPage;
+
 
 
 
