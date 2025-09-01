@@ -117,14 +117,11 @@ export default function ToolsPage({ onBack }) {
           </div>
         </div>
       ) : showCalculator ? (
-        /* NOTE: This container is now a vertically flexible layout:
-           - max-h-[80vh] keeps it within the viewport on mobile
-           - flex flex-col so the courses list can be scrollable (flex-1
-             with overflow-y-auto) while the footer stays visible */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col max-h-[80vh]"
+          // Relative container so footer can be absolute inside it.
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col max-h-[80vh] relative"
         >
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-blue-700">GPA CALCULATOR</h3>
@@ -136,19 +133,19 @@ export default function ToolsPage({ onBack }) {
             </Button>
           </div>
           
-          {/* Main content area: header + scrollable list + add button */}
-          <div className="mb-6 flex-1 flex flex-col overflow-hidden">
+          {/* Main area: header + scrollable list */}
+          <div className="flex-1 flex flex-col overflow-hidden">
             <div className="grid grid-cols-12 gap-4 mb-3 font-medium text-gray-700 text-sm">
               <div className="col-span-5">Course</div>
               <div className="col-span-3">Units</div>
               <div className="col-span-3">Grade</div>
               <div className="col-span-1"></div>
             </div>
-            
-            {/* Scrollable course list container */}
+
+            {/* Scrollable course list container with extra padding for safe-area */}
             <div
-              className="flex-1 overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50 scrollbar-thumb-rounded-full"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="flex-1 overflow-y-auto pr-2 mb-4"
+              style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 12px))' }}
             >
               {courses.map((course, index) => (
                 <div key={index} className="grid grid-cols-12 gap-4 mb-3">
@@ -190,8 +187,8 @@ export default function ToolsPage({ onBack }) {
                 </div>
               ))}
             </div>
-            
-            {/* Add Course button remains outside the scroll area so it's always reachable */}
+
+            {/* Add Course button is outside the scroll area so it is always reachable */}
             <div className="mb-2">
               <Button 
                 onClick={addCourse}
@@ -201,30 +198,35 @@ export default function ToolsPage({ onBack }) {
               </Button>
             </div>
           </div>
-          
-          {/* Footer / actions - stays visible */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-blue-100 pt-4">
-            <div className="flex items-center gap-4">
-              <Button 
-                onClick={calculateGPA}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
-              >
-                Calculate GPA
-              </Button>
-              <Button 
-                onClick={resetCalculator}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-100"
-              >
-                Reset
-              </Button>
-            </div>
-            
-            {gpa !== null && (
-              <div className="text-lg font-semibold bg-white px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
-                Your GPA: <span className="text-blue-600">{gpa.toFixed(2)}</span>
+
+          {/* Footer pinned to bottom of the card but lifted above device safe area */}
+          <div
+            className="absolute left-0 right-0 bg-white border-t px-4 z-10"
+            style={{ bottom: 'env(safe-area-inset-bottom, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
+          >
+            <div className="py-3 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={calculateGPA}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+                >
+                  Calculate GPA
+                </Button>
+                <Button 
+                  onClick={resetCalculator}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Reset
+                </Button>
               </div>
-            )}
+
+              {gpa !== null && (
+                <div className="text-lg font-semibold bg-white px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
+                  Your GPA: <span className="text-blue-600">{gpa.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       ) : (
