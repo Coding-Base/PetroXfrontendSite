@@ -120,113 +120,107 @@ export default function ToolsPage({ onBack }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          // Relative container so footer can be absolute inside it.
-          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col max-h-[80vh] relative"
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col max-h-[80vh]"
         >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-blue-700">GPA CALCULATOR</h3>
-            <Button 
-              className="bg-gray-100 text-gray-800 hover:bg-gray-200"
-              onClick={() => setShowCalculator(false)}
-            >
-              <X className="h-4 w-4 mr-2" /> Close
-            </Button>
+          {/* Title + Close */}
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-xl font-bold text-blue-700">GPA CALCULATOR</h3>
+              <p className="text-sm text-gray-600">Add your courses and calculate your GPA.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+                onClick={() => setShowCalculator(false)}
+              >
+                <X className="h-4 w-4 mr-2" /> Close
+              </Button>
+            </div>
           </div>
-          
-          {/* Main area: header + scrollable list */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="grid grid-cols-12 gap-4 mb-3 font-medium text-gray-700 text-sm">
-              <div className="col-span-5">Course</div>
-              <div className="col-span-3">Units</div>
-              <div className="col-span-3">Grade</div>
-              <div className="col-span-1"></div>
-            </div>
 
-            {/* Scrollable course list container with extra padding for safe-area */}
-            <div
-              className="flex-1 overflow-y-auto pr-2 mb-4"
-              style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 12px))' }}
-            >
-              {courses.map((course, index) => (
-                <div key={index} className="grid grid-cols-12 gap-4 mb-3">
-                  <input
-                    type="text"
-                    placeholder="Course name"
-                    value={course.name}
-                    onChange={(e) => handleCourseChange(index, 'name', e.target.value)}
-                    className="col-span-5 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={course.units}
-                    onChange={(e) => handleCourseChange(index, 'units', e.target.value)}
-                    className="col-span-3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min="0"
-                    step="0.5"
-                  />
-                  <select
-                    value={course.grade}
-                    onChange={(e) => handleCourseChange(index, 'grade', e.target.value)}
-                    className="col-span-3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="A">A (5 points)</option>
-                    <option value="B">B (4 points)</option>
-                    <option value="C">C (3 points)</option>
-                    <option value="D">D (2 points)</option>
-                    <option value="E">E (1 point)</option>
-                    <option value="F">F (0 points)</option>
-                  </select>
-                  <button
-                    onClick={() => removeCourse(index)}
-                    disabled={courses.length <= 1}
-                    className={`col-span-1 flex items-center justify-center rounded-lg ${courses.length > 1 ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Add Course button is outside the scroll area so it is always reachable */}
-            <div className="mb-2">
+          {/* ACTION BAR (moved to top so it's never covered) */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
               <Button 
                 onClick={addCourse}
                 className="bg-blue-500 hover:bg-blue-600 text-white flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Course
               </Button>
+              <Button 
+                onClick={calculateGPA}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+              >
+                Calculate GPA
+              </Button>
+              <Button 
+                onClick={resetCalculator}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Reset
+              </Button>
             </div>
+
+            {gpa !== null && (
+              <div className="text-lg font-semibold bg-white px-4 py-2 rounded-lg border border-blue-200 shadow-sm">
+                Your GPA: <span className="text-blue-600">{gpa.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
-          {/* Footer pinned to bottom of the card but lifted above device safe area */}
-          <div
-            className="absolute left-0 right-0 bg-white border-t px-4 z-10"
-            style={{ bottom: 'env(safe-area-inset-bottom, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
-          >
-            <div className="py-3 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Button 
-                  onClick={calculateGPA}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
-                >
-                  Calculate GPA
-                </Button>
-                <Button 
-                  onClick={resetCalculator}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                >
-                  Reset
-                </Button>
-              </div>
+          {/* Header row for the list */}
+          <div className="grid grid-cols-12 gap-4 mb-3 font-medium text-gray-700 text-sm">
+            <div className="col-span-5">Course</div>
+            <div className="col-span-3">Units</div>
+            <div className="col-span-3">Grade</div>
+            <div className="col-span-1"></div>
+          </div>
 
-              {gpa !== null && (
-                <div className="text-lg font-semibold bg-white px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
-                  Your GPA: <span className="text-blue-600">{gpa.toFixed(2)}</span>
-                </div>
-              )}
-            </div>
+          {/* Scrollable course list */}
+          <div
+            className="flex-1 overflow-y-auto pr-2"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {courses.map((course, index) => (
+              <div key={index} className="grid grid-cols-12 gap-4 mb-3">
+                <input
+                  type="text"
+                  placeholder="Course name"
+                  value={course.name}
+                  onChange={(e) => handleCourseChange(index, 'name', e.target.value)}
+                  className="col-span-5 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={course.units}
+                  onChange={(e) => handleCourseChange(index, 'units', e.target.value)}
+                  className="col-span-3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min="0"
+                  step="0.5"
+                />
+                <select
+                  value={course.grade}
+                  onChange={(e) => handleCourseChange(index, 'grade', e.target.value)}
+                  className="col-span-3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="A">A (5 points)</option>
+                  <option value="B">B (4 points)</option>
+                  <option value="C">C (3 points)</option>
+                  <option value="D">D (2 points)</option>
+                  <option value="E">E (1 point)</option>
+                  <option value="F">F (0 points)</option>
+                </select>
+                <button
+                  onClick={() => removeCourse(index)}
+                  disabled={courses.length <= 1}
+                  className={`col-span-1 flex items-center justify-center rounded-lg ${courses.length > 1 ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
           </div>
         </motion.div>
       ) : (
