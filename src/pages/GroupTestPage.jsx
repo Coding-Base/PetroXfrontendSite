@@ -31,7 +31,6 @@ export default function GroupTestPage() {
 
   // Helper: Parse scheduled_start as UTC
   const parseUtcDate = (isoString) => {
-    // Always treat as UTC
     return new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
   };
 
@@ -47,11 +46,9 @@ export default function GroupTestPage() {
       setGroupTest(data);
       setQuestions(data.questions || []);
 
-      // Parse scheduled_start as UTC
       const startDate = parseUtcDate(data.scheduled_start);
       const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
 
-      // Restore local state if test in progress
       const savedEndTime = localStorage.getItem(`testEndTime_${testId}`);
       const savedAnswers = localStorage.getItem(`testAnswers_${testId}`);
 
@@ -69,7 +66,6 @@ export default function GroupTestPage() {
         }
       }
 
-      // Determine phase
       const now = new Date();
       if (now < startDate) {
         setPhase(0);
@@ -88,20 +84,18 @@ export default function GroupTestPage() {
     }
   }, [testId]);
 
-  // Initial fetch
   useEffect(() => {
     fetchTest();
     // eslint-disable-next-line
   }, [testId]);
 
-  // PHASE-0 TIMER: countdown to start
+  // PHASE-0 TIMER
   useEffect(() => {
     if (phase !== 0 || timeLeft <= 0) return;
     const timerId = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerId);
-          // Re-fetch test to get questions after countdown
           fetchTest();
           setPhase(1);
           return 0;
@@ -112,7 +106,7 @@ export default function GroupTestPage() {
     return () => clearInterval(timerId);
   }, [phase, timeLeft, fetchTest]);
 
-  // PHASE-2 TIMER: actual test in progress
+  // PHASE-2 TIMER
   useEffect(() => {
     if (phase !== 2 || timeLeft <= 0) return;
     const timerId = setInterval(() => {
@@ -128,14 +122,14 @@ export default function GroupTestPage() {
     return () => clearInterval(timerId);
   }, [phase, timeLeft]);
 
-  // Save answers to localStorage
+  // Save answers
   useEffect(() => {
     if (Object.keys(answers).length > 0) {
       localStorage.setItem(`testAnswers_${testId}`, JSON.stringify(answers));
     }
   }, [answers, testId]);
 
-  // Save end time to localStorage when test starts
+  // Save end time
   useEffect(() => {
     if (phase === 2 && groupTest) {
       const endTime = Date.now() + groupTest.duration_minutes * 60000;
@@ -153,13 +147,13 @@ export default function GroupTestPage() {
 
   const handleNextQuestion = () => {
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+      setCurrentQuestion((c) => c + 1);
     }
   };
 
   const handlePrevQuestion = () => {
     if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
+      setCurrentQuestion((c) => c - 1);
     }
   };
 
@@ -188,7 +182,6 @@ export default function GroupTestPage() {
     }
   }, [answers, groupTest, testId]);
 
-  // Retake handler (unchanged)
   const handleRetakeTest = async () => {
     try {
       setShowReview(false);
@@ -214,7 +207,6 @@ export default function GroupTestPage() {
     }
   };
 
-  // Copy test link to clipboard
   const copyTestLink = () => {
     const testLink = `${window.location.origin}/group-test/${testId}`;
     navigator.clipboard
@@ -228,7 +220,6 @@ export default function GroupTestPage() {
       });
   };
 
-  // Share test link using Web Share API
   const shareTestLink = () => {
     const testLink = `${window.location.origin}/group-test/${testId}`;
     if (navigator.share) {
@@ -244,10 +235,9 @@ export default function GroupTestPage() {
     }
   };
 
-  // Safely get creator name
   const creatorName = groupTest?.created_by?.username || 'Unknown Creator';
 
-  // —————————— RENDER LOGIC ——————————
+  // RENDER
   if (isLoading) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -279,7 +269,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // ——————— PHASE 0: Countdown to Start ———————
+  // PHASE 0
   if (phase === 0) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -307,9 +297,7 @@ export default function GroupTestPage() {
             <h3 className="mb-3 md:mb-4 text-md md:text-lg font-bold text-gray-800">Test Details</h3>
             <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2">
               <div className="flex items-center">
-                <div className="mr-3 rounded-lg bg-blue-100 p-2">
-                  {/* ...icon... */}
-                </div>
+                <div className="mr-3 rounded-lg bg-blue-100 p-2">{/* icon */}</div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Course</p>
                   <p className="text-sm md:text-base font-medium">
@@ -318,31 +306,14 @@ export default function GroupTestPage() {
                 </div>
               </div>
               <div className="flex items-center">
-                <div className="mr-3 rounded-lg bg-green-100 p-2">
-                  {/* ...icon... */}
-                </div>
+                <div className="mr-3 rounded-lg bg-green-100 p-2">{/* icon */}</div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Questions</p>
                   <p className="text-sm md:text-base font-medium">{questions.length}</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <div className="mr-3 rounded-lg bg-purple-100 p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 md:h-6 md:w-6 text-purple-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
+                <div className="mr-3 rounded-lg bg-purple-100 p-2">{/* icon */}</div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Duration</p>
                   <p className="text-sm md:text-base font-medium">
@@ -351,22 +322,7 @@ export default function GroupTestPage() {
                 </div>
               </div>
               <div className="flex items-center">
-                <div className="mr-3 rounded-lg bg-yellow-100 p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 md:h-6 md:w-6 text-yellow-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                </div>
+                <div className="mr-3 rounded-lg bg-yellow-100 p-2">{/* icon */}</div>
                 <div>
                   <p className="text-xs md:text-sm text-gray-500">Created by</p>
                   <p className="text-sm md:text-base font-medium">{creatorName}</p>
@@ -401,7 +357,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // ——————— PHASE 1: Ready to Start (user must click “Start Test”) ———————
+  // PHASE 1
   if (phase === 1) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -454,7 +410,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // ——————— PHASE 2: Test In Progress ———————
+  // PHASE 2: Test in progress - actions pinned but lifted above phone bottom safe area
   if (phase === 2) {
     if (questions.length === 0) {
       return (
@@ -477,44 +433,43 @@ export default function GroupTestPage() {
     const currentQ = questions[currentQuestion];
 
     return (
-      // Parent uses flex so we can make the middle area scrollable while footer (buttons) remain visible.
       <div className="min-h-screen flex flex-col">
-        <div className="rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg flex flex-col flex-1 max-w-4xl w-full mx-auto">
-          <div className="mb-6 md:mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-gray-800">
-                {groupTest?.name || 'Group Test'}
-              </h2>
-              <p className="text-xs md:text-sm text-gray-500">
-                {groupTest?.course?.name || ''}
-              </p>
-            </div>
-            <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-red-700">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="mr-1 h-4 w-4 md:h-5 md:w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="font-medium">
-                Time Left: {formatTime(timeLeft)}
-              </span>
-            </div>
-          </div>
-
-          {/* Scrollable content area */}
+        <div className="relative rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg max-w-4xl w-full mx-auto flex-1 flex flex-col">
+          {/* Scrollable content with extra padding so it never hides under the footer + safe-area */}
           <div
-            className="flex-1 overflow-y-auto pb-4"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="overflow-y-auto flex-1 pr-2"
+            style={{ paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 12px))', WebkitOverflowScrolling: 'touch' }}
           >
+            <div className="mb-6 md:mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                  {groupTest?.name || 'Group Test'}
+                </h2>
+                <p className="text-xs md:text-sm text-gray-500">
+                  {groupTest?.course?.name || ''}
+                </p>
+              </div>
+              <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-red-700">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="mr-1 h-4 w-4 md:h-5 md:w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="font-medium">
+                  Time Left: {formatTime(timeLeft)}
+                </span>
+              </div>
+            </div>
+
             <div className="mb-6 md:mb-8">
               <div className="mb-3 md:mb-4 flex items-center justify-between">
                 <p className="text-xs md:text-sm text-gray-600">
@@ -579,51 +534,25 @@ export default function GroupTestPage() {
             </div>
           </div>
 
-          {/* Footer / navigation - stays visible at the bottom */}
-          <div className="mt-2 border-t pt-3 flex flex-col sm:flex-row justify-between gap-3 bg-white">
-            <div>
-              <Button
-                onClick={handlePrevQuestion}
-                disabled={currentQuestion === 0}
-                className={`flex items-center rounded-lg px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm ${
-                  currentQuestion === 0
-                    ? 'cursor-not-allowed text-gray-400'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="mr-1 h-4 w-4 md:h-5 md:w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                Previous
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2 justify-end">
-              <Button
-                onClick={handleSubmitTest}
-                className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50"
-              >
-                Submit Test
-              </Button>
-              {currentQuestion < questions.length - 1 ? (
+          {/* Footer pinned to bottom of the card but lifted above device safe area */}
+          <div
+            className="absolute left-0 right-0 bg-white border-t px-4 z-10"
+            style={{ bottom: 'env(safe-area-inset-bottom, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
+          >
+            <div className="pt-3 pb-3 flex flex-col sm:flex-row justify-between gap-3">
+              <div>
                 <Button
-                  onClick={handleNextQuestion}
-                  className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700"
+                  onClick={handlePrevQuestion}
+                  disabled={currentQuestion === 0}
+                  className={`flex items-center rounded-lg px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm ${
+                    currentQuestion === 0
+                      ? 'cursor-not-allowed text-gray-400'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 >
-                  Next
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="ml-1 h-4 w-4 md:h-5 md:w-5"
+                    className="mr-1 h-4 w-4 md:h-5 md:w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -632,11 +561,43 @@ export default function GroupTestPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 5l7 7-7 7"
+                      d="M15 19l-7-7 7-7"
                     />
                   </svg>
+                  Previous
                 </Button>
-              ) : null}
+              </div>
+
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  onClick={handleSubmitTest}
+                  className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50"
+                >
+                  Submit Test
+                </Button>
+                {currentQuestion < questions.length - 1 ? (
+                  <Button
+                    onClick={handleNextQuestion}
+                    className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700"
+                  >
+                    Next
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="ml-1 h-4 w-4 md:h-5 md:w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -644,7 +605,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // ——————— PHASE 3: Test Ended ———————
+  // PHASE 3
   if (phase === 3) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
