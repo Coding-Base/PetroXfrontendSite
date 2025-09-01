@@ -117,12 +117,16 @@ export default function ToolsPage({ onBack }) {
           </div>
         </div>
       ) : showCalculator ? (
+        /* NOTE: This container is now a vertically flexible layout:
+           - max-h-[80vh] keeps it within the viewport on mobile
+           - flex flex-col so the courses list can be scrollable (flex-1
+             with overflow-y-auto) while the footer stays visible */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6"
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col max-h-[80vh]"
         >
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-blue-700">GPA CALCULATOR</h3>
             <Button 
               className="bg-gray-100 text-gray-800 hover:bg-gray-200"
@@ -132,7 +136,8 @@ export default function ToolsPage({ onBack }) {
             </Button>
           </div>
           
-          <div className="mb-6">
+          {/* Main content area: header + scrollable list + add button */}
+          <div className="mb-6 flex-1 flex flex-col overflow-hidden">
             <div className="grid grid-cols-12 gap-4 mb-3 font-medium text-gray-700 text-sm">
               <div className="col-span-5">Course</div>
               <div className="col-span-3">Units</div>
@@ -141,7 +146,10 @@ export default function ToolsPage({ onBack }) {
             </div>
             
             {/* Scrollable course list container */}
-            <div className="max-h-[50vh] overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50 scrollbar-thumb-rounded-full">
+            <div
+              className="flex-1 overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50 scrollbar-thumb-rounded-full"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {courses.map((course, index) => (
                 <div key={index} className="grid grid-cols-12 gap-4 mb-3">
                   <input
@@ -183,15 +191,19 @@ export default function ToolsPage({ onBack }) {
               ))}
             </div>
             
-            <Button 
-              onClick={addCourse}
-              className="bg-blue-500 hover:bg-blue-600 text-white flex items-center"
-            >
-              <Plus className="h-4 w-4 mr-2" /> Add Course
-            </Button>
+            {/* Add Course button remains outside the scroll area so it's always reachable */}
+            <div className="mb-2">
+              <Button 
+                onClick={addCourse}
+                className="bg-blue-500 hover:bg-blue-600 text-white flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Course
+              </Button>
+            </div>
           </div>
           
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-blue-100 pt-6">
+          {/* Footer / actions - stays visible */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-blue-100 pt-4">
             <div className="flex items-center gap-4">
               <Button 
                 onClick={calculateGPA}
