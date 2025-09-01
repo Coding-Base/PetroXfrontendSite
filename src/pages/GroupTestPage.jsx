@@ -237,7 +237,7 @@ export default function GroupTestPage() {
 
   const creatorName = groupTest?.created_by?.username || 'Unknown Creator';
 
-  // RENDER
+  // — RENDER —
   if (isLoading) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -269,7 +269,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 0
+  // PHASE 0 & 1 (unchanged)...
   if (phase === 0) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -357,7 +357,6 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 1
   if (phase === 1) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
@@ -410,7 +409,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 2: Test in progress - actions pinned but lifted above phone bottom safe area
+  // PHASE 2 (TEST IN PROGRESS) — NAV BUTTONS MOVED TO TOP (above scroll area)
   if (phase === 2) {
     if (questions.length === 0) {
       return (
@@ -434,22 +433,20 @@ export default function GroupTestPage() {
 
     return (
       <div className="min-h-screen flex flex-col">
-        <div className="relative rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg max-w-4xl w-full mx-auto flex-1 flex flex-col">
-          {/* Scrollable content with extra padding so it never hides under the footer + safe-area */}
-          <div
-            className="overflow-y-auto flex-1 pr-2"
-            style={{ paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 12px))', WebkitOverflowScrolling: 'touch' }}
-          >
-            <div className="mb-6 md:mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="text-lg md:text-xl font-bold text-gray-800">
-                  {groupTest?.name || 'Group Test'}
-                </h2>
-                <p className="text-xs md:text-sm text-gray-500">
-                  {groupTest?.course?.name || ''}
-                </p>
-              </div>
-              <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-red-700">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg max-w-4xl w-full mx-auto flex-1 flex flex-col">
+          {/* TOP BAR: Title, time and NAV buttons — always visible because it's outside scrollable area */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                {groupTest?.name || 'Group Test'}
+              </h2>
+              <p className="text-xs md:text-sm text-gray-500">
+                {groupTest?.course?.name || ''}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs md:text-sm text-red-700">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="mr-1 h-4 w-4 md:h-5 md:w-5"
@@ -464,83 +461,11 @@ export default function GroupTestPage() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="font-medium">
-                  Time Left: {formatTime(timeLeft)}
-                </span>
-              </div>
-            </div>
-
-            <div className="mb-6 md:mb-8">
-              <div className="mb-3 md:mb-4 flex items-center justify-between">
-                <p className="text-xs md:text-sm text-gray-600">
-                  Question{' '}
-                  <span className="font-medium">{currentQuestion + 1}</span> of{' '}
-                  <span className="font-medium">{questions.length}</span>
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {questions.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${
-                        currentQuestion === idx
-                          ? 'bg-blue-600'
-                          : answers[questions[idx]?.id]
-                            ? 'bg-green-500'
-                            : 'bg-gray-300'
-                      }`}
-                    ></div>
-                  ))}
-                </div>
+                <span className="font-medium">Time Left: {formatTime(timeLeft)}</span>
               </div>
 
-              <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
-                <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800 break-words">
-                  {currentQ?.question_text || 'Question not available'}
-                </h3>
-                <div className="space-y-2 md:space-y-3">
-                  {['A', 'B', 'C', 'D'].map((option, idx) => {
-                    const labelText = currentQ
-                      ? currentQ[`option_${option.toLowerCase()}`]
-                      : '';
-                    return (
-                      <div key={idx} className="flex items-start">
-                        <input
-                          type="radio"
-                          id={`option-${idx}`}
-                          name="answer"
-                          checked={answers[currentQ?.id] === option}
-                          onChange={() =>
-                            currentQ && handleAnswerChange(currentQ.id, option)
-                          }
-                          className="mt-1 h-4 w-4 text-blue-600"
-                          disabled={!currentQ}
-                        />
-                        <label
-                          htmlFor={`option-${idx}`}
-                          className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${
-                            answers[currentQ?.id] === option
-                              ? 'border border-blue-200 bg-blue-50'
-                              : 'hover:bg-gray-100'
-                          }`}
-                        >
-                          <span className="mr-1 font-medium">{option}.</span>{' '}
-                          {labelText || `Option ${option}`}
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer pinned to bottom of the card but lifted above device safe area */}
-          <div
-            className="absolute left-0 right-0 bg-white border-t px-4 z-10"
-            style={{ bottom: 'env(safe-area-inset-bottom, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
-          >
-            <div className="pt-3 pb-3 flex flex-col sm:flex-row justify-between gap-3">
-              <div>
+              {/* Navigation controls moved here (top) */}
+              <div className="flex items-center gap-2">
                 <Button
                   onClick={handlePrevQuestion}
                   disabled={currentQuestion === 0}
@@ -566,16 +491,15 @@ export default function GroupTestPage() {
                   </svg>
                   Previous
                 </Button>
-              </div>
 
-              <div className="flex flex-wrap gap-2 justify-end">
                 <Button
                   onClick={handleSubmitTest}
                   className="rounded-lg border border-red-500 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-red-600 transition duration-200 hover:bg-red-50"
                 >
-                  Submit Test
+                  Submit
                 </Button>
-                {currentQuestion < questions.length - 1 ? (
+
+                {currentQuestion < questions.length - 1 && (
                   <Button
                     onClick={handleNextQuestion}
                     className="flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-white transition duration-200 hover:bg-blue-700"
@@ -596,7 +520,73 @@ export default function GroupTestPage() {
                       />
                     </svg>
                   </Button>
-                ) : null}
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable content area */}
+          <div className="overflow-y-auto flex-1 pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="mb-6 md:mb-8">
+              <div className="mb-3 md:mb-4 flex items-center justify-between">
+                <p className="text-xs md:text-sm text-gray-600">
+                  Question{' '}
+                  <span className="font-medium">{currentQuestion + 1}</span> of{' '}
+                  <span className="font-medium">{questions.length}</span>
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {questions.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${
+                        currentQuestion === idx
+                          ? 'bg-blue-600'
+                          : answers[questions[idx]?.id]
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
+                <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800 break-words">
+                  {questions[currentQuestion]?.question_text || 'Question not available'}
+                </h3>
+                <div className="space-y-2 md:space-y-3">
+                  {['A', 'B', 'C', 'D'].map((option, idx) => {
+                    const labelText = questions[currentQuestion]
+                      ? questions[currentQuestion][`option_${option.toLowerCase()}`]
+                      : '';
+                    return (
+                      <div key={idx} className="flex items-start">
+                        <input
+                          type="radio"
+                          id={`option-${idx}`}
+                          name="answer"
+                          checked={answers[questions[currentQuestion]?.id] === option}
+                          onChange={() =>
+                            questions[currentQuestion] && handleAnswerChange(questions[currentQuestion].id, option)
+                          }
+                          className="mt-1 h-4 w-4 text-blue-600"
+                          disabled={!questions[currentQuestion]}
+                        />
+                        <label
+                          htmlFor={`option-${idx}`}
+                          className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${
+                            answers[questions[currentQuestion]?.id] === option
+                              ? 'border border-blue-200 bg-blue-50'
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="mr-1 font-medium">{option}.</span>{' '}
+                          {labelText || `Option ${option}`}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -605,7 +595,7 @@ export default function GroupTestPage() {
     );
   }
 
-  // PHASE 3
+  // PHASE 3 (unchanged)
   if (phase === 3) {
     return (
       <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
