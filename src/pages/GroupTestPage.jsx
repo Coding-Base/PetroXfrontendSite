@@ -473,10 +473,13 @@ export default function GroupTestPage() {
         </div>
       );
     }
+
     const currentQ = questions[currentQuestion];
+
     return (
-      <div className="min-h-screen overflow-y-auto md:h-auto md:overflow-visible">
-        <div className="rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg">
+      // Parent uses flex so we can make the middle area scrollable while footer (buttons) remain visible.
+      <div className="min-h-screen flex flex-col">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 md:p-6 shadow-lg flex flex-col flex-1 max-w-4xl w-full mx-auto">
           <div className="mb-6 md:mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-lg md:text-xl font-bold text-gray-800">
@@ -506,68 +509,78 @@ export default function GroupTestPage() {
               </span>
             </div>
           </div>
-          <div className="mb-6 md:mb-8">
-            <div className="mb-3 md:mb-4 flex items-center justify-between">
-              <p className="text-xs md:text-sm text-gray-600">
-                Question{' '}
-                <span className="font-medium">{currentQuestion + 1}</span> of{' '}
-                <span className="font-medium">{questions.length}</span>
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {questions.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${
-                      currentQuestion === idx
-                        ? 'bg-blue-600'
-                        : answers[questions[idx]?.id]
-                          ? 'bg-green-500'
-                          : 'bg-gray-300'
-                    }`}
-                  ></div>
-                ))}
+
+          {/* Scrollable content area */}
+          <div
+            className="flex-1 overflow-y-auto pb-4"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="mb-6 md:mb-8">
+              <div className="mb-3 md:mb-4 flex items-center justify-between">
+                <p className="text-xs md:text-sm text-gray-600">
+                  Question{' '}
+                  <span className="font-medium">{currentQuestion + 1}</span> of{' '}
+                  <span className="font-medium">{questions.length}</span>
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {questions.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${
+                        currentQuestion === idx
+                          ? 'bg-blue-600'
+                          : answers[questions[idx]?.id]
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                      }`}
+                    ></div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
-              <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800">
-                {currentQ?.question_text || 'Question not available'}
-              </h3>
-              <div className="space-y-2 md:space-y-3">
-                {['A', 'B', 'C', 'D'].map((option, idx) => {
-                  const labelText = currentQ
-                    ? currentQ[`option_${option.toLowerCase()}`]
-                    : '';
-                  return (
-                    <div key={idx} className="flex items-start">
-                      <input
-                        type="radio"
-                        id={`option-${idx}`}
-                        name="answer"
-                        checked={answers[currentQ?.id] === option}
-                        onChange={() =>
-                          currentQ && handleAnswerChange(currentQ.id, option)
-                        }
-                        className="mt-1 h-4 w-4 text-blue-600"
-                        disabled={!currentQ}
-                      />
-                      <label
-                        htmlFor={`option-${idx}`}
-                        className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${
-                          answers[currentQ?.id] === option
-                            ? 'border border-blue-200 bg-blue-50'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="mr-1 font-medium">{option}.</span>{' '}
-                        {labelText || `Option ${option}`}
-                      </label>
-                    </div>
-                  );
-                })}
+
+              <div className="mb-4 md:mb-6 rounded-lg bg-gray-50 p-4 md:p-6">
+                <h3 className="mb-3 md:mb-4 text-base md:text-lg font-medium text-gray-800 break-words">
+                  {currentQ?.question_text || 'Question not available'}
+                </h3>
+                <div className="space-y-2 md:space-y-3">
+                  {['A', 'B', 'C', 'D'].map((option, idx) => {
+                    const labelText = currentQ
+                      ? currentQ[`option_${option.toLowerCase()}`]
+                      : '';
+                    return (
+                      <div key={idx} className="flex items-start">
+                        <input
+                          type="radio"
+                          id={`option-${idx}`}
+                          name="answer"
+                          checked={answers[currentQ?.id] === option}
+                          onChange={() =>
+                            currentQ && handleAnswerChange(currentQ.id, option)
+                          }
+                          className="mt-1 h-4 w-4 text-blue-600"
+                          disabled={!currentQ}
+                        />
+                        <label
+                          htmlFor={`option-${idx}`}
+                          className={`ml-2 block w-full cursor-pointer rounded-lg p-2 md:p-3 text-sm md:text-base transition duration-200 ${
+                            answers[currentQ?.id] === option
+                              ? 'border border-blue-200 bg-blue-50'
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="mr-1 font-medium">{option}.</span>{' '}
+                          {labelText || `Option ${option}`}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col justify-between gap-3 sm:flex-row">
+
+          {/* Footer / navigation - stays visible at the bottom */}
+          <div className="mt-2 border-t pt-3 flex flex-col sm:flex-row justify-between gap-3 bg-white">
             <div>
               <Button
                 onClick={handlePrevQuestion}
