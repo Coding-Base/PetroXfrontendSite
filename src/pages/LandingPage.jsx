@@ -52,6 +52,14 @@ const LandingPage = () => {
     }
   ];
   
+  // helper to safely format numbers
+  const safeFormatNumber = (v) => {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'number') return v.toLocaleString();
+    const n = Number(v);
+    return Number.isNaN(n) ? '—' : n.toLocaleString();
+  };
+
   // Fetch stats from backend
   const fetchStats = async () => {
     try {
@@ -60,16 +68,16 @@ const LandingPage = () => {
       if (response.ok) {
         const data = await response.json();
         setStats({
-          users: data.total_users || 94,
-          questions: data.total_questions || 538,
-          downloads: data.total_downloads || 20
+          users: data.total_users ?? 94,
+          questions: data.total_questions ?? 538,
+          downloads: data.total_downloads ?? 20
         });
       } else {
         // Fallback to default values if API fails
         setStats({
           users: 94,
           questions: 538,
-          downloadable: 20
+          downloads: 20
         });
       }
     } catch (error) {
@@ -78,7 +86,7 @@ const LandingPage = () => {
       setStats({
         users: 94,
         questions: 538,
-        downloadable: 20
+        downloads: 20
       });
     } finally {
       setLoading(false);
@@ -343,19 +351,19 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
             <div className="text-center">
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {stats.users.toLocaleString()}+
+                {safeFormatNumber(stats.users)}+
               </div>
               <div className="mt-2 text-base font-medium md:text-lg">Current Users</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {stats.questions.toLocaleString()}+
+                {safeFormatNumber(stats.questions)}+
               </div>
               <div className="mt-2 text-base font-medium md:text-lg">Past Questions</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {stats.downloads.toLocaleString()}+
+                {safeFormatNumber(stats.downloads)}+
               </div>
               <div className="mt-2 text-base font-medium md:text-lg">Resources Downloadable</div>
             </div>
@@ -606,14 +614,14 @@ const LandingPage = () => {
               </div>
               <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Resource Library</h3>
               <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
-                Access our collection of {stats.questions.toLocaleString()}+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
+                Access our collection of {safeFormatNumber(stats.questions)}+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
               </p>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   PDF Downloads
                 </span>
                 <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  {stats.questions.toLocaleString()}+ Resources
+                  {safeFormatNumber(stats.questions)}+ Resources
                 </span>
                 <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
                   All Subjects
@@ -976,11 +984,10 @@ const testimonials = [
       'Creating group tests with friends made studying enjoyable. Finding quality study materials used to take hours. With PetroX, everything is in one place.'
   },
   {
-    name: 'GIDEON OJUMIRAYO A.',
+    name: 'GIDEON OJUMIRAYO A.',
     role: 'Geology Student',
     quote:
       'The website is an excellent resource for students, especially those in 100 level. The tests provided are well-structured, engaging, and highly beneficial for academic growth. I truly appreciate the platform — its a great tool that supports learning and helps students prepare effectively, especially for 100L students'
-
   }
 ];
 
@@ -1021,12 +1028,3 @@ const resources = [
 ];
 
 export default LandingPage;
-
-
-
-
-
-
-
-
-
