@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Base URL for backend API - ensure no trailing slash
 const rawBaseURL = import.meta.env.VITE_SERVER_URL;
-const baseURL = rawBaseURL.endsWith('/') 
-  ? rawBaseURL.slice(0, -1) 
+const baseURL = rawBaseURL.endsWith('/')
+  ? rawBaseURL.slice(0, -1)
   : rawBaseURL;
 
 // Create an Axios instance
@@ -20,17 +20,13 @@ const getRefreshToken = () => localStorage.getItem('refresh_token');
 // ===================== REQUEST INTERCEPTOR =====================
 api.interceptors.request.use(
   config => {
-    // Endpoints that don't require authentication
     const unauthenticatedEndpoints = [
-      '/api/token',          // Login endpoint
-      '/api/token/refresh',  // Token refresh endpoint
-      '/users'               // Registration endpoint
+      '/api/token',
+      '/api/token/refresh',
+      '/users'
     ];
 
-    // Extract just the pathname from the request URL
     const requestPath = new URL(config.url, baseURL).pathname;
-
-    // Only skip adding token if the path starts with any unauthenticated endpoint
     const isUnauthenticated = unauthenticatedEndpoints.some(path =>
       requestPath.startsWith(path)
     );
@@ -54,26 +50,24 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
-    
-    // Handle timeouts and network errors
+
     if (error.code === 'ECONNABORTED') {
       return Promise.reject({
         message: 'Request timed out. Please try again.',
         isTimeout: true
       });
     }
-    
+
     if (!error.response) {
       const onlineStatus = typeof navigator !== 'undefined' ? navigator.onLine : true;
       return Promise.reject({
-        message: onlineStatus 
-          ? 'Server connection failed. Please try again later.' 
+        message: onlineStatus
+          ? 'Server connection failed. Please try again later.'
           : 'Network error. Please check your internet connection.',
         isNetworkError: true
       });
     }
-    
-    // Handle token refresh
+
     if (
       error.response &&
       error.response.status === 401 &&
@@ -153,9 +147,9 @@ export const fetchUserUploadStats = () =>
 // ===================== MATERIALS ENDPOINTS =====================
 export const uploadMaterial = (formData) => {
   return api.post('/api/materials/upload/', formData, {
-    headers: { 
+    headers: {
       'Content-Type': 'multipart/form-data',
-      'X-Upload-Timeout': '120000' // 120 seconds for uploads
+      'X-Upload-Timeout': '120000'
     },
     timeout: 120000
   });
@@ -165,9 +159,15 @@ export const searchMaterials = (query) =>
   api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`)
     .then(response => response.data);
 
+// ✅ Always return { download_url } for frontend
 export const downloadMaterial = (materialId) =>
   api.get(`/api/materials/download/${materialId}/`)
-    .then(response => response.data);
+    .then(response => {
+      if (response.data?.download_url) {
+        return { download_url: response.data.download_url };
+      }
+      return response.data; // fallback
+    });
 
 // ===================== QUESTION ENDPOINTS =====================
 export const fetchPendingQuestions = () =>
