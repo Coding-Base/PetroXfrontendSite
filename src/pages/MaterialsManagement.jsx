@@ -282,21 +282,27 @@ export default function MaterialsManagement() {
     }
   };
 
+  // UPDATED: strictly use backend-provided signed URL to avoid 401
   const handleDownload = async (material) => {
     try {
+      // Request backend for a signed or public download URL
       const downloadData = await downloadMaterial(material.id);
 
-      // Use either direct URL or API-provided URL
-      const downloadUrl = downloadData?.download_url || material.file_url || material.url;
+      // Only trust backend-provided URL — accept either top-level or nested data
+      const downloadUrl = downloadData?.download_url || downloadData?.data?.download_url;
 
       if (!downloadUrl) {
-        throw new Error('No download URL available');
+        throw new Error('No secure download URL available');
       }
 
-      // Create a temporary link to trigger download
+      // Create a temporary link to trigger download.
+      // Note: some browsers ignore the `download` attribute for cross-origin URLs.
+      // We attempt to set `download` and also open in a new tab as fallback.
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.setAttribute('download', material.name);
+      link.setAttribute('download', material.name || '');
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
