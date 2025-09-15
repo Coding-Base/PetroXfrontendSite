@@ -10,6 +10,7 @@ const baseURL = rawBaseURL.endsWith('/')
 // Create an Axios instance
 export const api = axios.create({
   baseURL,
+  // keep JSON as default for normal endpoints; we'll explicitly remove it for multipart uploads
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000, // 30 seconds global timeout
 });
@@ -27,7 +28,7 @@ api.interceptors.request.use(
       '/users'
     ];
 
-    // Use URL constructor to get pathname; works with absolute or relative config.url
+    // Build pathname relative to baseURL
     const requestPath = new URL(config.url, baseURL).pathname;
     const isUnauthenticated = unauthenticatedEndpoints.some(path =>
       requestPath.startsWith(path)
@@ -38,7 +39,8 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       } else {
-        console.warn(`No access token found for ${requestPath}`);
+        // not fatal — some endpoints are public
+        // console.warn(`No access token found for ${requestPath}`);
       }
     }
 
@@ -51,7 +53,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   async error => {
-    const originalRequest = error.config;
+    const originalRequest = error.config || {};
 
     if (error.code === 'ECONNABORTED') {
       return Promise.reject({
@@ -70,6 +72,7 @@ api.interceptors.response.use(
       });
     }
 
+    // Try refresh on 401 (standard pattern)
     if (
       error.response &&
       error.response.status === 401 &&
@@ -77,10 +80,7 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        const { data } = await api.post(
-          '/api/token/refresh/',
-          { refresh: getRefreshToken() }
-        );
+        const { data } = await api.post('/api/token/refresh/', { refresh: getRefreshToken() });
         localStorage.setItem('access_token', data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
@@ -90,6 +90,7 @@ api.interceptors.response.use(
         return Promise.reject(e);
       }
     }
+
     return Promise.reject(error);
   }
 );
@@ -147,15 +148,33 @@ export const fetchUserUploadStats = () =>
   api.get('/api/user/upload-stats/');
 
 // ===================== MATERIALS ENDPOINTS =====================
-// IMPORTANT: do NOT set 'Content-Type' manually for multipart/form-data.
-// Let the browser set the correct Content-Type including boundary.
-export const uploadMaterial = (formData) => {
+// IMPORTANT: We must ensure the browser sets the Content-Type + boundary header for multipart.
+// Because the api instance has a default 'application/json' Content-Type, we explicitly
+// remove/clear that header for this request using transformRequest so the browser can set it.
+export const uploadMaterial = (formData, onUploadProgress) => {
   return api.post('/api/materials/upload/', formData, {
+    timeout: 120000,
     headers: {
-      // remove Content-Type here; allow browser to set boundary
+      // keep custom headers if needed; do NOT set Content-Type here.
       'X-Upload-Timeout': '120000'
     },
-    timeout: 120000
+    // This transformRequest runs in the browser right before sending. Deleting the header ensures
+    // the browser will add the correct multipart/form-data; boundary=... header automatically.
+    transformRequest: [(data, headers) => {
+      if (headers) {
+        // axios may provide headers.common / headers['Content-Type'] - ensure deletion
+        if (headers['Content-Type']) {
+          delete headers['Content-Type'];
+        }
+        if (headers.common && headers.common['Content-Type']) {
+          delete headers.common['Content-Type'];
+        }
+      }
+      return data;
+    }],
+    onUploadProgress: typeof onUploadProgress === 'function' ? (progressEvent) => {
+      onUploadProgress(progressEvent);
+    } : undefined,
   });
 };
 
@@ -163,7 +182,7 @@ export const searchMaterials = (query) =>
   api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`)
     .then(response => response.data);
 
-// ✅ Always return { download_url } for frontend
+// Always return { download_url } for frontend
 export const downloadMaterial = (materialId) =>
   api.get(`/api/materials/download/${materialId}/`)
     .then(response => {
@@ -182,7 +201,7 @@ export const updateQuestionStatus = (questionId, status) =>
 
 export const previewPassQuestions = (formData) =>
   api.post('/api/preview-pass-questions/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' } // minor special case if needed
   });
 
 export const uploadPassQuestions = (payload) =>
