@@ -26,6 +26,7 @@ api.interceptors.request.use(
       '/users'
     ];
 
+    // If config.url is absolute it will work; the URL constructor handles relative
     const requestPath = new URL(config.url, baseURL).pathname;
     const isUnauthenticated = unauthenticatedEndpoints.some(path =>
       requestPath.startsWith(path)
@@ -146,13 +147,14 @@ export const fetchUserUploadStats = () =>
 
 // ===================== MATERIALS ENDPOINTS =====================
 export const uploadMaterial = (formData) => {
+  // IMPORTANT: do NOT set Content-Type manually for FormData; the browser will set the boundary.
   return api.post('/api/materials/upload/', formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      // let the browser set multipart boundary automatically
       'X-Upload-Timeout': '120000'
     },
     timeout: 120000
-  });
+  }).then(response => response.data);
 };
 
 export const searchMaterials = (query) =>
