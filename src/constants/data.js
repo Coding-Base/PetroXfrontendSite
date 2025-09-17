@@ -13,13 +13,6 @@ export const navItems = [
     label: 'Learning System'
   },
 
-
-  {
-    title: "Campus Navigator",
-    icon: "Compass",
-    href: "/dashboard/campus-navigator",
-    disabled: false,
-  },
   {
     title: 'Past Questions',
     href: '/dashboard/past-questions',
@@ -174,3 +167,4 @@ export const dashboardCard = [
     color: 'bg-[#D289FF] bg-opacity-30'
   }
 ];
+
