@@ -7,10 +7,17 @@ export const navItems = [
   },
   {
     title: "Learning System",
-    icon: "Book",
+    icon: "Brain",
     href: "/dashboard/learning-system",
     disabled: false,
     label: 'Learning System'
+  },
+  {
+    title: "Updates",
+    icon: "Bell",
+    href: "/dashboard/updates",
+    disabled: false,
+    label: 'UPDATES AND PETROX NEWS '
   },
 
   {
