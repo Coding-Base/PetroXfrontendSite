@@ -9,41 +9,45 @@ const baseURL = rawBaseURL.endsWith('/')
 // Create an Axios instance
 export const api = axios.create({
   baseURL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache', // Add cache control headers
+    'Pragma': 'no-cache'
+  },
   timeout: 30000,
 });
 
-// Token helpers
-const getAccessToken  = () => localStorage.getItem('access_token');
-const getRefreshToken = () => localStorage.getItem('refresh_token');
+// Add a timestamp parameter to all requests to prevent caching
+api.interceptors.request.use(config => {
+  // Add timestamp to prevent caching
+  if (config.params) {
+    config.params.timestamp = Date.now();
+  } else {
+    config.params = { timestamp: Date.now() };
+  }
+  
+  const unauthenticatedEndpoints = [
+    '/api/token',
+    '/api/token/refresh',
+    '/users'
+  ];
 
-// Request interceptor (unchanged)
-api.interceptors.request.use(
-  config => {
-    const unauthenticatedEndpoints = [
-      '/api/token',
-      '/api/token/refresh',
-      '/users'
-    ];
+  const requestPath = new URL(config.url, baseURL).pathname;
+  const isUnauthenticated = unauthenticatedEndpoints.some(path =>
+    requestPath.startsWith(path)
+  );
 
-    const requestPath = new URL(config.url, baseURL).pathname;
-    const isUnauthenticated = unauthenticatedEndpoints.some(path =>
-      requestPath.startsWith(path)
-    );
-
-    if (!isUnauthenticated) {
-      const token = getAccessToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+  if (!isUnauthenticated) {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+  }
 
-    return config;
-  },
-  error => Promise.reject(error)
-);
+  return config;
+}, error => Promise.reject(error));
 
-// Response interceptor (unchanged)
+// Rest of your interceptors and API endpoints remain the same
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -69,7 +73,9 @@ api.interceptors.response.use(
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const { data } = await api.post('/api/token/refresh/', { refresh: getRefreshToken() });
+        const { data } = await api.post('/api/token/refresh/', { 
+          refresh: localStorage.getItem('refresh_token') 
+        });
         localStorage.setItem('access_token', data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
