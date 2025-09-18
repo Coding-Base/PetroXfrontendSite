@@ -24,6 +24,7 @@ const NotFounds = lazy(() => import('../pages/NotFound'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
+const Updates = lazy(() => import('../pages/UpdatesTab'))
 
 // ----------------------------------------------------------------------
 
@@ -55,9 +56,13 @@ export default function AppRouter() {
           element: <DashboardPage />,
           index: true
         },
+         {
+          path: 'updates',
+          element: (<> <Updates /><TrackPageViews /></>) 
+         },
         {
           path: 'group-test/:testId',
-          element: <GroupTestPage />
+          element: (<><GroupTestPage />  <TrackPageViews /></>)
         },
          {
           path: 'learning-system',
