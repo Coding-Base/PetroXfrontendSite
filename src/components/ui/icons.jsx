@@ -37,6 +37,7 @@ import {
   Wrench,
   Compass,
   Book,
+  Bell,
 } from 'lucide-react';
 
 export const Icons = {
@@ -94,4 +95,6 @@ export const Icons = {
   tool: Wrench,
   Compass: Compass,
   Book: Book,
+  Brain:Brain,
+  Bell:Bell,
 };
