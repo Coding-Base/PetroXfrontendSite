@@ -21,6 +21,7 @@ import {
 } from 'chart.js';
 import {Button} from '../components/ui/button'
 import AffiliateDeals from '@/pages/AffilateDeals';
+import UpdatesBell from '@/components/UpdatesBell'; // NEW: bell icon that routes to UpdateTab
 
 // Register chart components
 ChartJS.register(
@@ -327,6 +328,11 @@ export default function Dashboard() {
                 </span>
               )}
             </h1>
+
+            {/* NEW: Updates bell in header — clicking opens the separate updates route */}
+            <div className="ml-auto">
+              <UpdatesBell onOpen={() => navigate('/dashboard/updates')} />
+            </div>
           </div>
           
           {testRankInfo ? (
