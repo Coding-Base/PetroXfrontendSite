@@ -1,17 +1,36 @@
+// src/api/index.jsx
 import axios from 'axios';
 
-// Base URL for backend API - ensure no trailing slash
-const rawBaseURL = import.meta.env.VITE_SERVER_URL;
-const baseURL = rawBaseURL.endsWith('/')
-  ? rawBaseURL.slice(0, -1)
-  : rawBaseURL;
+// Read backend base URL from environment and normalize (remove trailing slash)
+const rawBaseURL = import.meta.env.VITE_SERVER_URL || '';
+const baseURL = rawBaseURL ? rawBaseURL.replace(/\/+$/, '') : '';
+
+// Helpful debug message so you can see where requests will go.
+// In production you may remove or reduce logging.
+if (!baseURL) {
+  // eslint-disable-next-line no-console
+  console.error(
+    'VITE_SERVER_URL is not set. The frontend will call the current origin for /api/* which may return index.html. ' +
+    'Set VITE_SERVER_URL to your backend API base (e.g. https://petroxtestbackend.onrender.com) in your Render environment variables and redeploy.'
+  );
+} else {
+  // eslint-disable-next-line no-console
+  console.info('API base URL:', baseURL);
+}
 
 // Create an Axios instance
 export const api = axios.create({
-  baseURL,
+  baseURL, // if empty, requests will be relative to the current origin (not desired in prod)
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
+
+// Utility: build a full URL for debugging (not used by axios)
+export const getFullUrl = (path) => {
+  if (!path) return baseURL || window.location.origin;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return baseURL ? `${baseURL}${normalizedPath}` : `${window.location.origin}${normalizedPath}`;
+};
 
 // Token helpers
 const getAccessToken  = () => localStorage.getItem('access_token');
@@ -20,20 +39,33 @@ const getRefreshToken = () => localStorage.getItem('refresh_token');
 // ===================== REQUEST INTERCEPTOR =====================
 api.interceptors.request.use(
   config => {
+    // list endpoints that don't require auth tokens
     const unauthenticatedEndpoints = [
       '/api/token',
       '/api/token/refresh',
       '/users'
     ];
 
-    const requestPath = new URL(config.url, baseURL).pathname;
-    const isUnauthenticated = unauthenticatedEndpoints.some(path =>
-      requestPath.startsWith(path)
-    );
+    // Build pathname safely using baseURL or current origin
+    let baseForUrl = baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
+    try {
+      const requestPath = new URL(config.url, baseForUrl).pathname;
+      const isUnauthenticated = unauthenticatedEndpoints.some(path =>
+        requestPath.startsWith(path)
+      );
 
-    if (!isUnauthenticated) {
+      if (!isUnauthenticated) {
+        const token = getAccessToken();
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (e) {
+      // If URL parsing fails, just attach token if present
       const token = getAccessToken();
       if (token) {
+        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -66,16 +98,19 @@ api.interceptors.response.use(
       });
     }
 
+    // Try refresh on 401
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const { data } = await api.post('/api/token/refresh/', { refresh: getRefreshToken() });
         localStorage.setItem('access_token', data.access);
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
       } catch (e) {
         localStorage.clear();
-        window.location.href = '/login';
+        // Redirect to login page
+        if (typeof window !== 'undefined') window.location.href = '/login';
         return Promise.reject(e);
       }
     }
@@ -95,12 +130,13 @@ export const registerUser = (username, email, password) =>
   api.post('/users/', { username, email, password });
 
 // ===================== UPDATES ENDPOINTS =====================
-// Modified fetchUpdates to include cache-busting parameter
-export const fetchUpdates = (page_size = 20) => 
+// fetchUpdates adds a cache-buster _t param and requests no-cache
+export const fetchUpdates = (page_size = 20, extraParams = {}) =>
   api.get('/api/updates/', {
     params: {
       page_size,
-      _: Date.now() // Cache-busting parameter
+      _t: Date.now(),           // cache-buster to avoid stale CDN cache
+      ...extraParams
     },
     headers: {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -109,18 +145,37 @@ export const fetchUpdates = (page_size = 20) =>
     }
   });
 
-export const fetchUpdate = (slug) => api.get(`/api/updates/${slug}/`);
-export const likeUpdate = (slug) => api.post(`/api/updates/${slug}/like/`);
-export const unlikeUpdate = (slug) => api.post(`/api/updates/${slug}/unlike/`);
-export const checkLikeStatus = (slug) => api.get(`/api/updates/${slug}/like_status/`);
-export const getUnreadCount = () => api.get('/api/updates/unread_count/');
-export const markAllUpdatesRead = () => api.post('/api/updates/mark_all_read/');
+// detail, like/unlike, like_status, unread_count, mark_all_read
+export const fetchUpdate = (slug) =>
+  api.get(`/api/updates/${encodeURIComponent(slug)}/`);
+
+export const likeUpdate = (slug) =>
+  api.post(`/api/updates/${encodeURIComponent(slug)}/like/`);
+
+export const unlikeUpdate = (slug) =>
+  api.post(`/api/updates/${encodeURIComponent(slug)}/unlike/`);
+
+export const checkLikeStatus = (slug) =>
+  api.get(`/api/updates/${encodeURIComponent(slug)}/like_status/`);
+
+export const getUnreadCount = () =>
+  api.get('/api/updates/unread_count/');
+
+export const markAllUpdatesRead = () =>
+  api.post('/api/updates/mark_all_read/');
 
 // ===================== COMMENTS ENDPOINTS =====================
-export const fetchComments = (updateId) => api.get(`/api/comments/?update=${updateId}`);
-export const createComment = (data) => api.post('/api/comments/', data);
-export const updateComment = (id, data) => api.put(`/api/comments/${id}/`, data);
-export const deleteComment = (id) => api.delete(`/api/comments/${id}/`);
+export const fetchComments = (updateId, params = {}) =>
+  api.get('/api/comments/', { params: { update: updateId, ...params } });
+
+export const createComment = (data) =>
+  api.post('/api/comments/', data);
+
+export const updateComment = (id, data) =>
+  api.put(`/api/comments/${encodeURIComponent(id)}/`, data);
+
+export const deleteComment = (id) =>
+  api.delete(`/api/comments/${encodeURIComponent(id)}/`);
 
 // ===================== COURSES ENDPOINTS =====================
 export const fetchCourses = () => api.get('/api/courses/');
@@ -134,10 +189,10 @@ export const startTest = (courseId, questionCount, duration) =>
   });
 
 export const submitTest = (sessionId, answers) =>
-  api.post(`/api/submit-test/${sessionId}/`, { answers });
+  api.post(`/api/submit-test/${encodeURIComponent(sessionId)}/`, { answers });
 
 export const fetchTestSession = sessionId =>
-  api.get(`/api/test-session/${sessionId}/`);
+  api.get(`/api/test-session/${encodeURIComponent(sessionId)}/`);
 
 // ===================== HISTORY ENDPOINTS =====================
 export const fetchHistory = () => api.get('/api/history/');
@@ -148,7 +203,7 @@ export const createGroupTest = payload =>
   api.post('/api/create-group-test/', payload);
 
 export const fetchGroupTestDetail = testId =>
-  api.get(`/api/group-test/${testId}/`);
+  api.get(`/api/group-test/${encodeURIComponent(testId)}/`);
 
 // ===================== LEADERBOARD ENDPOINTS =====================
 export const fetchLeaderboard = () => api.get('/api/leaderboard/');
@@ -178,7 +233,7 @@ export const searchMaterials = (query) =>
     .then(response => response.data);
 
 export const downloadMaterial = (materialId) =>
-  api.get(`/api/materials/download/${materialId}/`)
+  api.get(`/api/materials/download/${encodeURIComponent(materialId)}/`)
     .then(response => {
       if (response.data?.download_url) {
         return { download_url: response.data.download_url };
@@ -188,8 +243,9 @@ export const downloadMaterial = (materialId) =>
 
 // ===================== QUESTION ENDPOINTS =====================
 export const fetchPendingQuestions = () => api.get('/api/questions/pending/');
+
 export const updateQuestionStatus = (questionId, status) =>
-  api.put(`/api/questions/${questionId}/status/`, { status });
+  api.put(`/api/questions/${encodeURIComponent(questionId)}/status/`, { status });
 
 export const previewPassQuestions = (formData) =>
   api.post('/api/preview-pass-questions/', formData, {
