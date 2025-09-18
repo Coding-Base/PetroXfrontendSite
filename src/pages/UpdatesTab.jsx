@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import UpdateCard from "@/components/UpdateCard"; // adjust path if needed
+import UpdateCard from "@/components/UpdateCard"; // keep your path
+import { fetchUpdates, markAllUpdatesRead } from "@/api"; // <- use the API helpers
 
 export default function UpdatesTab() {
   const [updates, setUpdates] = useState([]);
@@ -8,35 +8,31 @@ export default function UpdatesTab() {
   const [markingRead, setMarkingRead] = useState(false);
   const [error, setError] = useState(null);
 
-  // helper to normalize many possible response shapes into an array
+  // normalize many API shapes into an array of updates
   const normalizeUpdatesResponse = (res) => {
     if (!res) return [];
-    // If Axios response object, try res.data
+    // If Axios response object, unwrap .data
     const payload = res.data !== undefined ? res.data : res;
 
-    // Common DRF style: { results: [...], count, next, previous }
+    // Common DRF: { results: [...] }
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload.results)) return payload.results;
-    // Some APIs return { data: [...] }
     if (Array.isArray(payload.data)) return payload.data;
-    // Some backends return object keyed by id's or single object - no list
-    // If payload has an 'items' key
     if (Array.isArray(payload.items)) return payload.items;
-
-    // If it's a single object representing one update, wrap it into array
-    if (payload && typeof payload === "object" && payload.id) return [payload];
-
-    // Otherwise return empty array
+    // Single object containing update
+    if (payload && typeof payload === "object" && (payload.id || payload.slug)) return [payload];
     return [];
   };
 
   useEffect(() => {
     let mounted = true;
-    const fetchUpdates = async () => {
+
+    const doFetch = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get("/api/updates/?page_size=20");
+        // call the helper that uses baseURL and cache-buster
+        const res = await fetchUpdates(20);
         if (!mounted) return;
         const list = normalizeUpdatesResponse(res);
         setUpdates(list);
@@ -48,16 +44,18 @@ export default function UpdatesTab() {
       }
     };
 
-    // mark all read and then fetch updates
     const markAllReadAndFetch = async () => {
       try {
         setMarkingRead(true);
-        // attempt to mark as read, but ignore if fails
-        await axios.post("/api/updates/mark_all_read/").catch(() => {});
+        // use API helper; ignore errors for marking read but log them
+        await markAllUpdatesRead().catch((e) => {
+          // non-fatal
+          console.warn("markAllRead failed (ignored):", e);
+        });
       } finally {
         setMarkingRead(false);
         // fetch the feed after marking read (so client sees latest)
-        fetchUpdates();
+        await doFetch();
       }
     };
 
@@ -103,12 +101,14 @@ export default function UpdatesTab() {
         <div className="text-sm text-gray-500">No updates yet.</div>
       ) : (
         <div className="space-y-4">
-          {updates.map((u) => (
-            // defensive: ensure u is object and has id; if not use slug or index
-            <UpdateCard key={u.id ?? u.slug ?? `${u.title ?? "upd"}-${Math.random()}`} update={u} />
+          {updates.map((u, idx) => (
+            <UpdateCard
+              key={u.id ?? u.slug ?? `${u.title ?? "upd"}-${idx}`}
+              update={u}
+            />
           ))}
         </div>
       )}
     </div>
   );
-          }
+}
