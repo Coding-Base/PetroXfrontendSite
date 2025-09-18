@@ -38,14 +38,6 @@ api.interceptors.request.use(
       }
     }
 
-    // Add cache-busting parameter to prevent 304 responses
-    if (config.method === 'get') {
-      config.params = {
-        ...config.params,
-        _t: Date.now() // Add timestamp to prevent caching
-      };
-    }
-
     return config;
   },
   error => Promise.reject(error)
@@ -103,7 +95,20 @@ export const registerUser = (username, email, password) =>
   api.post('/users/', { username, email, password });
 
 // ===================== UPDATES ENDPOINTS =====================
-export const fetchUpdates = () => api.get('/api/updates/');
+// Modified fetchUpdates to include cache-busting parameter
+export const fetchUpdates = (page_size = 20) => 
+  api.get('/api/updates/', {
+    params: {
+      page_size,
+      _: Date.now() // Cache-busting parameter
+    },
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  });
+
 export const fetchUpdate = (slug) => api.get(`/api/updates/${slug}/`);
 export const likeUpdate = (slug) => api.post(`/api/updates/${slug}/like/`);
 export const unlikeUpdate = (slug) => api.post(`/api/updates/${slug}/unlike/`);
