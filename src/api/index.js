@@ -9,45 +9,49 @@ const baseURL = rawBaseURL.endsWith('/')
 // Create an Axios instance
 export const api = axios.create({
   baseURL,
-  headers: { 
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache', // Add cache control headers
-    'Pragma': 'no-cache'
-  },
+  headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
 
-// Add a timestamp parameter to all requests to prevent caching
-api.interceptors.request.use(config => {
-  // Add timestamp to prevent caching
-  if (config.params) {
-    config.params.timestamp = Date.now();
-  } else {
-    config.params = { timestamp: Date.now() };
-  }
-  
-  const unauthenticatedEndpoints = [
-    '/api/token',
-    '/api/token/refresh',
-    '/users'
-  ];
+// Token helpers
+const getAccessToken  = () => localStorage.getItem('access_token');
+const getRefreshToken = () => localStorage.getItem('refresh_token');
 
-  const requestPath = new URL(config.url, baseURL).pathname;
-  const isUnauthenticated = unauthenticatedEndpoints.some(path =>
-    requestPath.startsWith(path)
-  );
+// ===================== REQUEST INTERCEPTOR =====================
+api.interceptors.request.use(
+  config => {
+    const unauthenticatedEndpoints = [
+      '/api/token',
+      '/api/token/refresh',
+      '/users'
+    ];
 
-  if (!isUnauthenticated) {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const requestPath = new URL(config.url, baseURL).pathname;
+    const isUnauthenticated = unauthenticatedEndpoints.some(path =>
+      requestPath.startsWith(path)
+    );
+
+    if (!isUnauthenticated) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-  }
 
-  return config;
-}, error => Promise.reject(error));
+    // Add cache-busting parameter to prevent 304 responses
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now() // Add timestamp to prevent caching
+      };
+    }
 
-// Rest of your interceptors and API endpoints remain the same
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
+// ===================== RESPONSE INTERCEPTOR =====================
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -73,9 +77,7 @@ api.interceptors.response.use(
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const { data } = await api.post('/api/token/refresh/', { 
-          refresh: localStorage.getItem('refresh_token') 
-        });
+        const { data } = await api.post('/api/token/refresh/', { refresh: getRefreshToken() });
         localStorage.setItem('access_token', data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
