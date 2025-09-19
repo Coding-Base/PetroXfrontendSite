@@ -1,7 +1,7 @@
 // src/components/UpdatesBell.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Bell } from "lucide-react";
-import { getUnreadCount } from "@/api"; // uses configured axios instance (baseURL from VITE_SERVER_URL)
+import { getUpdatesUnreadCount } from "@/api"; // ensure this is exported
 
 export default function UpdatesBell({ onOpen }) {
   const [count, setCount] = useState(0);
@@ -9,13 +9,10 @@ export default function UpdatesBell({ onOpen }) {
 
   const fetchCount = async () => {
     try {
-      const res = await getUnreadCount();
-      // expect axios response: res.data.unread_count
+      const res = await getUpdatesUnreadCount();
       const unread = res?.data?.unread_count ?? 0;
-      if (mountedRef.current) setCount(unread || 0);
+      if (mountedRef.current) setCount(unread);
     } catch (e) {
-      // keep silent in UI, but helpful debug log
-      // eslint-disable-next-line no-console
       console.debug("UpdatesBell: failed to fetch unread count", e);
     }
   };
@@ -23,18 +20,16 @@ export default function UpdatesBell({ onOpen }) {
   useEffect(() => {
     mountedRef.current = true;
     fetchCount();
-
-    const id = setInterval(fetchCount, 60000); // poll every 60s
+    const id = setInterval(fetchCount, 60000);
     return () => {
       mountedRef.current = false;
       clearInterval(id);
     };
   }, []);
 
-  // Optionally refresh count immediately when user clicks/open the bell
   const handleOpen = async (evt) => {
     if (typeof onOpen === "function") onOpen(evt);
-    // refresh unread count right away so UI is up-to-date
+    // refresh the badge immediately after open
     await fetchCount();
   };
 
@@ -43,7 +38,7 @@ export default function UpdatesBell({ onOpen }) {
       <Bell size={20} />
       {count > 0 && (
         <span className="absolute -top-1 -right-1 text-xs bg-red-600 text-white rounded-full px-1">
-          {count}
+          {count > 99 ? "99+" : count}
         </span>
       )}
     </button>
