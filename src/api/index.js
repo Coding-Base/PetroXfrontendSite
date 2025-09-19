@@ -1,36 +1,16 @@
 // src/api/index.jsx
 import axios from 'axios';
 
-// Read backend base URL from environment and normalize (remove trailing slash)
+// Base URL for backend API - ensure no trailing slash
 const rawBaseURL = import.meta.env.VITE_SERVER_URL || '';
-const baseURL = rawBaseURL ? rawBaseURL.replace(/\/+$/, '') : '';
-
-// Helpful debug message so you can see where requests will go.
-// In production you may remove or reduce logging.
-if (!baseURL) {
-  // eslint-disable-next-line no-console
-  console.error(
-    'VITE_SERVER_URL is not set. The frontend will call the current origin for /api/* which may return index.html. ' +
-    'Set VITE_SERVER_URL to your backend API base (e.g. https://petroxtestbackend.onrender.com) in your Render environment variables and redeploy.'
-  );
-} else {
-  // eslint-disable-next-line no-console
-  console.info('API base URL:', baseURL);
-}
+const baseURL = rawBaseURL.endsWith('/') ? rawBaseURL.slice(0, -1) : rawBaseURL;
 
 // Create an Axios instance
 export const api = axios.create({
-  baseURL, // if empty, requests will be relative to the current origin (not desired in prod)
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
-
-// Utility: build a full URL for debugging (not used by axios)
-export const getFullUrl = (path) => {
-  if (!path) return baseURL || window.location.origin;
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return baseURL ? `${baseURL}${normalizedPath}` : `${window.location.origin}${normalizedPath}`;
-};
 
 // Token helpers
 const getAccessToken  = () => localStorage.getItem('access_token');
@@ -39,33 +19,28 @@ const getRefreshToken = () => localStorage.getItem('refresh_token');
 // ===================== REQUEST INTERCEPTOR =====================
 api.interceptors.request.use(
   config => {
-    // list endpoints that don't require auth tokens
     const unauthenticatedEndpoints = [
       '/api/token',
       '/api/token/refresh',
       '/users'
     ];
 
-    // Build pathname safely using baseURL or current origin
-    let baseForUrl = baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
+    // Build pathname relative to baseURL safely (works with relative urls too)
+    let requestPath = config.url || '';
     try {
-      const requestPath = new URL(config.url, baseForUrl).pathname;
-      const isUnauthenticated = unauthenticatedEndpoints.some(path =>
-        requestPath.startsWith(path)
-      );
-
-      if (!isUnauthenticated) {
-        const token = getAccessToken();
-        if (token) {
-          config.headers = config.headers || {};
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      }
+      requestPath = new URL(config.url, baseURL).pathname;
     } catch (e) {
-      // If URL parsing fails, just attach token if present
+      // fallback: use provided url
+      requestPath = config.url || '';
+    }
+
+    const isUnauthenticated = unauthenticatedEndpoints.some(path =>
+      requestPath.startsWith(path)
+    );
+
+    if (!isUnauthenticated) {
       const token = getAccessToken();
       if (token) {
-        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -98,19 +73,16 @@ api.interceptors.response.use(
       });
     }
 
-    // Try refresh on 401
-    if (error.response.status === 401 && !originalRequest._retry) {
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const { data } = await api.post('/api/token/refresh/', { refresh: getRefreshToken() });
         localStorage.setItem('access_token', data.access);
-        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
       } catch (e) {
         localStorage.clear();
-        // Redirect to login page
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        window.location.href = '/login';
         return Promise.reject(e);
       }
     }
@@ -119,7 +91,9 @@ api.interceptors.response.use(
   }
 );
 
-// ===================== AUTH ENDPOINTS =====================
+// ---------------------------
+// AUTH
+// ---------------------------
 export const loginUser = (username, password) =>
   api.post('/api/token/', { username, password });
 
@@ -129,15 +103,15 @@ export const refreshToken = refresh =>
 export const registerUser = (username, email, password) =>
   api.post('/users/', { username, email, password });
 
-// ===================== UPDATES ENDPOINTS =====================
-// fetchUpdates adds a cache-buster _t param and requests no-cache
+// ---------------------------
+// UPDATES (ANNOUNCEMENTS / BLOGS)
+// ---------------------------
+
+// Fetch list of updates. page_size default is 20.
+// Adds a cache-busting timestamp param by default to avoid stale caches.
 export const fetchUpdates = (page_size = 20, extraParams = {}) =>
   api.get('/api/updates/', {
-    params: {
-      page_size,
-      _t: Date.now(),           // cache-buster to avoid stale CDN cache
-      ...extraParams
-    },
+    params: { page_size, _t: Date.now(), ...extraParams },
     headers: {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
@@ -145,42 +119,53 @@ export const fetchUpdates = (page_size = 20, extraParams = {}) =>
     }
   });
 
-// detail, like/unlike, like_status, unread_count, mark_all_read
 export const fetchUpdate = (slug) =>
   api.get(`/api/updates/${encodeURIComponent(slug)}/`);
 
+// Like / unlike endpoints
 export const likeUpdate = (slug) =>
   api.post(`/api/updates/${encodeURIComponent(slug)}/like/`);
 
 export const unlikeUpdate = (slug) =>
   api.post(`/api/updates/${encodeURIComponent(slug)}/unlike/`);
 
-export const checkLikeStatus = (slug) =>
+// Get like status for current user
+export const getUpdateLikeStatus = (slug) =>
   api.get(`/api/updates/${encodeURIComponent(slug)}/like_status/`);
 
-export const getUnreadCount = () =>
+// alias used by some components
+export const checkLikeStatus = (slug) => getUpdateLikeStatus(slug);
+
+// Unread count and mark-as-read
+export const getUpdatesUnreadCount = () =>
   api.get('/api/updates/unread_count/');
+
+export const getUnreadCount = () => getUpdatesUnreadCount(); // backwards compatible alias
 
 export const markAllUpdatesRead = () =>
   api.post('/api/updates/mark_all_read/');
 
-// ===================== COMMENTS ENDPOINTS =====================
-export const fetchComments = (updateId, params = {}) =>
-  api.get('/api/comments/', { params: { update: updateId, ...params } });
+// ---------------------------
+// COMMENTS
+// ---------------------------
+export const fetchComments = (updateId) =>
+  api.get('/api/comments/', { params: { update: updateId } });
 
-export const createComment = (data) =>
-  api.post('/api/comments/', data);
+export const createComment = (payload) =>
+  api.post('/api/comments/', payload);
 
 export const updateComment = (id, data) =>
-  api.put(`/api/comments/${encodeURIComponent(id)}/`, data);
+  api.put(`/api/comments/${id}/`, data);
 
 export const deleteComment = (id) =>
-  api.delete(`/api/comments/${encodeURIComponent(id)}/`);
+  api.delete(`/api/comments/${id}/`);
 
-// ===================== COURSES ENDPOINTS =====================
+// ---------------------------
+// OTHER (tests, leaderboard, materials, etc.)
+// ---------------------------
+
 export const fetchCourses = () => api.get('/api/courses/');
 
-// ===================== TEST ENDPOINTS =====================
 export const startTest = (courseId, questionCount, duration) =>
   api.post('/api/start-test/', {
     course_id: courseId,
@@ -189,28 +174,22 @@ export const startTest = (courseId, questionCount, duration) =>
   });
 
 export const submitTest = (sessionId, answers) =>
-  api.post(`/api/submit-test/${encodeURIComponent(sessionId)}/`, { answers });
+  api.post(`/api/submit-test/${sessionId}/`, { answers });
 
 export const fetchTestSession = sessionId =>
-  api.get(`/api/test-session/${encodeURIComponent(sessionId)}/`);
+  api.get(`/api/test-session/${sessionId}/`);
 
-// ===================== HISTORY ENDPOINTS =====================
 export const fetchHistory = () => api.get('/api/history/');
 export const fetchUserHistory = () => api.get('/api/history/');
 
-// ===================== GROUP TEST ENDPOINTS =====================
-export const createGroupTest = payload =>
-  api.post('/api/create-group-test/', payload);
+export const createGroupTest = payload => api.post('/api/create-group-test/', payload);
+export const fetchGroupTestDetail = testId => api.get(`/api/group-test/${testId}/`);
 
-export const fetchGroupTestDetail = testId =>
-  api.get(`/api/group-test/${encodeURIComponent(testId)}/`);
-
-// ===================== LEADERBOARD ENDPOINTS =====================
 export const fetchLeaderboard = () => api.get('/api/leaderboard/');
 export const fetchUserRank = () => api.get('/api/user/rank/');
 export const fetchUserUploadStats = () => api.get('/api/user/upload-stats/');
 
-// ===================== MATERIALS ENDPOINTS =====================
+// Materials (multipart upload helper)
 export const uploadMaterial = (formData, onUploadProgress) => {
   return api.post('/api/materials/upload/', formData, {
     timeout: 120000,
@@ -229,30 +208,25 @@ export const uploadMaterial = (formData, onUploadProgress) => {
 };
 
 export const searchMaterials = (query) =>
-  api.get(`/api/materials/search/?query=${encodeURIComponent(query)}`)
-    .then(response => response.data);
+  api.get(`/api/materials/search/`, { params: { query } }).then(r => r.data);
 
 export const downloadMaterial = (materialId) =>
-  api.get(`/api/materials/download/${encodeURIComponent(materialId)}/`)
-    .then(response => {
-      if (response.data?.download_url) {
-        return { download_url: response.data.download_url };
-      }
-      return response.data;
-    });
+  api.get(`/api/materials/download/${materialId}/`).then(response => {
+    if (response.data?.download_url) return { download_url: response.data.download_url };
+    return response.data;
+  });
 
-// ===================== QUESTION ENDPOINTS =====================
+// Questions / admin helpers
 export const fetchPendingQuestions = () => api.get('/api/questions/pending/');
-
 export const updateQuestionStatus = (questionId, status) =>
-  api.put(`/api/questions/${encodeURIComponent(questionId)}/status/`, { status });
+  api.put(`/api/questions/${questionId}/status/`, { status });
 
 export const previewPassQuestions = (formData) =>
   api.post('/api/preview-pass-questions/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 
-export const uploadPassQuestions = (payload) =>
-  api.post('/api/upload-pass-questions/', payload);
+export const uploadPassQuestions = (payload) => api.post('/api/upload-pass-questions/', payload);
 
+// Default export (axios instance) kept for convenience
 export default api;
