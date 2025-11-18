@@ -210,7 +210,7 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Search
+  // Search (always use object param, robust error handling)
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setError('Please enter a search query');
@@ -222,24 +222,20 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     try {
-      let results;
-      try {
-        // try simple query string first
-        results = await searchMaterials(searchQuery.trim());
-      } catch (firstErr) {
-        // fallback to object param
-        results = await searchMaterials({ query: searchQuery.trim() });
-      }
-
-      console.log('Search results raw:', results);
+      // Always use object param for consistency
+      const results = await searchMaterials({ query: searchQuery.trim() });
       let materialList = [];
       if (Array.isArray(results)) materialList = results;
       else if (results && Array.isArray(results.data)) materialList = results.data;
       else if (results && Array.isArray(results.results)) materialList = results.results;
+      else materialList = [];
 
       setSearchResults(materialList);
       setMode('search-results');
       setShowMobileMenu(false);
+      if (materialList.length === 0) {
+        setError('No materials found for your search.');
+      }
     } catch (err) {
       console.error('Search error:', err);
       let errorMsg = 'Failed to search materials. Please try again.';
@@ -260,11 +256,10 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Download: always request backend for an authoritative URL
+  // Download: always request backend for an authoritative URL, robust fallback
   const handleDownload = async (material) => {
     try {
       const downloadData = await downloadMaterial(material.id);
-
       // Accept multiple shapes
       const downloadUrl =
         downloadData?.download_url ||
@@ -272,7 +267,10 @@ export default function MaterialsManagement() {
         material.file_url ||
         material.url;
 
-      if (!downloadUrl) throw new Error('No secure download URL available');
+      if (!downloadUrl || typeof downloadUrl !== 'string') {
+        setError('No secure download URL available for this material.');
+        return;
+      }
 
       // Create link, open in new tab (safer cross-origin)
       const link = document.createElement('a');
@@ -296,7 +294,13 @@ export default function MaterialsManagement() {
       setSuccessMsg(`"${material.name}" downloaded successfully!`);
     } catch (err) {
       console.error('Download error:', err);
-      setError(err.message || 'Failed to download file. Please try again.');
+      let errorMsg = 'Failed to download file. Please try again.';
+      if (err.response && err.response.data?.detail) {
+        errorMsg = err.response.data.detail;
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      setError(errorMsg);
     }
   };
 
