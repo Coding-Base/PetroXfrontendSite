@@ -24,7 +24,9 @@ export default function MaterialsManagement() {
   const messageTimeout = useRef(null);
 
   // client-side enforced max file size (10MB)
-  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+  // client-side enforced max file size (100MB)
+  // Keep this in-sync with backend MATERIAL_MAX_FILE_SIZE (env: MATERIAL_MAX_FILE_SIZE)
+  const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
   // Check online status
   useEffect(() => {
