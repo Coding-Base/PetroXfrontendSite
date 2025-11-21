@@ -192,8 +192,9 @@ export const fetchUserUploadStats = () => api.get('/api/user/upload-stats/');
 // Materials (multipart upload helper)
 export const uploadMaterial = (formData, onUploadProgress) => {
   return api.post('/api/materials/upload/', formData, {
-    timeout: 120000,
-    headers: { 'X-Upload-Timeout': '120000' },
+    // Allow longer upload time for larger files (default 5 minutes)
+    timeout: 300000,
+    headers: { 'X-Upload-Timeout': '300000' },
     transformRequest: [(data, headers) => {
       if (headers) {
         if (headers['Content-Type']) delete headers['Content-Type'];
@@ -208,13 +209,10 @@ export const uploadMaterial = (formData, onUploadProgress) => {
 };
 
 export const searchMaterials = (query) =>
-  api.get(`/api/materials/search/`, { params: { query } }).then(r => r.data);
+  api.get(`/api/materials/search/`, { params: { query } });
 
 export const downloadMaterial = (materialId) =>
-  api.get(`/api/materials/download/${materialId}/`).then(response => {
-    if (response.data?.download_url) return { download_url: response.data.download_url };
-    return response.data;
-  });
+  api.get(`/api/materials/download/${materialId}/`);
 
 // Questions / admin helpers
 export const fetchPendingQuestions = () => api.get('/api/questions/pending/');
