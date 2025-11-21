@@ -19,7 +19,11 @@ import {
   FaChartLine,
   FaMobileAlt,
   FaClock,
-  FaAward
+  FaAward,
+  FaArrowRight,
+  FaStar,
+  FaPlay,
+  FaQuoteLeft
 } from 'react-icons/fa';
 import image1 from '../images/land1.png';
 import image2 from '../images/land2.png';
@@ -38,21 +42,23 @@ const LandingPage = () => {
     {
       title: 'Navigate Your Academic Journey',
       subtitle: 'Campus compass, study resources, and AI-powered learning',
-      image: 'https://wordinblack.com/wp-content/uploads/2024/09/GettyImages-2172168002-scaled.jpg'
+      image: 'https://wordinblack.com/wp-content/uploads/2024/09/GettyImages-2172168002-scaled.jpg',
+      gradient: 'from-blue-900/80 to-purple-900/80'
     },
     {
       title: 'Master Your Subjects',
       subtitle: 'Personalized learning with PetroMark AI assistant',
-      image: 'https://plus.unsplash.com/premium_photo-1683135216954-ab7130031b44?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmxhY2slMjBzdHVkZW50c3xlbnwwfHwwfHx8MA%3D%3D'
+      image: 'https://plus.unsplash.com/premium_photo-1683135216954-ab7130031b44?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmxhY2slMjBzdHVkZW50c3xlbnwwfHwwfHx8MA%3D%3D',
+      gradient: 'from-indigo-900/80 to-blue-900/80'
     },
     {
       title: 'Access 538+ Past Questions',
       subtitle: 'Comprehensive exam preparation resources',
       image: image1,
+      gradient: 'from-purple-900/80 to-pink-900/80'
     }
   ];
   
-  // helper to safely format numbers
   const safeFormatNumber = (v) => {
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'number') return v.toLocaleString();
@@ -60,10 +66,8 @@ const LandingPage = () => {
     return Number.isNaN(n) ? '—' : n.toLocaleString();
   };
 
-  // Fetch stats from backend
   const fetchStats = async () => {
     try {
-      // Replace with your actual API endpoint
       const response = await fetch('/api/stats/');
       if (response.ok) {
         const data = await response.json();
@@ -73,7 +77,6 @@ const LandingPage = () => {
           downloads: data.total_downloads ?? 20
         });
       } else {
-        // Fallback to default values if API fails
         setStats({
           users: 200,
           questions: 538,
@@ -82,7 +85,6 @@ const LandingPage = () => {
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Fallback to default values
       setStats({
         users: 200,
         questions: 538,
@@ -93,12 +95,10 @@ const LandingPage = () => {
     }
   };
 
-  // Preloader effect
   useEffect(() => {
     fetchStats();
   }, []);
 
-  // Carousel effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -107,7 +107,6 @@ const LandingPage = () => {
     return () => clearInterval(interval);
   }, [slides.length]);
 
-  // Scroll detection for header
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -116,7 +115,6 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Intersection observer for animations
   useEffect(() => {
     observer.current = new IntersectionObserver(
       (entries) => {
@@ -139,7 +137,6 @@ const LandingPage = () => {
     };
   }, []);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (mobileMenuOpen && !event.target.closest('.mobile-menu') && !event.target.closest('.menu-button')) {
@@ -155,330 +152,273 @@ const LandingPage = () => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         <div className="text-center">
-          <div className="relative mx-auto mb-6 h-20 w-20">
-            <div className="absolute inset-0 animate-spin rounded-full border-4 border-gray-700 border-t-indigo-500"></div>
+          <div className="relative mx-auto mb-6">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+            <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full border-4 border-blue-400 opacity-75"></div>
           </div>
-          <h1 className="text-4xl font-bold tracking-wider text-white">
-            <span className="text-indigo-400">PETRO</span>
+          <h1 className="text-4xl font-bold tracking-wider text-white mb-2">
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">PETRO</span>
             <span className="text-amber-400">X</span>
           </h1>
-          <p className="mt-4 font-light text-gray-400">
-            Preparing your learning experience
-          </p>
+          <p className="text-gray-300 font-light">Preparing your learning experience</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      {/* Header */}
-      <header className="relative h-[70vh] md:h-[90vh] overflow-hidden">
-        {/* Carousel */}
-        <div className="absolute inset-0 transition-opacity duration-1000 ease-in-out">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 overflow-x-hidden">
+      {/* Enhanced Header */}
+      <header className="relative h-screen overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 transition-all duration-1000 ease-in-out">
           {slides.map((slide, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                currentSlide === index ? 'opacity-100' : 'opacity-0'
+              className={`absolute inset-0 transition-all duration-1000 transform ${
+                currentSlide === index 
+                  ? 'opacity-100 scale-100' 
+                  : 'opacity-0 scale-110'
               }`}
             >
-              {/* Image with 20% opacity */}
               <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90"
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{ backgroundImage: `url(${slide.image})` }}
               ></div>
-
-              {/* Dark overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient}`}></div>
             </div>
           ))}
         </div>
 
         {/* Navigation */}
         <nav
-          className={`fixed z-30 flex w-full items-center justify-between px-4 py-3 transition-all duration-300 md:px-12 ${
-            scrolled ? 'bg-gray-900/90 backdrop-blur-sm' : 'bg-transparent'
+          className={`fixed z-50 w-full transition-all duration-500 ${
+            scrolled 
+              ? 'bg-white/90 backdrop-blur-xl shadow-lg py-2' 
+              : 'bg-transparent py-4'
           }`}
         >
-          <div className="flex items-center">
-            <h1 className="text-xl md:text-2xl font-bold tracking-wider text-white">
-              <span className="text-indigo-400">PETRO</span>
-              <span className="text-amber-400">X</span>
-            </h1>
-          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              {/* Logo */}
+              <div className="flex items-center">
+                <div className={`rounded-lg p-2 ${
+                  scrolled ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-white/20'
+                }`}>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    <span className="text-white">PETRO</span>
+                    <span className="text-amber-400">X</span>
+                  </h1>
+                </div>
+              </div>
 
-          <div className="hidden space-x-4 md:space-x-8 md:flex">
-            <a
-              href="#features"
-              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
-            >
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
-            >
-              How It Works
-            </a>
-            <a
-              href="#testimonials"
-              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
-            >
-              Testimonials
-            </a>
-            <Link
-              to="/about"
-              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
-            >
-              About
-            </Link>
-            <Link
-              to="/policies"
-              className="text-gray-200 transition-colors hover:text-white text-sm md:text-base"
-            >
-              Policies
-            </Link>
-          </div>
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center space-x-8">
+                {['Features', 'How It Works', 'Testimonials', 'About', 'Policies'].map((item) => (
+                  <a
+                    key={item}
+                    href={`#${item.toLowerCase().replace(' ', '-')}`}
+                    className={`font-medium transition-all duration-300 hover:scale-105 ${
+                      scrolled 
+                        ? 'text-gray-700 hover:text-blue-600' 
+                        : 'text-white/90 hover:text-white'
+                    }`}
+                  >
+                    {item}
+                  </a>
+                ))}
+                <Link
+                  to="/login"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  Get Started
+                </Link>
+              </div>
 
-          <div className="flex items-center">
-            <Link
-              to="/login"
-              className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-indigo-700 md:px-6 md:text-base"
-            >
-              Get Started
-            </Link>
-            
-            {/* Mobile menu button */}
-            <button 
-              className="ml-4 text-white md:hidden menu-button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
-            </button>
+              {/* Mobile menu button */}
+              <button 
+                className={`md:hidden p-2 rounded-lg transition-all duration-300 ${
+                  scrolled ? 'bg-gray-100' : 'bg-white/20'
+                } menu-button`}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <FaTimes className={scrolled ? 'text-gray-700' : 'text-white'} size={20} />
+                ) : (
+                  <FaBars className={scrolled ? 'text-gray-700' : 'text-white'} size={20} />
+                )}
+              </button>
+            </div>
           </div>
         </nav>
 
-        {/* Mobile menu */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="fixed top-16 right-4 z-40 w-48 rounded-lg bg-gray-800 py-2 shadow-xl md:hidden mobile-menu">
-            <a
-              href="#features"
-              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              How It Works
-            </a>
-            <a
-              href="#testimonials"
-              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Testimonials
-            </a>
-            <Link
-              to="/about"
-              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              to="/policies"
-              className="block px-4 py-2 text-gray-200 transition-colors hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Policies
-            </Link>
+          <div className="fixed top-20 right-4 z-50 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl py-4 md:hidden mobile-menu">
+            {['Features', 'How It Works', 'Testimonials', 'About', 'Policies'].map((item) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase().replace(' ', '-')}`}
+                className="block px-6 py-3 text-gray-700 font-medium transition-all duration-300 hover:bg-blue-50 hover:text-blue-600"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item}
+              </a>
+            ))}
+            <div className="px-6 pt-4 border-t border-gray-200">
+              <Link
+                to="/login"
+                className="block w-full text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         )}
 
         {/* Hero Content */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center md:px-6">
-          <div className="max-w-4xl">
-            <h1 className="mb-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
-              {slides[currentSlide].title}
+        <div className="relative z-10 flex h-full items-center justify-center px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm text-white">
+              <FaStar className="text-amber-400" />
+              <span>Trusted by {safeFormatNumber(stats.users)}+ Students</span>
+            </div>
+
+            <h1 className="mb-6 text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
+              <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent">
+                {slides[currentSlide].title}
+              </span>
             </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-200 md:mb-10 md:text-xl">
+            
+            <p className="mx-auto mb-8 max-w-2xl text-xl text-blue-100 lg:text-2xl">
               {slides[currentSlide].subtitle}
             </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
+
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 to="/signup"
-                className="rounded bg-indigo-600 px-6 py-3 font-medium text-white transition-all hover:bg-indigo-700 md:px-8"
+                className="group relative bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               >
-                Create Free Account
+                <span className="relative z-10 flex items-center gap-2">
+                  Create Free Account
+                  <FaArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
               </Link>
+              
               <Link
                 to="/features"
-                className="rounded border border-gray-300 bg-transparent px-6 py-3 font-medium text-white transition-all hover:bg-white/10 md:px-8"
+                className="group bg-white/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/30 hover:scale-105"
               >
-                Explore Features
+                <span className="flex items-center gap-2">
+                  <FaPlay className="text-sm" />
+                  Watch Demo
+                </span>
               </Link>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="mt-12 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+              {[
+                { value: stats.users, label: 'Active Students' },
+                { value: stats.questions, label: 'Past Questions' },
+                { value: stats.downloads, label: 'Resources' }
+              ].map((stat, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-2xl font-bold text-white sm:text-3xl">
+                    {safeFormatNumber(stat.value)}+
+                  </div>
+                  <div className="text-sm text-blue-200">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Carousel Indicators */}
-        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 transform space-x-2 md:bottom-8">
+        <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 transform space-x-3">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-2 w-2 rounded-full transition-all md:h-3 md:w-3 ${
+              className={`h-3 rounded-full transition-all duration-500 ${
                 currentSlide === index
-                  ? 'w-4 bg-white md:w-6'
-                  : 'bg-white/50 hover:bg-white/80'
+                  ? 'w-8 bg-white'
+                  : 'w-3 bg-white/50 hover:bg-white/80'
               }`}
-              aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+          <div className="animate-bounce">
+            <div className="h-6 w-px bg-white/60"></div>
+          </div>
+        </div>
       </header>
 
-      {/* Stats Section */}
-      <section className="bg-gradient-to-r from-indigo-600 to-indigo-800 py-8 text-white md:py-12">
-        <div className="mx-auto max-w-6xl px-4 md:px-12">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {safeFormatNumber(stats.users)}+
+      {/* Trust Badges */}
+      <section className="bg-white py-8 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-6">
+            <p className="text-gray-500 text-sm font-medium">Trusted by students from</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center opacity-60">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="text-center text-gray-400 font-semibold text-lg">
+                University {i + 1}
               </div>
-              <div className="mt-2 text-base font-medium md:text-lg">Current Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {safeFormatNumber(stats.questions)}+
-              </div>
-              <div className="mt-2 text-base font-medium md:text-lg">Past Questions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold md:text-4xl lg:text-5xl">
-                {safeFormatNumber(stats.downloads)}+
-              </div>
-              <div className="mt-2 text-base font-medium md:text-lg">Resources Downloadable</div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <Affilate/>
-
-      {/* Benefits Section - Added to fill space */}
-      <section className="bg-white px-4 py-12 md:px-12 md:py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
-              Why Students Love PetroX
+      {/* Features Grid */}
+      <section id="features" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Everything You Need to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Excel</span>
             </h2>
-            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
-              Discover the features that make PetroX the ultimate academic companion
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Comprehensive tools and resources designed to transform your academic journey
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-indigo-50 border border-indigo-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                <FaCheckCircle className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Proven Results</h3>
-              <p className="text-gray-600">Students using PetroX will experience an increase in their Acedemic Performance.</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-amber-50 border border-amber-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 text-amber-600 mb-4">
-                <FaLightbulb className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Smart Learning</h3>
-              <p className="text-gray-600">AI-powered recommendations tailor study materials to your learning style.</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-green-50 border border-green-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 text-green-600 mb-4">
-                <FaChartLine className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Progress Tracking</h3>
-              <p className="text-gray-600">Monitor your academic growth with detailed analytics and performance insights.</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-blue-50 border border-blue-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600 mb-4">
-                <FaMobileAlt className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Mobile Access</h3>
-              <p className="text-gray-600">Study anywhere, anytime with our mobile-optimized platform.</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-purple-50 border border-purple-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 text-purple-600 mb-4">
-                <FaClock className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Time Saving</h3>
-              <p className="text-gray-600">Reduce study time  with our organized resource library.</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg bg-red-50 border border-red-100">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600 mb-4">
-                <FaAward className="text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Recognition</h3>
-              <p className="text-gray-600">Earn badges and points for your academic achievements and contributions.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section
-        id="features"
-        className={`animate-section bg-white px-4 py-12 transition-all duration-700 md:px-12 md:py-20 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center md:mb-16">
-            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
-              Powerful Learning Tools
-            </h2>
-            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
-              PetroX provides everything you need to excel academically
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`rounded-lg border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-indigo-300 hover:shadow-md md:p-8 ${
-                  isVisible ? 'opacity-100' : 'opacity-0'
-                }`}
-                style={{ transitionDelay: `${index * 100}ms` }}
+                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200"
               >
-                <div className="mb-4 text-2xl text-indigo-600 md:mb-6 md:text-3xl">
-                  {feature.icon}
-                </div>
-                <h3 className="mb-3 text-lg font-bold text-gray-800 md:text-xl">
-                  {feature.title}
-                </h3>
-                <p className="mb-4 text-gray-600 md:text-base">{feature.description}</p>
-                <div className="flex flex-wrap gap-2">
-                  {feature.tags.map((tag, tagIndex) => (
-                    <span
-                      key={tagIndex}
-                      className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+                    {feature.icon}
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    {feature.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 mb-4 leading-relaxed">
+                    {feature.description}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {feature.tags.map((tag, tagIndex) => (
+                      <span
+                        key={tagIndex}
+                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -486,322 +426,283 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="bg-gray-50 px-4 py-12 md:px-12 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center md:mb-16">
-            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
-              How PetroX Works
-            </h2>
-            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
-              A seamless learning experience designed for academic success
-            </p>
-          </div>
-
-          <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
-            <div className="w-full lg:w-1/2">
-              <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm md:p-6">
-                <div className="flex h-64 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 overflow-hidden md:h-80">
-                  <img 
-                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShGiNXczSdhTVmzY7W3nf4y7imrrf5NZhGhA&s" 
-                    alt="How PetroX Works" 
-                    className="w-full h-full object-cover"
-                  />
+      {/* Stats Section */}
+      <section className="py-20 bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { value: stats.users, label: 'Current Users', suffix: '+', color: 'from-blue-400 to-cyan-400' },
+              { value: stats.questions, label: 'Past Questions', suffix: '+', color: 'from-purple-400 to-pink-400' },
+              { value: stats.downloads, label: 'Resources Downloadable', suffix: '+', color: 'from-green-400 to-blue-400' }
+            ].map((stat, index) => (
+              <div key={index} className="text-center group">
+                <div className={`text-5xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  {safeFormatNumber(stat.value)}{stat.suffix}
                 </div>
-              </div>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <div className="space-y-6 md:space-y-8">
-                {steps.map((step, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="mr-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 md:h-12 md:w-12">
-                      <span className="text-lg font-bold md:text-xl">{index + 1}</span>
-                    </div>
-                    <div>
-                      <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">
-                        {step.title}
-                      </h3>
-                      <p className="text-gray-600 md:text-base">{step.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-10 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 p-0.5 shadow-sm md:mt-12">
-                <div className="rounded-lg bg-white p-4 md:p-6">
-                  <div className="flex flex-col items-center justify-between sm:flex-row">
-                    <div className="text-center sm:text-left">
-                      <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">
-                        Ready to get started?
-                      </h3>
-                      <p className="text-gray-600 md:text-base">
-                        Join thousands of students already using PetroX
-                      </p>
-                    </div>
-                    <Link
-                      to="/signup"
-                      className="mt-4 rounded bg-indigo-600 px-6 py-2 font-medium text-white transition-all hover:bg-indigo-700 sm:mt-0 md:px-8 md:py-3"
-                    >
-                      Sign Up Free
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Academic Resources Section */}
-      <section className="bg-white px-4 py-12 md:px-12 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center md:mb-16">
-            <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-3xl lg:text-4xl">
-              Academic Resources
-            </h2>
-            <p className="mx-auto max-w-2xl text-gray-600 md:text-lg">
-              Comprehensive tools for exam preparation and campus navigation
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
-                <FaCompass className="text-xl md:text-2xl" />
-              </div>
-              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Campus Compass</h3>
-              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
-                Never get lost on campus again. Our interactive campus map helps you find classrooms, libraries, and facilities with ease.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Navigation
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Real-time
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Interactive Map
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
-                <FaClipboardList className="text-xl md:text-2xl" />
-              </div>
-              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Online Tests</h3>
-              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
-                Create and take timed exams, invite friends to join, and get instant results with detailed performance analytics.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Timed Exams
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Collaborate
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  Analytics
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-all hover:shadow-lg md:p-8">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 md:mb-6 md:h-16 md:w-16">
-                <FaDownload className="text-xl md:text-2xl" />
-              </div>
-              <h3 className="mb-3 text-lg font-bold text-gray-800 md:mb-4 md:text-xl">Resource Library</h3>
-              <p className="mb-4 text-gray-600 md:mb-6 md:text-base">
-                Access our collection of {safeFormatNumber(stats.questions)}+ past questions, course materials, and textbooks. Download and study anytime, anywhere.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  PDF Downloads
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  {safeFormatNumber(stats.questions)}+ Resources
-                </span>
-                <span className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 md:px-3">
-                  All Subjects
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section
-        id="testimonials"
-        className="bg-gray-900 px-4 py-12 text-white md:px-12 md:py-20"
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center md:mb-16">
-            <h2 className="mb-4 text-2xl font-bold md:text-3xl lg:text-4xl">
-              What Students Say
-            </h2>
-            <p className="mx-auto max-w-2xl text-gray-400 md:text-lg">
-              Hear from students who have transformed their academic journey
-              with PetroX
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="rounded-lg border border-gray-700 bg-gray-800 p-4 md:p-6"
-              >
-                <div className="mb-4 flex items-center md:mb-6">
-                  <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 md:mr-4 md:h-12 md:w-12">
-                    <span className="text-base font-medium text-indigo-400 md:text-lg">
-                      {testimonial.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold md:text-lg">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-400 md:text-base">{testimonial.role}</p>
-                  </div>
-                </div>
-                <p className="mb-4 text-sm text-gray-300 md:text-base">"{testimonial.quote}"</p>
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className="h-3 w-3 fill-current md:h-4 md:w-4"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                    </svg>
-                  ))}
+                <div className="text-xl text-gray-300 font-medium">
+                  {stat.label}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <Affilate />
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              How <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PetroX</span> Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Get started in minutes and unlock your academic potential
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <img 
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShGiNXczSdhTVmzY7W3nf4y7imrrf5NZhGhA&s" 
+                  alt="PetroX Platform" 
+                  className="w-full h-auto rounded-xl shadow-lg"
+                />
+              </div>
+              
+              {/* Floating Elements */}
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-500 rounded-2xl opacity-10 animate-pulse"></div>
+              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-purple-500 rounded-2xl opacity-10 animate-pulse delay-1000"></div>
+            </div>
+
+            <div className="space-y-8">
+              {steps.map((step, index) => (
+                <div key={index} className="flex items-start group">
+                  <div className="flex-shrink-0 relative">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                      {index + 1}
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className="absolute left-6 top-12 w-0.5 h-8 bg-gradient-to-b from-blue-500 to-purple-600"></div>
+                    )}
+                  </div>
+                  
+                  <div className="ml-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {/* CTA Card */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+                <h3 className="text-2xl font-bold mb-2">Ready to get started?</h3>
+                <p className="text-blue-100 mb-6">
+                  Join thousands of students already using PetroX
+                </p>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:scale-105 transition-transform duration-300"
+                >
+                  Sign Up Free
+                  <FaArrowRight />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* AI Assistant Section */}
-      <section className="bg-white px-4 py-12 md:px-12 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
-            <div className="w-full lg:w-1/2">
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6">
-                <div className="mb-4 flex items-center md:mb-6">
-                  <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 md:mr-4 md:h-12 md:w-12">
-                    <FaRobot className="text-lg md:text-xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 md:text-xl">
-                      PetroMark AI Assistant
-                    </h3>
-                    <p className="text-gray-600 md:text-base">
-                      Your personal learning companion
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mb-4 space-y-3 md:mb-6 md:space-y-4">
-                  <div className="flex items-start">
-                    <div className="mr-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-xs md:mr-3 md:h-8 md:w-8 md:text-sm">
-                      AI
-                    </div>
-                    <div className="rounded-lg rounded-tl-none bg-indigo-50 p-3 md:p-4">
-                      <p className="text-sm text-gray-800 md:text-base">
-                        How can I help with your studies today?
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start justify-end">
-                    <div className="max-w-xs rounded-lg rounded-tr-none bg-indigo-600 p-3 text-white md:p-4">
-                      <p className="text-sm md:text-base">Can you explain quantum physics concepts?</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 md:p-4">
-                  <p className="mb-2 text-sm font-medium text-gray-700 md:mb-3 md:text-base">
-                    PetroMark is ready to assist with:
-                  </p>
-                  <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2">
-                    {aiFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="mr-1 h-1.5 w-1.5 rounded-full bg-indigo-600 md:mr-2"></div>
-                        <span className="text-xs text-gray-700 md:text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <FaRobot className="text-blue-600" />
+                AI-Powered Learning
               </div>
-            </div>
 
-            <div className="w-full lg:w-1/2">
-              <h2 className="mb-4 text-2xl font-bold text-gray-800 md:mb-6 md:text-3xl lg:text-4xl">
-                Intelligent Learning with{' '}
-                <span className="text-indigo-600">PetroMark AI</span>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Meet <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PetroMark AI</span>
               </h2>
-              <p className="mb-6 text-gray-600 md:mb-8 md:text-base">
-                Our advanced AI assistant provides personalized tutoring,
-                answers your questions in real-time, and helps you master
-                complex subjects through interactive learning.
+              
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                Your personal AI tutor that adapts to your learning style and helps you master complex subjects through intelligent, interactive assistance.
               </p>
 
-              <ul className="mb-6 space-y-3 md:mb-8 md:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {aiBenefits.map((benefit, index) => (
-                  <li key={index} className="flex items-start">
-                    <div className="mt-1 mr-2 rounded-full bg-indigo-100 p-1 text-indigo-600 md:mr-3">
-                      <svg
-                        className="h-3 w-3 md:h-4 md:w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        ></path>
-                      </svg>
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FaCheckCircle className="text-green-600 text-sm" />
                     </div>
-                    <span className="text-sm text-gray-700 md:text-base">{benefit}</span>
-                  </li>
+                    <span className="text-gray-700">{benefit}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
 
               <Link
                 to="/petromark"
-                className="inline-flex items-center rounded bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-all hover:bg-indigo-700 md:px-8 md:py-3 md:text-base"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition-transform duration-300 shadow-lg"
               >
-                <FaRobot className="mr-2" />
+                <FaRobot />
                 Try PetroMark Now
               </Link>
+            </div>
+
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 shadow-xl">
+                {/* AI Chat Interface */}
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <FaRobot />
+                      </div>
+                      <div>
+                        <div className="font-semibold">PetroMark AI</div>
+                        <div className="text-blue-100 text-sm">Online • Ready to help</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <FaRobot className="text-blue-600 text-sm" />
+                      </div>
+                      <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3">
+                        <p className="text-gray-700">Hi! I'm PetroMark. How can I help with your studies today?</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 justify-end">
+                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl rounded-tr-none px-4 py-3 max-w-xs">
+                        <p className="text-white">Can you explain quantum physics concepts?</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      {aiFeatures.slice(0, 4).map((feature, index) => (
+                        <div key={index} className="text-center p-3 bg-blue-50 rounded-lg">
+                          <div className="text-xs text-blue-700 font-medium">{feature}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section id="testimonials" className="py-20 bg-gradient-to-br from-gray-900 to-blue-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              What Students Say
+            </h2>
+            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+              Hear from students who have transformed their academic journey with PetroX
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={index}
+                className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-500 group"
+              >
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">{testimonial.name}</h4>
+                    <p className="text-blue-200 text-sm">{testimonial.role}</p>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <FaQuoteLeft className="text-blue-300/40 text-2xl mb-4" />
+                  <p className="text-blue-100 leading-relaxed mb-6">"{testimonial.quote}"</p>
+                  
+                  <div className="flex text-amber-400">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar key={i} className="fill-current" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to Transform Your Academic Journey?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Join thousands of successful students who are already achieving their academic goals with PetroX.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              to="/signup"
+              className="bg-white text-blue-600 px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-transform duration-300 shadow-2xl"
+            >
+              Start Learning Free
+            </Link>
+            <Link
+              to="/features"
+              className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300"
+            >
+              Explore Features
+            </Link>
+          </div>
+          
+          <p className="text-blue-200 mt-6 text-sm">
+            No credit card required • Free forever plan
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="bg-gray-900 px-4 pt-12 pb-6 text-white md:px-12 md:pt-16 md:pb-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 grid grid-cols-1 gap-8 md:mb-12 md:grid-cols-4">
+      <footer className="bg-gray-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Brand */}
             <div>
-              <h3 className="mb-3 text-xl font-bold md:mb-4 md:text-2xl">
-                <span className="text-indigo-400">PETRO</span>
-                <span className="text-amber-400">X</span>
-              </h3>
-              <p className="mb-4 text-sm text-gray-400 md:mb-6 md:text-base">
-                The ultimate academic platform for students seeking excellence.
+              <div className="flex items-center mb-6">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-2 mr-3">
+                  <h1 className="text-xl font-bold text-white">PX</h1>
+                </div>
+                <h1 className="text-2xl font-bold">
+                  <span className="text-white">PETRO</span>
+                  <span className="text-amber-400">X</span>
+                </h1>
+              </div>
+              <p className="text-gray-400 mb-6 leading-relaxed">
+                The ultimate academic platform for students seeking excellence and success in their educational journey.
               </p>
-              <div className="flex space-x-3 md:space-x-4">
+              <div className="flex space-x-4">
                 {socialLinks.map((social, index) => (
                   <a
                     key={index}
                     href={social.url}
-                    className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-gray-300 transition-colors hover:bg-gray-700 md:h-8 md:w-8"
-                    aria-label={social.name}
+                    className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-300"
                   >
                     {social.icon}
                   </a>
@@ -809,16 +710,15 @@ const LandingPage = () => {
               </div>
             </div>
 
+            {/* Resources */}
             <div>
-              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">
-                Resources
-              </h4>
-              <ul className="space-y-2">
+              <h4 className="font-bold text-lg mb-6">Resources</h4>
+              <ul className="space-y-3">
                 {resources.map((resource, index) => (
                   <li key={index}>
                     <a
                       href={resource.url}
-                      className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
+                      className="text-gray-400 hover:text-white transition-colors duration-300"
                     >
                       {resource.name}
                     </a>
@@ -827,66 +727,54 @@ const LandingPage = () => {
               </ul>
             </div>
 
+            {/* Legal */}
             <div>
-              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">Legal</h4>
-              <ul className="space-y-2">
+              <h4 className="font-bold text-lg mb-6">Legal</h4>
+              <ul className="space-y-3">
                 <li>
-                  <Link
-                    to="/policies"
-                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
-                  >
+                  <Link to="/policies" className="text-gray-400 hover:text-white transition-colors duration-300">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/policies"
-                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
-                  >
+                  <Link to="/policies" className="text-gray-400 hover:text-white transition-colors duration-300">
                     Terms & Conditions
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/about"
-                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
-                  >
+                  <Link to="/about" className="text-gray-400 hover:text-white transition-colors duration-300">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/about#contact"
-                    className="text-sm text-gray-400 transition-colors hover:text-white md:text-base"
-                  >
+                  <Link to="/about#contact" className="text-gray-400 hover:text-white transition-colors duration-300">
                     Contact
                   </Link>
                 </li>
               </ul>
             </div>
 
+            {/* Newsletter */}
             <div>
-              <h4 className="mb-3 text-base font-bold text-gray-200 md:mb-4 md:text-lg">
-                Stay Updated
-              </h4>
-              <p className="mb-3 text-sm text-gray-400 md:mb-4 md:text-base">
-                Subscribe to our newsletter for updates
+              <h4 className="font-bold text-lg mb-6">Stay Updated</h4>
+              <p className="text-gray-400 mb-4">
+                Get the latest updates and academic tips
               </p>
               <div className="flex">
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="w-full rounded-l bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none md:px-4 md:py-2 md:text-base"
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />
-                <button className="rounded-r bg-indigo-600 px-3 py-2 text-sm text-white transition-colors hover:bg-indigo-700 md:px-4 md:py-2 md:text-base">
+                <button className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 rounded-r-lg font-semibold hover:opacity-90 transition-opacity duration-300">
                   Subscribe
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-6 text-center text-xs text-gray-500 md:pt-8 md:text-sm">
-            <p>
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center">
+            <p className="text-gray-500">
               &copy; {new Date().getFullYear()} PetroX. All rights reserved.
             </p>
           </div>
@@ -896,41 +784,36 @@ const LandingPage = () => {
   );
 };
 
-// Data arrays
+// Data arrays (unchanged functionality)
 const features = [
   {
     icon: <FaBook />,
     title: 'Study Materials',
-    description:
-      'Access thousands of resources, textbooks, and past questions for all subjects.',
+    description: 'Access thousands of resources, textbooks, and past questions for all subjects.',
     tags: ['Resources', 'Textbooks', 'Past Questions']
   },
   {
     icon: <FaUsers />,
     title: 'Group Tests',
-    description:
-      'Create and join collaborative tests with peers to prepare for exams.',
+    description: 'Create and join collaborative tests with peers to prepare for exams.',
     tags: ['Collaborative', 'Real-time', 'Custom Tests']
   },
   {
     icon: <FaComments />,
     title: 'Live Chat',
-    description:
-      'Connect with other students for study sessions and discussions.',
+    description: 'Connect with other students for study sessions and discussions.',
     tags: ['Real-time', 'Study Groups', 'Collaboration']
   },
   {
     icon: <FaCompass />,
     title: 'Campus Compass',
-    description:
-      'Navigate campus with our interactive map and location services.',
+    description: 'Navigate campus with our interactive map and location services.',
     tags: ['Navigation', 'Maps', 'Location']
   },
   {
     icon: <FaFileUpload />,
     title: 'Material Upload',
-    description:
-      'Share study materials and earn recognition for contributions.',
+    description: 'Share study materials and earn recognition for contributions.',
     tags: ['Upload', 'Badges', 'Community']
   },
   {
@@ -944,23 +827,23 @@ const features = [
 const steps = [
   {
     title: 'Create Your Profile',
-    description: 'Set up your academic profile in minutes'
+    description: 'Set up your academic profile in minutes with our intuitive onboarding process.'
   },
   {
     title: 'Access Resources',
-    description: 'Browse our library of textbooks and study materials'
+    description: 'Browse our extensive library of textbooks, study materials, and past questions.'
   },
   {
     title: 'Join Study Groups',
-    description: 'Connect with peers and create collaborative sessions'
+    description: 'Connect with peers, create collaborative sessions, and learn together.'
   },
   {
     title: 'Take Tests & Download',
-    description: 'Complete exams and download resources'
+    description: 'Complete timed exams, download resources, and track your progress.'
   },
   {
     title: 'Track Progress',
-    description: 'Use our tools to monitor your academic journey'
+    description: 'Use our advanced analytics to monitor your academic journey and improvements.'
   }
 ];
 
@@ -968,26 +851,22 @@ const testimonials = [
   {
     name: 'Sarah Johnson',
     role: 'Medical Student',
-    quote:
-      'The campus compass saved me so much time finding my classes. PetroX transformed how I navigate campus and prepare for exams.'
+    quote: 'The campus compass saved me so much time finding my classes. PetroX transformed how I navigate campus and prepare for exams.'
   },
   {
     name: 'David Chen',
     role: 'Engineering Student',
-    quote:
-      'I downloaded 42 past questions last semester. The GP calculator and PetroMark AI helped me improve my GPA significantly.'
+    quote: 'I downloaded 42 past questions last semester. The GP calculator and PetroMark AI helped me improve my GPA significantly.'
   },
   {
     name: 'Amanda Rodriguez',
     role: 'Law Student',
-    quote:
-      'Creating group tests with friends made studying enjoyable. Finding quality study materials used to take hours. With PetroX, everything is in one place.'
+    quote: 'Creating group tests with friends made studying enjoyable. Finding quality study materials used to take hours. With PetroX, everything is in one place.'
   },
   {
     name: 'GIDEON OJUMIRAYO A.',
     role: 'Geology Student',
-    quote:
-      'The website is an excellent resource for students, especially those in 100 level. The tests provided are well-structured, engaging, and highly beneficial for academic growth. I truly appreciate the platform — its a great tool that supports learning and helps students prepare effectively, especially for 100L students'
+    quote: 'The website is an excellent resource for students, especially those in 100 level. The tests provided are well-structured, engaging, and highly beneficial for academic growth.'
   }
 ];
 
@@ -1028,5 +907,3 @@ const resources = [
 ];
 
 export default LandingPage;
-
-
