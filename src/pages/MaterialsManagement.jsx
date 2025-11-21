@@ -210,7 +210,7 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Search (always use object param, robust error handling)
+  // Search: retrieves materials matching tags, name, or course
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setError('Please enter a search query');
@@ -222,33 +222,58 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     try {
-      // Always use object param for consistency
-      const results = await searchMaterials({ query: searchQuery.trim() });
+      // Call backend search endpoint which returns paginated results with 'results' key
+      const response = await searchMaterials({ query: searchQuery.trim() });
+      
+      // Extract data from axios response
+      const responseData = response?.data || response;
+      
+      // Handle different response structures
       let materialList = [];
-      if (Array.isArray(results)) materialList = results;
-      else if (results && Array.isArray(results.data)) materialList = results.data;
-      else if (results && Array.isArray(results.results)) materialList = results.results;
-      else materialList = [];
+      if (Array.isArray(responseData)) {
+        materialList = responseData;
+      } else if (responseData && Array.isArray(responseData.results)) {
+        // DRF ListAPIView returns { count, next, previous, results: [...] }
+        materialList = responseData.results;
+      } else if (responseData && Array.isArray(responseData.data)) {
+        materialList = responseData.data;
+      }
 
-      setSearchResults(materialList);
-      setMode('search-results');
-      setShowMobileMenu(false);
       if (materialList.length === 0) {
+        setSearchResults([]);
+        setMode('search-results');
+        setShowMobileMenu(false);
         setError('No materials found for your search.');
+      } else {
+        setSearchResults(materialList);
+        setMode('search-results');
+        setShowMobileMenu(false);
       }
     } catch (err) {
       console.error('Search error:', err);
       let errorMsg = 'Failed to search materials. Please try again.';
+      
       if (err.response) {
-        if (err.response.status === 500) errorMsg = 'Server error. Please try again later.';
-        else if (err.response.data?.error) errorMsg = err.response.data.error;
-        else if (err.response.data?.message) errorMsg = err.response.data.message;
-        else errorMsg = `Error ${err.response.status}`;
+        const status = err.response.status;
+        if (status === 500) {
+          errorMsg = 'Server error. Please try again later.';
+        } else if (status === 401) {
+          errorMsg = 'You are not authenticated. Please log in.';
+        } else if (err.response.data?.detail) {
+          errorMsg = err.response.data.detail;
+        } else if (err.response.data?.error) {
+          errorMsg = err.response.data.error;
+        } else if (err.response.data?.message) {
+          errorMsg = err.response.data.message;
+        } else {
+          errorMsg = `Error ${status}: ${err.response.statusText || 'Unknown error'}`;
+        }
       } else if (err.request) {
-        errorMsg = 'No response from server.';
+        errorMsg = 'No response from server. Check your connection.';
       } else {
         errorMsg = err.message || errorMsg;
       }
+      
       setError(errorMsg);
       setSearchResults([]);
     } finally {
@@ -256,50 +281,80 @@ export default function MaterialsManagement() {
     }
   };
 
-  // Download: always request backend for an authoritative URL, robust fallback
+  // Download: requests backend for secure download URL, then opens file
   const handleDownload = async (material) => {
     try {
-      const downloadData = await downloadMaterial(material.id);
-      // Accept multiple shapes
-      const downloadUrl =
-        downloadData?.download_url ||
-        downloadData?.data?.download_url ||
-        material.file_url ||
-        material.url;
+      // Step 1: Request the backend for an authoritative download URL
+      const downloadResponse = await downloadMaterial(material.id);
+      
+      // Extract download URL from axios response
+      const responseData = downloadResponse?.data || downloadResponse;
+      let downloadUrl = null;
+      
+      if (responseData?.download_url) {
+        downloadUrl = responseData.download_url;
+      } else if (typeof responseData === 'string') {
+        downloadUrl = responseData;
+      }
+      
+      // Fallback to material's stored file_url if backend doesn't provide one
+      if (!downloadUrl && material.file_url) {
+        downloadUrl = material.file_url;
+      }
 
+      // Validate the URL
       if (!downloadUrl || typeof downloadUrl !== 'string') {
-        setError('No secure download URL available for this material.');
+        setError('No download URL available for this material. Please try again later.');
         return;
       }
 
-      // Create link, open in new tab (safer cross-origin)
+      // Step 2: Create a temporary link and open file in new tab (safer for cross-origin)
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('target', '_blank');
       link.setAttribute('rel', 'noopener noreferrer');
-      // set download attribute (may be ignored for cross-origin)
-      link.setAttribute('download', material.name || '');
+      // Set download attribute with material name as filename
+      if (material.name) {
+        link.setAttribute('download', material.name);
+      }
+      
+      // Append, click, and remove the link
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // Mark as downloaded locally
-      const already = downloadedMaterials.some((m) => m.id === material.id);
-      if (!already) {
-        const newList = [material, ...downloadedMaterials];
-        setDownloadedMaterials(newList);
-        localStorage.setItem('downloadedMaterials', JSON.stringify(newList));
+      // Step 3: Mark material as downloaded locally
+      const alreadyDownloaded = downloadedMaterials.some((m) => m.id === material.id);
+      if (!alreadyDownloaded) {
+        const updatedList = [material, ...downloadedMaterials];
+        setDownloadedMaterials(updatedList);
+        localStorage.setItem('downloadedMaterials', JSON.stringify(updatedList));
       }
 
       setSuccessMsg(`"${material.name}" downloaded successfully!`);
     } catch (err) {
       console.error('Download error:', err);
       let errorMsg = 'Failed to download file. Please try again.';
-      if (err.response && err.response.data?.detail) {
-        errorMsg = err.response.data.detail;
+      
+      if (err.response) {
+        const status = err.response.status;
+        if (status === 401) {
+          errorMsg = 'Authentication expired. Please log in again.';
+        } else if (status === 404) {
+          errorMsg = 'Material not found. It may have been deleted.';
+        } else if (err.response.data?.detail) {
+          errorMsg = err.response.data.detail;
+        } else if (err.response.data?.message) {
+          errorMsg = err.response.data.message;
+        } else {
+          errorMsg = `Error ${status}: ${err.response.statusText || 'Failed to download'}`;
+        }
+      } else if (err.request) {
+        errorMsg = 'No response from server. Check your connection.';
       } else if (err.message) {
         errorMsg = err.message;
       }
+      
       setError(errorMsg);
     }
   };
