@@ -222,8 +222,8 @@ export default function MaterialsManagement() {
     setSuccessMsg('');
 
     try {
-      // Call backend search endpoint which returns paginated results with 'results' key
-      const response = await searchMaterials({ query: searchQuery.trim() });
+      // Call backend search endpoint with just the query string (not wrapped in object)
+      const response = await searchMaterials(searchQuery.trim());
       
       // Extract data from axios response
       const responseData = response?.data || response;
