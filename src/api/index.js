@@ -208,8 +208,13 @@ export const uploadMaterial = (formData, onUploadProgress) => {
   });
 };
 
-export const searchMaterials = (query) =>
-  api.get(`/api/materials/search/`, { params: { query } });
+export const searchMaterials = (query) => {
+  // Accept either a string or an object like { query: 'term' }
+  let q = '';
+  if (typeof query === 'string') q = query;
+  else if (query && typeof query === 'object') q = query.query || '';
+  return api.get(`/api/materials/search/`, { params: { query: q } });
+};
 
 export const downloadMaterial = (materialId) =>
   api.get(`/api/materials/download/${materialId}/`);
