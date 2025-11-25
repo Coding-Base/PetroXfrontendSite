@@ -1,4 +1,4 @@
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Check } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import {
@@ -10,7 +10,7 @@ import {
 import { useTheme } from '../../providers/theme-provider';
 
 export function ModeToggle() {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -22,14 +22,17 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
-          Light
+        <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
+          <span>Light</span>
+          {theme === 'light' && <Check className="h-4 w-4" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
-          Dark
+        <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
+          <span>Dark</span>
+          {theme === 'dark' && <Check className="h-4 w-4" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
-          System
+        <DropdownMenuItem onClick={() => setTheme('system')} className="flex items-center justify-between">
+          <span>System</span>
+          {theme === 'system' && <Check className="h-4 w-4" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
