@@ -8,7 +8,7 @@ export default function SignUp() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next') || '/dashboard';
-  
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,83 +26,88 @@ export default function SignUp() {
     localStorage.removeItem('refresh_token');
   }, []);
 
+  // Relaxed validation: allow almost any characters for username/password
   const validateForm = () => {
-    const newErrors = {
-      username: '',
-      email: '',
-      password: '',
-      form: ''
-    };
-    
+    const newErrors = { username: '', email: '', password: '', form: '' };
     let isValid = true;
-    
-    // Username validation
-    if (!username.trim()) {
+
+    // Username: require at least 2 visible characters
+    if (!username || !username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
-    } else if (username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    } else if (username.trim().length < 2) {
+      newErrors.username = 'Username must be at least 2 characters';
       isValid = false;
     }
-    
-    // Email validation
-    if (!email.trim()) {
+
+    // Email: still validate basic email format (helps avoid typos)
+    if (!email || !email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address';
       isValid = false;
     }
-    
-    // Password validation
+
+    // Password: allow symbols, uppercase, lowercase, digits — require min length 6
     if (!password) {
       newErrors.password = 'Password is required';
       isValid = false;
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
       isValid = false;
     }
-    
+
     setErrors(newErrors);
     return isValid;
+  };
+
+  // Helper to extract friendly messages from server responses
+  const parseServerErrors = (data) => {
+    if (!data) return 'Registration failed. Please try again.';
+    const parts = [];
+    if (data.detail) parts.push(String(data.detail));
+    if (data.username) parts.push(Array.isArray(data.username) ? data.username.join(' ') : String(data.username));
+    if (data.email) parts.push(Array.isArray(data.email) ? data.email.join(' ') : String(data.email));
+    if (data.password) parts.push(Array.isArray(data.password) ? data.password.join(' ') : String(data.password));
+    if (data.error) parts.push(String(data.error));
+    if (parts.length === 0 && typeof data === 'string') parts.push(data);
+    return parts.join(' ').trim() || 'Registration failed. Please try again.';
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({ username: '', email: '', password: '', form: '' });
-    
-    // Validate form before submission
+
+    // Client-side validation (lightweight)
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
     try {
-      await registerUser(username, email, password);
-      navigate(`/login?next=${encodeURIComponent(next)}`);
+      // We send username exactly as typed (preserve uppercase / special chars)
+      await registerUser(username.trim(), email.trim(), password);
+      // On success, redirect to login and provide a flag so SignIn can show a success message
+      navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(username.trim())}`);
     } catch (err) {
       console.error("Registration Error:", err);
-      
-      // Handle backend validation errors
-      if (err.response?.data) {
-        // Handle field-specific errors
-        if (err.response.data.username) {
-          setErrors(prev => ({ ...prev, username: err.response.data.username[0] }));
+      const serverData = err?.response?.data;
+      if (serverData) {
+        // field-level
+        const newErrors = { username: '', email: '', password: '', form: '' };
+        if (serverData.username) newErrors.username = Array.isArray(serverData.username) ? serverData.username.join(' ') : String(serverData.username);
+        if (serverData.email) newErrors.email = Array.isArray(serverData.email) ? serverData.email.join(' ') : String(serverData.email);
+        if (serverData.password) newErrors.password = Array.isArray(serverData.password) ? serverData.password.join(' ') : String(serverData.password);
+        // general
+        if (serverData.detail) newErrors.form = String(serverData.detail);
+        else if (serverData.error) newErrors.form = String(serverData.error);
+        else {
+          // fallback to joining any messages
+          const parsed = parseServerErrors(serverData);
+          if (!newErrors.username && !newErrors.email && !newErrors.password) newErrors.form = parsed;
         }
-        if (err.response.data.email) {
-          setErrors(prev => ({ ...prev, email: err.response.data.email[0] }));
-        }
-        if (err.response.data.password) {
-          setErrors(prev => ({ ...prev, password: err.response.data.password[0] }));
-        }
-        
-        // Handle general error messages
-        if (err.response.data.detail) {
-          setErrors(prev => ({ ...prev, form: err.response.data.detail }));
-        } else if (!err.response.data.username && !err.response.data.email && !err.response.data.password) {
-          setErrors(prev => ({ ...prev, form: err.response.data.error || 'Registration failed' }));
-        }
+        setErrors(newErrors);
       } else {
-        setErrors(prev => ({ ...prev, form: err.message || 'Unexpected error. Please try again.' }));
+        setErrors(prev => ({ ...prev, form: err?.message || 'Unexpected error. Please try again.' }));
       }
     } finally {
       setIsLoading(false);
@@ -121,28 +126,20 @@ export default function SignUp() {
             />
           </div>
         </div>
-        
-        <h2 className="mb-8 text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
+
+        <h2 className="mb-4 text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
           Create Your Account
         </h2>
 
         {errors.form && (
-          <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 animate-fade-in">
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {errors.form}
-            </div>
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700 border border-red-200">
+            {errors.form}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div className="space-y-2">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
             </label>
             <div className="relative">
@@ -153,28 +150,25 @@ export default function SignUp() {
               </div>
               <input
                 id="username"
+                name="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errors.username) setErrors(prev => ({ ...prev, username: '' }));
+                }}
                 required
-                placeholder="Choose a username"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
-                  errors.username 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                placeholder="Choose a username (letters, numbers & symbols allowed)"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                  errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-            )}
+            {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
             </label>
             <div className="relative">
@@ -186,28 +180,25 @@ export default function SignUp() {
               </div>
               <input
                 id="email"
+                name="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+                }}
                 required
                 placeholder="your.email@example.com"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
-                  errors.email 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                  errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <div className="relative">
@@ -218,27 +209,29 @@ export default function SignUp() {
               </div>
               <input
                 id="password"
+                name="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+                }}
                 required
-                placeholder="••••••••"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-opacity-50 transition duration-200 ${
-                  errors.password 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                placeholder="At least 6 characters — symbols allowed"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                  errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
+            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
           </div>
 
           <Button
             type="submit"
             disabled={isLoading}
-            className={`w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform hover:-translate-y-0.5 ${isLoading ? 'opacity-90 cursor-not-allowed' : ''}`}
+            className={`w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform ${
+              isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:-translate-y-0.5'
+            }`}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
