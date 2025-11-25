@@ -97,6 +97,19 @@ const LandingPage = () => {
 
   useEffect(() => {
     fetchStats();
+    
+    // Wake up the backend by pinging the admin endpoint
+    const wakeBackend = async () => {
+      try {
+        await fetch('https://petroxtestbackend.onrender.com/admin', { method: 'GET' });
+        console.log('Backend wake-up ping sent');
+      } catch (error) {
+        // Silent fail - don't block page load if ping fails
+        console.log('Backend wake-up ping failed (non-blocking):', error);
+      }
+    };
+    
+    wakeBackend();
   }, []);
 
   useEffect(() => {

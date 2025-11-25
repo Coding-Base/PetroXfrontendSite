@@ -24,9 +24,8 @@ export default function MaterialsManagement() {
   const messageTimeout = useRef(null);
 
   // client-side enforced max file size (10MB)
-  // client-side enforced max file size (100MB)
   // Keep this in-sync with backend MATERIAL_MAX_FILE_SIZE (env: MATERIAL_MAX_FILE_SIZE)
-  const MAX_FILE_BYTES = 100 * 1024 * 1024;
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
   // Check online status
   useEffect(() => {
@@ -308,22 +307,37 @@ export default function MaterialsManagement() {
         return;
       }
 
-      // Step 2: Create a temporary link and open file in new tab (safer for cross-origin)
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('target', '_blank');
-      link.setAttribute('rel', 'noopener noreferrer');
-      // Set download attribute with material name as filename
-      if (material.name) {
-        link.setAttribute('download', material.name);
+      // Step 2: Fetch the file as a blob (works cross-origin with proper CORS)
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const blob = await response.blob();
       
-      // Append, click, and remove the link
+      // Extract filename from Content-Disposition header if available, otherwise use material.name
+      let filename = material.name || 'download';
+      const contentDisposition = response.headers.get('Content-Disposition');
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+        if (match) {
+          filename = decodeURIComponent(match[1]).replace(/['"]/g, '');
+        }
+      }
+
+      // Step 3: Create a blob URL and trigger download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename; // Always trigger download (not open in new tab)
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up the blob URL after a small delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-      // Step 3: Mark material as downloaded locally
+      // Step 4: Mark material as downloaded locally
       const alreadyDownloaded = downloadedMaterials.some((m) => m.id === material.id);
       if (!alreadyDownloaded) {
         const updatedList = [material, ...downloadedMaterials];
