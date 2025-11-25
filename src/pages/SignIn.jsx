@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { loginUser } from '../api/index';
 import image from '../images/finallogo.png';
@@ -8,42 +8,90 @@ export default function SignIn() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const nextUrl = searchParams.get('next') || '/dashboard';
+  const registered = searchParams.get('registered'); // optional flag from signup
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [globalMessage, setGlobalMessage] = useState(''); // success or error messages
+  const [globalError, setGlobalError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    if (registered === '1') {
+      setGlobalMessage('Account created successfully — please sign in.');
+      // If signup passed a username, optionally pre-fill:
+      const preUser = searchParams.get('username');
+      if (preUser) setUsername(preUser);
+    }
+  }, [registered, searchParams]);
+
+  // Map server validation payloads to a clean string
+  const parseServerErrors = (data) => {
+    if (!data) return 'Login failed. Please try again.';
+    // common DRF style: { "non_field_errors": [...], "username": [...], "password": [...] }
+    const parts = [];
+    if (data.detail) parts.push(String(data.detail));
+    if (data.non_field_errors) parts.push((data.non_field_errors && data.non_field_errors.join(' ')) || '');
+    // Extract field errors
+    ['username', 'password', 'email'].forEach((f) => {
+      if (data[f]) {
+        if (Array.isArray(data[f])) parts.push(data[f].join(' '));
+        else parts.push(String(data[f]));
+      }
+    });
+    // fallback to string message
+    if (parts.length === 0 && typeof data === 'string') parts.push(data);
+    return parts.join(' ').trim() || 'Invalid credentials. Please try again.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    setGlobalError('');
+    setGlobalMessage('');
+    setFieldErrors({ username: '', password: '' });
 
+    // Minimal client-side checks to avoid frustrating users:
+    if (!username.trim()) {
+      setFieldErrors((p) => ({ ...p, username: 'Please enter your username.' }));
+      return;
+    }
+    if (!password) {
+      setFieldErrors((p) => ({ ...p, password: 'Please enter your password.' }));
+      return;
+    }
+
+    setIsLoading(true);
     try {
+      // Important: we send username exactly as the user typed (preserve case & special chars)
       const { data } = await loginUser(username.trim(), password);
-      handleLoginSuccess(data);
+      // Successful login
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      const actualUsername = data.user?.username || username.trim();
+      localStorage.setItem('username', actualUsername);
+      navigate(nextUrl, { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        'Invalid credentials. Please try again.'
-      );
+      // show helpful server-provided messages when available
+      const server = err?.response?.data;
+      if (server) {
+        const parsed = parseServerErrors(server);
+        // If field-specific info exists, show inline where possible
+        const newFieldErr = { username: '', password: '' };
+        if (server.username) newFieldErr.username = Array.isArray(server.username) ? server.username.join(' ') : String(server.username);
+        if (server.password) newFieldErr.password = Array.isArray(server.password) ? server.password.join(' ') : String(server.password);
+        setFieldErrors(newFieldErr);
+        setGlobalError(parsed);
+      } else {
+        setGlobalError(err?.message || 'Unable to sign in. Please check your connection and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLoginSuccess = (data) => {
-    localStorage.setItem('access_token', data.access);
-    localStorage.setItem('refresh_token', data.refresh);
-    const actualUsername = data.user?.username || username.trim();
-    localStorage.setItem('username', actualUsername);
-    navigate(nextUrl, { replace: true });
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword((s) => !s);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
@@ -58,22 +106,23 @@ export default function SignIn() {
           </div>
         </div>
 
-        <h2 className="mb-8 text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
+        <h2 className="mb-4 text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
           Sign In to Your Account
         </h2>
 
-        {error && (
-          <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 animate-fade-in">
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {error}
-            </div>
+        {globalMessage && (
+          <div className="mb-4 rounded-lg bg-green-50 p-3 text-green-800 border border-green-200">
+            {globalMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {globalError && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700 border border-red-200">
+            {globalError}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
@@ -86,15 +135,24 @@ export default function SignIn() {
               </div>
               <input
                 id="username"
+                name="username"
                 type="text"
                 autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (fieldErrors.username) setFieldErrors((p) => ({ ...p, username: '' }));
+                  if (globalError) setGlobalError('');
+                }}
                 placeholder="Your username"
                 required
-                className="pl-10 mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200"
+                aria-invalid={!!fieldErrors.username}
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                  fieldErrors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                }`}
               />
             </div>
+            {fieldErrors.username && <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>}
           </div>
 
           <div className="space-y-2">
@@ -109,21 +167,30 @@ export default function SignIn() {
               </div>
               <input
                 id="password"
-                type={showPassword ? "text" : "password"}
+                name="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: '' }));
+                  if (globalError) setGlobalError('');
+                }}
+                placeholder="Enter your password"
                 required
-                className="pl-10 mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200"
+                aria-invalid={!!fieldErrors.password}
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                  fieldErrors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                }`}
               />
               <button
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
@@ -135,6 +202,7 @@ export default function SignIn() {
                 )}
               </button>
             </div>
+            {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
           </div>
 
           <Button
