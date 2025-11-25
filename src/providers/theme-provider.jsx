@@ -13,7 +13,7 @@ export default function ThemeProvider({
   storageKey = 'petrox-ui-theme',
   ...props
 }) {
-  const [theme, setTheme] = useState(
+  const [theme, setThemeState] = useState(
     () => localStorage.getItem(storageKey) || defaultTheme
   );
 
@@ -29,7 +29,20 @@ export default function ThemeProvider({
         : 'light';
 
       root.classList.add(systemTheme);
-      return;
+
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemThemeChange = (e) => {
+        root.classList.remove('light', 'dark');
+        root.classList.add(e.matches ? 'dark' : 'light');
+      };
+
+      // Use addEventListener for better browser compatibility
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+      return () => {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      };
     }
 
     root.classList.add(theme);
@@ -37,9 +50,9 @@ export default function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (newTheme) => {
+      localStorage.setItem(storageKey, newTheme);
+      setThemeState(newTheme);
     }
   };
 
