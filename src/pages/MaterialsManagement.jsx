@@ -307,35 +307,17 @@ export default function MaterialsManagement() {
         return;
       }
 
-      // Step 2: Fetch the file as a blob (works cross-origin with proper CORS)
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      
-      // Extract filename from Content-Disposition header if available, otherwise use material.name
-      let filename = material.name || 'download';
-      const contentDisposition = response.headers.get('Content-Disposition');
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
-        if (match) {
-          filename = decodeURIComponent(match[1]).replace(/['"]/g, '');
-        }
-      }
-
-      // Step 3: Create a blob URL and trigger download
-      const blobUrl = URL.createObjectURL(blob);
+      // Step 2: Create a link element and trigger download directly
+      // This works with signed Cloudinary URLs (which already include auth credentials)
+      // Opening the URL directly is safer and more reliable than fetch+blob for cross-origin
       const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename; // Always trigger download (not open in new tab)
+      link.href = downloadUrl;
+      link.download = material.name || 'download'; // Filename hint for the browser
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Clean up the blob URL after a small delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
       // Step 4: Mark material as downloaded locally
       const alreadyDownloaded = downloadedMaterials.some((m) => m.id === material.id);
