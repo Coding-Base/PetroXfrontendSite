@@ -36,7 +36,7 @@ export default function AppProvider({ children }) {
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <QueryClientProvider client={queryClient}>
             <ReactQueryDevtools />
-            <ThemeProvider defaultTheme="dark" storageKey="petrox-ui-theme">
+            <ThemeProvider defaultTheme="system" storageKey="petrox-ui-theme">
               <SidebarProvider>{children}</SidebarProvider>
             </ThemeProvider>
           </QueryClientProvider>

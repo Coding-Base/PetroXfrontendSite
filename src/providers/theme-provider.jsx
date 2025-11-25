@@ -13,21 +13,27 @@ export default function ThemeProvider({
   storageKey = 'petrox-ui-theme',
   ...props
 }) {
-  const [theme, setThemeState] = useState(
-    () => localStorage.getItem(storageKey) || defaultTheme
-  );
+  const [theme, setThemeState] = useState(() => {
+    // Try to read from localStorage first, fallback to defaultTheme
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) return stored;
+    }
+    return defaultTheme;
+  });
 
+  // Apply theme on mount and whenever theme changes
   useEffect(() => {
     const root = window.document.documentElement;
 
+    // Always remove both classes first
     root.classList.remove('light', 'dark');
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light';
-
+      // Get the system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const systemTheme = prefersDark ? 'dark' : 'light';
+      
       root.classList.add(systemTheme);
 
       // Listen for system theme changes
@@ -43,15 +49,18 @@ export default function ThemeProvider({
       return () => {
         mediaQuery.removeEventListener('change', handleSystemThemeChange);
       };
+    } else {
+      // Apply explicit light or dark theme
+      root.classList.add(theme);
     }
-
-    root.classList.add(theme);
   }, [theme]);
 
   const value = {
     theme,
     setTheme: (newTheme) => {
+      // Update localStorage immediately
       localStorage.setItem(storageKey, newTheme);
+      // Update state to trigger useEffect
       setThemeState(newTheme);
     }
   };
