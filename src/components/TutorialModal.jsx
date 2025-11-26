@@ -1,8 +1,9 @@
 import React from 'react';
-import { Button } from './ui/button';
 
 const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
   if (!isOpen) return null;
+
+  console.log('TutorialModal: Rendering modal');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
@@ -53,7 +54,7 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
             <div className="flex items-start space-x-3">
               <div className="bg-purple-100 p-2 rounded-lg flex-shrink-0">
                 <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <div>
@@ -103,18 +104,18 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
         {/* Footer */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button
+            <button
               onClick={onClose}
-              className="flex-1 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors py-2.5"
+              className="flex-1 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors py-2.5 rounded-lg font-medium"
             >
               Skip Tutorial
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={onStartTutorial}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all transform hover:scale-105 py-2.5 shadow-lg"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all transform hover:scale-105 py-2.5 shadow-lg rounded-lg font-medium"
             >
               Start Guided Tour
-            </Button>
+            </button>
           </div>
           <p className="text-center text-gray-500 text-xs mt-3">
             You can always access this tutorial from settings
