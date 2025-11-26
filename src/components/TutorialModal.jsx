@@ -3,8 +3,6 @@ import React from 'react';
 const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
   if (!isOpen) return null;
 
-  console.log('TutorialModal: Rendering modal');
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-auto overflow-hidden animate-in fade-in-90 zoom-in-90">
@@ -21,7 +19,7 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
               </svg>
             </button>
           </div>
-          <p className="text-blue-100 mt-2">Let's get you started with our platform</p>
+          <p className="text-blue-100 mt-2">Ready to master your skills? Let's get started!</p>
         </div>
 
         {/* Content */}
@@ -46,8 +44,8 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800">Take Tests</h3>
-                <p className="text-gray-600 text-sm">Practice with customized tests and improve your skills</p>
+                <h3 className="font-semibold text-gray-800">Smart Tests</h3>
+                <p className="text-gray-600 text-sm">Adaptive tests that focus on your weak areas</p>
               </div>
             </div>
 
@@ -58,46 +56,28 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800">Group Tests</h3>
-                <p className="text-gray-600 text-sm">Collaborate and compete with friends and colleagues</p>
+                <h3 className="font-semibold text-gray-800">Group Learning</h3>
+                <p className="text-gray-600 text-sm">Collaborate and compete with peers</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
               <div className="bg-yellow-100 p-2 rounded-lg flex-shrink-0">
                 <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800">Upload Materials</h3>
-                <p className="text-gray-600 text-sm">Share and access study materials with the community</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-800">AI Assistant</h3>
-                <p className="text-gray-600 text-sm">Get instant help with PetroMark AI for any questions</p>
+                <p className="text-gray-600 text-sm">Get instant help with PetroMark AI</p>
               </div>
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="mt-6 flex justify-center space-x-1">
-            {[1, 2, 3, 4, 5].map((dot) => (
-              <div
-                key={dot}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  dot === 1 ? 'bg-blue-600 w-4' : 'bg-gray-300'
-                }`}
-              />
-            ))}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800 text-sm text-center">
+              <strong>Pro Tip:</strong> Take the guided tour to discover all features quickly!
+            </p>
           </div>
         </div>
 
@@ -108,7 +88,7 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
               onClick={onClose}
               className="flex-1 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors py-2.5 rounded-lg font-medium"
             >
-              Skip Tutorial
+              Skip for now
             </button>
             <button
               onClick={onStartTutorial}
@@ -118,7 +98,7 @@ const TutorialModal = ({ isOpen, onClose, onStartTutorial }) => {
             </button>
           </div>
           <p className="text-center text-gray-500 text-xs mt-3">
-            You can always access this tutorial from settings
+            You can always find help in the settings menu
           </p>
         </div>
       </div>
