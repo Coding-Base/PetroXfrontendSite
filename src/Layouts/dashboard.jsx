@@ -23,6 +23,7 @@ import {Button} from '../components/ui/button'
 import AffiliateDeals from '@/pages/AffilateDeals';
 import UpdatesBell from '@/components/UpdatesBell';
 import TutorialModal from '@/components/TutorialModal';
+import Joyride from 'react-joyride'; // NEW: React Joyride for onboarding tour
 
 // Register chart components
 ChartJS.register(
@@ -136,19 +137,10 @@ const extractResults = (response) => {
 
 // Enhanced check if user is new based on multiple factors
 const isNewUser = (historyData, userRank, approvedUploads) => {
-  console.log('🔍 Checking if user is new:', {
-    historyLength: historyData?.length,
-    userRank,
-    approvedUploads
-  });
-
   // User is new if they have no test history AND no rank AND no uploads
-  const isNew = (!historyData || historyData.length === 0) && 
-                (!userRank || userRank === null || userRank === 'N/A') && 
-                approvedUploads === 0;
-
-  console.log('🔍 User is new:', isNew);
-  return isNew;
+  return (!historyData || historyData.length === 0) && 
+         (!userRank || userRank === null || userRank === 'N/A') && 
+         approvedUploads === 0;
 };
 
 export default function Dashboard() {
@@ -170,7 +162,45 @@ export default function Dashboard() {
     uploadStats: true
   });
   const [showTutorial, setShowTutorial] = useState(false);
+  const [isNewUserFlag, setIsNewUserFlag] = useState(false); // NEW: Track if user is new
   const navigate = useNavigate();
+
+  // NEW: React Joyride state and configuration
+  const [tourState, setTourState] = useState({
+    run: false,
+    steps: [
+      {
+        target: '.stats-cards',
+        content: 'This is your dashboard overview. Here you can see your tests taken, average score, approved uploads, and global rank at a glance.',
+        placement: 'bottom',
+        title: '📊 Dashboard Overview'
+      },
+      {
+        target: '.performance-chart',
+        content: 'Track your performance with this interactive chart. Watch your scores improve as you take more tests!',
+        placement: 'left',
+        title: '📈 Performance Tracking'
+      },
+      {
+        target: '.leaderboard-section',
+        content: 'See how you rank against other users. Climb the leaderboard by improving your scores and uploading quality questions.',
+        placement: 'right',
+        title: '🏆 Leaderboard'
+      },
+      {
+        target: '.quick-actions',
+        content: 'Quick access to all main features. Start tests, create groups, or chat with our AI assistant.',
+        placement: 'top',
+        title: '🚀 Quick Actions'
+      },
+      {
+        target: '.sidebar-menu',
+        content: 'Navigate through all features using the sidebar. Access tests, uploads, materials, and more!',
+        placement: 'right',
+        title: '🧭 Navigation'
+      }
+    ]
+  });
 
   // Set username unconditionally on component mount
   useEffect(() => {
@@ -178,35 +208,25 @@ export default function Dashboard() {
     const storedName = localStorage.getItem('username') || 'User';
     setUserName(storedName);
 
-    console.log('🔍 Dashboard mounted - Starting data fetch');
-
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
-        console.log('🔍 Fetching user history...');
-        
         // Fetch user history first to check if user is new
         const historyRes = await fetchUserHistory();
         const historyData = extractResults(historyRes) || [];
         
-        console.log('🔍 Fetched history data:', historyData);
-        console.log('🔍 History length:', historyData.length);
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
         // Fetch user rank
-        console.log('🔍 Fetching user rank...');
         const rankRes = await fetchUserRank();
-        // Handle different rank response structures
         const rankData = extractResults(rankRes);
         const userRankValue = rankData?.rank || rankRes?.data?.rank || rankData[0]?.rank || null;
         
-        console.log('🔍 User rank data:', rankRes, 'Extracted rank:', userRankValue);
         setUserRank(userRankValue);
         setIsLoading(prev => ({ ...prev, rank: false }));
         
         // Fetch upload stats
-        console.log('🔍 Fetching upload stats...');
         const uploadStatsRes = await fetchUserUploadStats();
         const uploadData = extractResults(uploadStatsRes);
         const approvedUploads = uploadData[0]?.approved_uploads || 
@@ -214,47 +234,31 @@ export default function Dashboard() {
                               uploadStatsRes?.data?.approved_uploads || 
                               0;
         
-        console.log('🔍 Approved uploads:', approvedUploads);
         setUploadStats({
           approvedUploads,
           rankInfo: calculateRank(approvedUploads)
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
 
-        // Check if user is new and show tutorial AFTER all data is loaded
+        // Check if user is new and show tutorial
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
         const isNew = isNewUser(historyData, userRankValue, approvedUploads);
         
-        console.log('🔍 Final user status check:', {
-          isNew,
-          hasSeenTutorial,
-          historyLength: historyData.length,
-          userRank: userRankValue,
-          approvedUploads
-        });
+        setIsNewUserFlag(isNew); // Set the flag for conditional rendering
 
         if (isNew && !hasSeenTutorial) {
-          console.log('🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
           // Small delay to ensure dashboard is fully loaded
           setTimeout(() => {
-            console.log('🎯 Setting showTutorial to true');
             setShowTutorial(true);
-          }, 500);
-        } else {
-          console.log('❌ NOT showing tutorial - Reason:', {
-            isNew,
-            hasSeenTutorial
-          });
+          }, 1000);
         }
         
         // Calculate total test score from history
         if (historyData.length > 0) {
-          // Calculate total score by summing all session scores
           const totalScore = historyData.reduce((acc, session) => {
             return acc + (Number(session.score) || 0);
           }, 0);
           
-          console.log('Total test score:', totalScore);
           setTotalTestScore(totalScore);
           setTestRankInfo(calculateTestRank(totalScore));
         } else {
@@ -282,10 +286,9 @@ export default function Dashboard() {
         // Even if API fails, check if we should show tutorial for new users
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
         if (!hasSeenTutorial) {
-          console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setTimeout(() => {
             setShowTutorial(true);
-          }, 500);
+          }, 1000);
         }
       }
     };
@@ -294,19 +297,26 @@ export default function Dashboard() {
   }, []);
 
   // Handle tutorial completion
-  const handleTutorialComplete = (allowTutorial) => {
-    console.log('Tutorial completed, allow tutorial:', allowTutorial);
+  const handleTutorialComplete = (startTour) => {
     setShowTutorial(false);
     localStorage.setItem('hasSeenTutorial', 'true');
     
-    if (allowTutorial) {
-      // Start the interactive tutorial
+    if (startTour) {
+      // Start the React Joyride tour
       setTimeout(() => {
-        navigate('/dashboard/my-tests');
-        setTimeout(() => {
-          alert("🎉 Welcome to Petrox! Let's start with taking your first test. Explore the different features as you go!");
-        }, 1000);
+        setTourState(prev => ({ ...prev, run: true }));
       }, 500);
+    }
+  };
+
+  // NEW: Handle Joyride callback
+  const handleJoyrideCallback = (data) => {
+    const { action, index, type, status } = data;
+
+    if (([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) || 
+        (action === 'close' && type === 'step:before')) {
+      // Tour finished or skipped
+      setTourState(prev => ({ ...prev, run: false }));
     }
   };
 
@@ -393,7 +403,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Tutorial Modal */}
+      {/* Tutorial Modal - Only shows for new users */}
       {showTutorial && (
         <TutorialModal 
           isOpen={showTutorial}
@@ -402,28 +412,32 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Temporary test button - remove in production */}
-      <div className="fixed bottom-4 right-4 z-40">
-        <button
-          onClick={() => {
-            console.log('Manual tutorial trigger');
-            setShowTutorial(true);
-          }}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
-        >
-          Test Tutorial
-        </button>
-        <button
-          onClick={() => {
-            localStorage.removeItem('hasSeenTutorial');
-            console.log('Reset tutorial flag');
-            alert('Tutorial flag reset! Refresh the page to see tutorial.');
-          }}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium mt-2 block w-full"
-        >
-          Reset Tutorial
-        </button>
-      </div>
+      {/* NEW: React Joyride Tour */}
+      <Joyride
+        steps={tourState.steps}
+        run={tourState.run}
+        callback={handleJoyrideCallback}
+        continuous={true}
+        showSkipButton={true}
+        showProgress={true}
+        styles={{
+          options: {
+            arrowColor: '#fff',
+            backgroundColor: '#fff',
+            overlayColor: 'rgba(0, 0, 0, 0.5)',
+            primaryColor: '#3b82f6',
+            textColor: '#333',
+            zIndex: 1000,
+          }
+        }}
+        locale={{
+          back: 'Back',
+          close: 'Close',
+          last: 'Finish',
+          next: 'Next',
+          skip: 'Skip Tour'
+        }}
+      />
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
@@ -439,7 +453,6 @@ export default function Dashboard() {
               )}
             </h1>
 
-            {/* NEW: Updates bell in header — clicking opens the separate updates route */}
             <div className="ml-auto">
               <UpdatesBell onOpen={() => navigate('/dashboard/updates')} />
             </div>
@@ -471,8 +484,8 @@ export default function Dashboard() {
         {/* Dashboard Content */}
         {activeTab === 'dashboard' && (
           <div>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+            {/* Stats Cards - Added class for Joyride */}
+            <div className="stats-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-4">
@@ -554,9 +567,9 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Charts and Leaderboard */}
+            {/* Charts and Leaderboard - Added classes for Joyride */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Performance Overview
@@ -603,7 +616,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Leaderboard
@@ -661,8 +674,8 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Quick Actions */}
-            <div className="bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
+            {/* Quick Actions - Added class for Joyride */}
+            <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                   Quick Actions
@@ -710,3 +723,12 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// NEW: Add Joyride STATUS constants
+const STATUS = {
+  RUNNING: 'running',
+  PAUSED: 'paused',
+  SKIPPED: 'skipped',
+  FINISHED: 'finished',
+  ERROR: 'error',
+};
