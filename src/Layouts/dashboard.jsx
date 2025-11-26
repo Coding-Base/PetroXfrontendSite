@@ -134,9 +134,21 @@ const extractResults = (response) => {
   return [];
 };
 
-// Check if user is new based on test history
-const isNewUser = (historyData) => {
-  return !historyData || historyData.length === 0;
+// Enhanced check if user is new based on multiple factors
+const isNewUser = (historyData, userRank, approvedUploads) => {
+  console.log('🔍 Checking if user is new:', {
+    historyLength: historyData?.length,
+    userRank,
+    approvedUploads
+  });
+
+  // User is new if they have no test history AND no rank AND no uploads
+  const isNew = (!historyData || historyData.length === 0) && 
+                (!userRank || userRank === null || userRank === 'N/A') && 
+                approvedUploads === 0;
+
+  console.log('🔍 User is new:', isNew);
+  return isNew;
 };
 
 export default function Dashboard() {
@@ -182,15 +194,43 @@ export default function Dashboard() {
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
-        // Check if user is new and show tutorial
-        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        const isNew = isNewUser(historyData);
+        // Fetch user rank
+        console.log('🔍 Fetching user rank...');
+        const rankRes = await fetchUserRank();
+        // Handle different rank response structures
+        const rankData = extractResults(rankRes);
+        const userRankValue = rankData?.rank || rankRes?.data?.rank || rankData[0]?.rank || null;
         
-        console.log('🔍 User status check:', {
+        console.log('🔍 User rank data:', rankRes, 'Extracted rank:', userRankValue);
+        setUserRank(userRankValue);
+        setIsLoading(prev => ({ ...prev, rank: false }));
+        
+        // Fetch upload stats
+        console.log('🔍 Fetching upload stats...');
+        const uploadStatsRes = await fetchUserUploadStats();
+        const uploadData = extractResults(uploadStatsRes);
+        const approvedUploads = uploadData[0]?.approved_uploads || 
+                              uploadData?.approved_uploads || 
+                              uploadStatsRes?.data?.approved_uploads || 
+                              0;
+        
+        console.log('🔍 Approved uploads:', approvedUploads);
+        setUploadStats({
+          approvedUploads,
+          rankInfo: calculateRank(approvedUploads)
+        });
+        setIsLoading(prev => ({ ...prev, uploadStats: false }));
+
+        // Check if user is new and show tutorial AFTER all data is loaded
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+        const isNew = isNewUser(historyData, userRankValue, approvedUploads);
+        
+        console.log('🔍 Final user status check:', {
           isNew,
           hasSeenTutorial,
           historyLength: historyData.length,
-          historyData
+          userRank: userRankValue,
+          approvedUploads
         });
 
         if (isNew && !hasSeenTutorial) {
@@ -199,7 +239,7 @@ export default function Dashboard() {
           setTimeout(() => {
             console.log('🎯 Setting showTutorial to true');
             setShowTutorial(true);
-          }, 1000);
+          }, 500);
         } else {
           console.log('❌ NOT showing tutorial - Reason:', {
             isNew,
@@ -224,31 +264,6 @@ export default function Dashboard() {
             pointsNeeded: 10
           });
         }
-        
-        // Fetch user rank
-        const rankRes = await fetchUserRank();
-        // Handle different rank response structures
-        const rankData = extractResults(rankRes);
-        const userRankValue = rankData[0]?.rank || rankData?.rank || rankRes?.data?.rank;
-        
-        console.log('User rank data:', rankRes, 'Extracted rank:', userRankValue);
-        setUserRank(userRankValue);
-        setIsLoading(prev => ({ ...prev, rank: false }));
-        
-        // Fetch upload stats
-        const uploadStatsRes = await fetchUserUploadStats();
-        const uploadData = extractResults(uploadStatsRes);
-        const approvedUploads = uploadData[0]?.approved_uploads || 
-                              uploadData?.approved_uploads || 
-                              uploadStatsRes?.data?.approved_uploads || 
-                              0;
-        
-        console.log('Approved uploads:', approvedUploads);
-        setUploadStats({
-          approvedUploads,
-          rankInfo: calculateRank(approvedUploads)
-        });
-        setIsLoading(prev => ({ ...prev, uploadStats: false }));
 
         // Fetch leaderboard
         const leaderboardRes = await fetchLeaderboard();
@@ -270,7 +285,7 @@ export default function Dashboard() {
           console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setTimeout(() => {
             setShowTutorial(true);
-          }, 1000);
+          }, 500);
         }
       }
     };
@@ -379,35 +394,36 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-screen">
       {/* Tutorial Modal */}
-      <TutorialModal 
-        isOpen={showTutorial}
-        onClose={() => handleTutorialComplete(false)}
-        onStartTutorial={() => handleTutorialComplete(true)}
-      />
+      {showTutorial && (
+        <TutorialModal 
+          isOpen={showTutorial}
+          onClose={() => handleTutorialComplete(false)}
+          onStartTutorial={() => handleTutorialComplete(true)}
+        />
+      )}
 
       {/* Temporary test button - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 z-40">
-          <button
-            onClick={() => {
-              console.log('Manual tutorial trigger');
-              setShowTutorial(true);
-            }}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
-          >
-            Test Tutorial
-          </button>
-          <button
-            onClick={() => {
-              localStorage.removeItem('hasSeenTutorial');
-              console.log('Reset tutorial flag');
-            }}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium mt-2 block w-full"
-          >
-            Reset Tutorial
-          </button>
-        </div>
-      )}
+      <div className="fixed bottom-4 right-4 z-40">
+        <button
+          onClick={() => {
+            console.log('Manual tutorial trigger');
+            setShowTutorial(true);
+          }}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
+        >
+          Test Tutorial
+        </button>
+        <button
+          onClick={() => {
+            localStorage.removeItem('hasSeenTutorial');
+            console.log('Reset tutorial flag');
+            alert('Tutorial flag reset! Refresh the page to see tutorial.');
+          }}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium mt-2 block w-full"
+        >
+          Reset Tutorial
+        </button>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
