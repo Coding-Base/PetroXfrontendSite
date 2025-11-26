@@ -159,7 +159,7 @@ const isNewUser = (historyData, userRank, approvedUploads, averageScore) => {
   return isNew;
 };
 
-// Custom Tour Component
+// Custom Tour Component - Enhanced with proper positioning
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) => {
   if (!isActive || !steps[currentStep]) return null;
 
@@ -172,7 +172,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) =
       
       {/* Tooltip */}
       <div 
-        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200"
+        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200 z-50"
         style={{
           top: step.position?.top || '50%',
           left: step.position?.left || '50%',
@@ -258,35 +258,40 @@ export default function Dashboard() {
   const [debugInfo, setDebugInfo] = useState(''); // NEW: Debug info state
   const navigate = useNavigate();
 
-  // Custom Tour State
+  // Custom Tour State - Enhanced with better positioning
   const [tourState, setTourState] = useState({
     isActive: false,
     currentStep: 0,
     steps: [
       {
-        title: '📊 Dashboard Overview',
-        content: 'This is your dashboard overview. Here you can see your tests taken, average score, approved uploads, and global rank at a glance.',
-        position: { top: '30%', left: '50%' }
+        title: '👋 Welcome to Your Dashboard!',
+        content: 'This is your personal dashboard where you can track your progress, see your stats, and access all features.',
+        position: { top: '20%', left: '50%' }
       },
       {
-        title: '📈 Performance Tracking',
-        content: 'Track your performance with this interactive chart. Watch your scores improve as you take more tests!',
-        position: { top: '50%', left: '25%' }
+        title: '📊 Your Performance Stats',
+        content: 'Here you can see your key metrics: tests taken, average score, approved uploads, and global rank. Track your improvement over time!',
+        position: { top: '35%', left: '50%' }
+      },
+      {
+        title: '📈 Performance Chart',
+        content: 'This visual chart shows your average score. Aim for higher percentages to improve your ranking!',
+        position: { top: '55%', left: '25%' }
       },
       {
         title: '🏆 Leaderboard',
-        content: 'See how you rank against other users. Climb the leaderboard by improving your scores and uploading quality questions.',
-        position: { top: '50%', left: '75%' }
+        content: 'See how you rank against other users. Improve your scores and upload quality questions to climb higher!',
+        position: { top: '55%', left: '75%' }
       },
       {
         title: '🚀 Quick Actions',
-        content: 'Quick access to all main features. Start tests, create groups, or chat with our AI assistant.',
+        content: 'Quick access to start new tests, create group tests, or chat with PetroMark AI for assistance.',
         position: { top: '80%', left: '50%' }
       },
       {
-        title: '🧭 Navigation',
-        content: 'Navigate through all features using the sidebar. Access tests, uploads, materials, and more!',
-        position: { top: '50%', left: '10%' }
+        title: '🎯 Ready to Begin!',
+        content: 'You\'re all set! Start by taking your first test or explore other features. Happy learning!',
+        position: { top: '50%', left: '50%' }
       }
     ]
   });
@@ -319,6 +324,13 @@ export default function Dashboard() {
     };
   };
 
+  // Reset tutorial for testing - REMOVE IN PRODUCTION
+  const resetTutorialForTesting = () => {
+    localStorage.removeItem('hasSeenTutorial');
+    console.log('🎯 Tutorial reset for testing');
+    setDebugInfo('Tutorial reset - refresh page to see tour');
+  };
+
   // Set username unconditionally on component mount
   useEffect(() => {
     // Set username from localStorage immediately
@@ -327,6 +339,12 @@ export default function Dashboard() {
 
     console.log('🔍 Dashboard mounted - Starting data fetch');
     setDebugInfo('Dashboard mounted - Starting data fetch');
+
+    // Check if we should reset tutorial for new users (development only)
+    if (process.env.NODE_ENV === 'development') {
+      const storedTutorialFlag = localStorage.getItem('hasSeenTutorial');
+      console.log('🔍 Current tutorial flag:', storedTutorialFlag);
+    }
 
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
@@ -407,22 +425,27 @@ export default function Dashboard() {
             * No Score: ${stats.averageScore === 0}
         `);
 
-        if (isNew && !hasSeenTutorial) {
+        // FIXED: Check if user is new AND has not seen tutorial OR if tutorial flag is improperly set
+        const shouldShowTutorial = isNew && (!hasSeenTutorial || hasSeenTutorial === 'false');
+        
+        if (shouldShowTutorial) {
           console.log('🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
           setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
           
-          // Start the tour automatically for new users
+          // Start the tour automatically for new users after a short delay
           setTimeout(() => {
             console.log('🎯 Starting tour automatically for new user');
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
+            // Set the flag only when tour actually starts
             localStorage.setItem('hasSeenTutorial', 'true');
-          }, 1500);
+          }, 2000);
         } else {
           console.log('❌ NOT showing tutorial - Reason:', {
             isNew,
-            hasSeenTutorial
+            hasSeenTutorial,
+            shouldShowTutorial
           });
-          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, hasSeenTutorial: ${hasSeenTutorial}`);
+          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, hasSeenTutorial: ${hasSeenTutorial}, shouldShowTutorial: ${shouldShowTutorial}`);
         }
         
         // Calculate total test score from history
@@ -460,13 +483,13 @@ export default function Dashboard() {
 
         // Even if API fails, check if we should show tutorial for new users
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        if (!hasSeenTutorial) {
+        if (!hasSeenTutorial || hasSeenTutorial === 'false') {
           console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setTimeout(() => {
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
             localStorage.setItem('hasSeenTutorial', 'true');
-          }, 1500);
+          }, 2000);
         }
       }
     };
@@ -591,13 +614,18 @@ export default function Dashboard() {
           <h3 className="font-bold mb-2">Debug Info:</h3>
           <pre>{debugInfo}</pre>
           <button 
-            onClick={() => {
-              localStorage.removeItem('hasSeenTutorial');
-              setDebugInfo('Tutorial reset - refresh page to see tour');
-            }}
+            onClick={resetTutorialForTesting}
             className="mt-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
           >
             Reset Tutorial
+          </button>
+          <button 
+            onClick={() => {
+              setDebugInfo('');
+            }}
+            className="mt-2 ml-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs"
+          >
+            Clear Debug
           </button>
         </div>
       )}
@@ -863,7 +891,7 @@ export default function Dashboard() {
                   onClick={() => navigate('/create-group')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   Group Test
                 </Button>
