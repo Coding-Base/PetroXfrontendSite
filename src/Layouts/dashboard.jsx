@@ -21,7 +21,8 @@ import {
 } from 'chart.js';
 import {Button} from '../components/ui/button'
 import AffiliateDeals from '@/pages/AffilateDeals';
-import UpdatesBell from '@/components/UpdatesBell'; // NEW: bell icon that routes to UpdateTab
+import UpdatesBell from '@/components/UpdatesBell';
+import TutorialModal from '@/components/TutorialModal'; // NEW: Tutorial component
 
 // Register chart components
 ChartJS.register(
@@ -151,6 +152,7 @@ export default function Dashboard() {
     rank: true,
     uploadStats: true
   });
+  const [showTutorial, setShowTutorial] = useState(false); // NEW: Tutorial state
   const navigate = useNavigate();
 
   // Set username unconditionally on component mount
@@ -174,6 +176,17 @@ export default function Dashboard() {
         console.log('Fetched history data:', historyData);
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
+        
+        // Check if user is new (no tests taken) and show tutorial
+        if (historyData.length === 0) {
+          const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+          if (!hasSeenTutorial) {
+            // Small delay to ensure dashboard is fully loaded
+            setTimeout(() => {
+              setShowTutorial(true);
+            }, 1000);
+          }
+        }
         
         // Calculate total test score from history
         if (historyData.length > 0) {
@@ -231,6 +244,19 @@ export default function Dashboard() {
     
     fetchDashboardData();
   }, []);
+
+  // NEW: Handle tutorial completion
+  const handleTutorialComplete = (allowTutorial) => {
+    setShowTutorial(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+    
+    if (allowTutorial) {
+      // Start the interactive tutorial
+      // This could navigate to a tutorial page or show step-by-step guides
+      console.log('Starting interactive tutorial...');
+      // You can implement step-by-step guidance here
+    }
+  };
 
   // Calculate stats from real data
   const calculateStats = () => {
@@ -315,6 +341,13 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen">
+      {/* NEW: Tutorial Modal */}
+      <TutorialModal 
+        isOpen={showTutorial}
+        onClose={() => handleTutorialComplete(false)}
+        onStartTutorial={() => handleTutorialComplete(true)}
+      />
+
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
         {/* Welcome Header with Dynamic Rank */}
