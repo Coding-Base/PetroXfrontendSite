@@ -23,7 +23,6 @@ import {Button} from '../components/ui/button'
 import AffiliateDeals from '@/pages/AffilateDeals';
 import UpdatesBell from '@/components/UpdatesBell';
 import TutorialModal from '@/components/TutorialModal';
-import Joyride from 'react-joyride'; // NEW: React Joyride for onboarding tour
 
 // Register chart components
 ChartJS.register(
@@ -143,6 +142,81 @@ const isNewUser = (historyData, userRank, approvedUploads) => {
          approvedUploads === 0;
 };
 
+// Custom Tour Component
+const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) => {
+  if (!isActive || !steps[currentStep]) return null;
+
+  const step = steps[currentStep];
+
+  return (
+    <div className="fixed inset-0 z-50">
+      {/* Overlay with hole for highlighted element */}
+      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"></div>
+      
+      {/* Tooltip */}
+      <div 
+        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200"
+        style={{
+          top: step.position?.top || '50%',
+          left: step.position?.left || '50%',
+          transform: 'translate(-50%, -50%)'
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <div className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">
+              {currentStep + 1}
+            </div>
+            <h3 className="font-bold text-gray-800">{step.title}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <p className="text-gray-600 text-sm mb-4">{step.content}</p>
+
+        {/* Progress and Navigation */}
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-1">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentStep ? 'bg-blue-600 w-4' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex space-x-2">
+            {currentStep > 0 && (
+              <button
+                onClick={onPrev}
+                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Back
+              </button>
+            )}
+            <button
+              onClick={onNext}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [testHistory, setTestHistory] = useState([]);
@@ -162,42 +236,38 @@ export default function Dashboard() {
     uploadStats: true
   });
   const [showTutorial, setShowTutorial] = useState(false);
-  const [isNewUserFlag, setIsNewUserFlag] = useState(false); // NEW: Track if user is new
+  const [isNewUserFlag, setIsNewUserFlag] = useState(false);
   const navigate = useNavigate();
 
-  // NEW: React Joyride state and configuration
+  // Custom Tour State
   const [tourState, setTourState] = useState({
-    run: false,
+    isActive: false,
+    currentStep: 0,
     steps: [
       {
-        target: '.stats-cards',
+        title: '📊 Dashboard Overview',
         content: 'This is your dashboard overview. Here you can see your tests taken, average score, approved uploads, and global rank at a glance.',
-        placement: 'bottom',
-        title: '📊 Dashboard Overview'
+        position: { top: '30%', left: '50%' }
       },
       {
-        target: '.performance-chart',
+        title: '📈 Performance Tracking',
         content: 'Track your performance with this interactive chart. Watch your scores improve as you take more tests!',
-        placement: 'left',
-        title: '📈 Performance Tracking'
+        position: { top: '50%', left: '25%' }
       },
       {
-        target: '.leaderboard-section',
+        title: '🏆 Leaderboard',
         content: 'See how you rank against other users. Climb the leaderboard by improving your scores and uploading quality questions.',
-        placement: 'right',
-        title: '🏆 Leaderboard'
+        position: { top: '50%', left: '75%' }
       },
       {
-        target: '.quick-actions',
+        title: '🚀 Quick Actions',
         content: 'Quick access to all main features. Start tests, create groups, or chat with our AI assistant.',
-        placement: 'top',
-        title: '🚀 Quick Actions'
+        position: { top: '80%', left: '50%' }
       },
       {
-        target: '.sidebar-menu',
+        title: '🧭 Navigation',
         content: 'Navigate through all features using the sidebar. Access tests, uploads, materials, and more!',
-        placement: 'right',
-        title: '🧭 Navigation'
+        position: { top: '50%', left: '10%' }
       }
     ]
   });
@@ -244,7 +314,7 @@ export default function Dashboard() {
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
         const isNew = isNewUser(historyData, userRankValue, approvedUploads);
         
-        setIsNewUserFlag(isNew); // Set the flag for conditional rendering
+        setIsNewUserFlag(isNew);
 
         if (isNew && !hasSeenTutorial) {
           // Small delay to ensure dashboard is fully loaded
@@ -302,22 +372,34 @@ export default function Dashboard() {
     localStorage.setItem('hasSeenTutorial', 'true');
     
     if (startTour) {
-      // Start the React Joyride tour
+      // Start the custom tour
       setTimeout(() => {
-        setTourState(prev => ({ ...prev, run: true }));
+        setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
       }, 500);
     }
   };
 
-  // NEW: Handle Joyride callback
-  const handleJoyrideCallback = (data) => {
-    const { action, index, type, status } = data;
+  // Tour navigation handlers
+  const handleNextStep = () => {
+    setTourState(prev => {
+      if (prev.currentStep < prev.steps.length - 1) {
+        return { ...prev, currentStep: prev.currentStep + 1 };
+      } else {
+        // Tour finished
+        return { ...prev, isActive: false };
+      }
+    });
+  };
 
-    if (([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) || 
-        (action === 'close' && type === 'step:before')) {
-      // Tour finished or skipped
-      setTourState(prev => ({ ...prev, run: false }));
-    }
+  const handlePrevStep = () => {
+    setTourState(prev => ({
+      ...prev,
+      currentStep: Math.max(0, prev.currentStep - 1)
+    }));
+  };
+
+  const handleCloseTour = () => {
+    setTourState(prev => ({ ...prev, isActive: false }));
   };
 
   // Calculate stats from real data
@@ -412,31 +494,14 @@ export default function Dashboard() {
         />
       )}
 
-      {/* NEW: React Joyride Tour */}
-      <Joyride
+      {/* Custom Tour */}
+      <CustomTour
         steps={tourState.steps}
-        run={tourState.run}
-        callback={handleJoyrideCallback}
-        continuous={true}
-        showSkipButton={true}
-        showProgress={true}
-        styles={{
-          options: {
-            arrowColor: '#fff',
-            backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-            primaryColor: '#3b82f6',
-            textColor: '#333',
-            zIndex: 1000,
-          }
-        }}
-        locale={{
-          back: 'Back',
-          close: 'Close',
-          last: 'Finish',
-          next: 'Next',
-          skip: 'Skip Tour'
-        }}
+        currentStep={tourState.currentStep}
+        isActive={tourState.isActive}
+        onClose={handleCloseTour}
+        onNext={handleNextStep}
+        onPrev={handlePrevStep}
       />
 
       {/* Main Content */}
@@ -484,8 +549,8 @@ export default function Dashboard() {
         {/* Dashboard Content */}
         {activeTab === 'dashboard' && (
           <div>
-            {/* Stats Cards - Added class for Joyride */}
-            <div className="stats-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-4">
@@ -567,9 +632,9 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Charts and Leaderboard - Added classes for Joyride */}
+            {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-              <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Performance Overview
@@ -616,7 +681,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Leaderboard
@@ -674,8 +739,8 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Quick Actions - Added class for Joyride */}
-            <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
+            {/* Quick Actions */}
+            <div className="bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                   Quick Actions
@@ -723,12 +788,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-// NEW: Add Joyride STATUS constants
-const STATUS = {
-  RUNNING: 'running',
-  PAUSED: 'paused',
-  SKIPPED: 'skipped',
-  FINISHED: 'finished',
-  ERROR: 'error',
-};
