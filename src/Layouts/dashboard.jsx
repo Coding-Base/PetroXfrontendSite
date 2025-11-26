@@ -135,11 +135,28 @@ const extractResults = (response) => {
 };
 
 // Enhanced check if user is new based on multiple factors
-const isNewUser = (historyData, userRank, approvedUploads) => {
-  // User is new if they have no test history AND no rank AND no uploads
-  return (!historyData || historyData.length === 0) && 
-         (!userRank || userRank === null || userRank === 'N/A') && 
-         approvedUploads === 0;
+const isNewUser = (historyData, userRank, approvedUploads, averageScore) => {
+  console.log('🔍 Checking if user is new with data:', {
+    historyLength: historyData?.length,
+    userRank,
+    approvedUploads,
+    averageScore
+  });
+
+  // User is new if ANY of these conditions are true:
+  const conditions = {
+    noHistory: !historyData || historyData.length === 0,
+    noRank: !userRank || userRank === null || userRank === 'N/A',
+    noUploads: approvedUploads === 0,
+    noScore: averageScore === 0
+  };
+
+  console.log('🔍 New user conditions:', conditions);
+
+  const isNew = conditions.noHistory || conditions.noRank || conditions.noUploads || conditions.noScore;
+  
+  console.log('🔍 User is new:', isNew);
+  return isNew;
 };
 
 // Custom Tour Component
@@ -233,10 +250,12 @@ export default function Dashboard() {
     leaderboard: true,
     history: true,
     rank: true,
-    uploadStats: true
+    uploadStats: true,
+    all: true
   });
   const [showTutorial, setShowTutorial] = useState(false);
   const [isNewUserFlag, setIsNewUserFlag] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(''); // NEW: Debug info state
   const navigate = useNavigate();
 
   // Custom Tour State
@@ -272,31 +291,74 @@ export default function Dashboard() {
     ]
   });
 
+  // Calculate stats from real data
+  const calculateStats = () => {
+    const testsTaken = testHistory.length;
+    let totalScorePercentage = 0;
+    let scoredTests = 0;
+
+    testHistory.forEach(session => {
+      const questionCount = session.questions?.length || 0;
+      const score = Number(session.score) || 0;
+      
+      if (questionCount > 0) {
+        const sessionScore = (score / questionCount) * 100;
+        totalScorePercentage += sessionScore;
+        scoredTests++;
+      }
+    });
+
+    const averageScore = scoredTests > 0
+      ? Math.round(totalScorePercentage / scoredTests)
+      : 0;
+
+    return {
+      testsTaken,
+      averageScore,
+      currentRank: userRank,
+    };
+  };
+
   // Set username unconditionally on component mount
   useEffect(() => {
     // Set username from localStorage immediately
     const storedName = localStorage.getItem('username') || 'User';
     setUserName(storedName);
 
+    console.log('🔍 Dashboard mounted - Starting data fetch');
+    setDebugInfo('Dashboard mounted - Starting data fetch');
+
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
+        setIsLoading(prev => ({ ...prev, all: true }));
+        
+        console.log('🔍 Fetching user history...');
+        setDebugInfo('Fetching user history...');
+
         // Fetch user history first to check if user is new
         const historyRes = await fetchUserHistory();
         const historyData = extractResults(historyRes) || [];
         
+        console.log('🔍 Fetched history data:', historyData);
+        console.log('🔍 History length:', historyData.length);
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
         // Fetch user rank
+        console.log('🔍 Fetching user rank...');
+        setDebugInfo('Fetching user rank...');
         const rankRes = await fetchUserRank();
         const rankData = extractResults(rankRes);
         const userRankValue = rankData?.rank || rankRes?.data?.rank || rankData[0]?.rank || null;
         
+        console.log('🔍 User rank data:', rankRes, 'Extracted rank:', userRankValue);
         setUserRank(userRankValue);
         setIsLoading(prev => ({ ...prev, rank: false }));
         
         // Fetch upload stats
+        console.log('🔍 Fetching upload stats...');
+        setDebugInfo('Fetching upload stats...');
         const uploadStatsRes = await fetchUserUploadStats();
         const uploadData = extractResults(uploadStatsRes);
         const approvedUploads = uploadData[0]?.approved_uploads || 
@@ -304,23 +366,63 @@ export default function Dashboard() {
                               uploadStatsRes?.data?.approved_uploads || 
                               0;
         
+        console.log('🔍 Approved uploads:', approvedUploads);
         setUploadStats({
           approvedUploads,
           rankInfo: calculateRank(approvedUploads)
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
 
+        // Calculate stats to get average score
+        const stats = calculateStats();
+        console.log('🔍 Calculated stats:', stats);
+
         // Check if user is new and show tutorial
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        const isNew = isNewUser(historyData, userRankValue, approvedUploads);
+        const isNew = isNewUser(historyData, userRankValue, approvedUploads, stats.averageScore);
         
         setIsNewUserFlag(isNew);
 
+        console.log('🔍 Final user status check:', {
+          isNew,
+          hasSeenTutorial,
+          historyLength: historyData.length,
+          userRank: userRankValue,
+          approvedUploads,
+          averageScore: stats.averageScore
+        });
+
+        setDebugInfo(`
+          User Status Check:
+          - Is New: ${isNew}
+          - Has Seen Tutorial: ${hasSeenTutorial}
+          - History Length: ${historyData.length}
+          - User Rank: ${userRankValue}
+          - Approved Uploads: ${approvedUploads}
+          - Average Score: ${stats.averageScore}
+          - Conditions:
+            * No History: ${!historyData || historyData.length === 0}
+            * No Rank: ${!userRankValue || userRankValue === null || userRankValue === 'N/A'}
+            * No Uploads: ${approvedUploads === 0}
+            * No Score: ${stats.averageScore === 0}
+        `);
+
         if (isNew && !hasSeenTutorial) {
-          // Small delay to ensure dashboard is fully loaded
+          console.log('🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
+          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
+          
+          // Start the tour automatically for new users
           setTimeout(() => {
-            setShowTutorial(true);
-          }, 1000);
+            console.log('🎯 Starting tour automatically for new user');
+            setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
+            localStorage.setItem('hasSeenTutorial', 'true');
+          }, 1500);
+        } else {
+          console.log('❌ NOT showing tutorial - Reason:', {
+            isNew,
+            hasSeenTutorial
+          });
+          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, hasSeenTutorial: ${hasSeenTutorial}`);
         }
         
         // Calculate total test score from history
@@ -329,6 +431,7 @@ export default function Dashboard() {
             return acc + (Number(session.score) || 0);
           }, 0);
           
+          console.log('Total test score:', totalScore);
           setTotalTestScore(totalScore);
           setTestRankInfo(calculateTestRank(totalScore));
         } else {
@@ -342,23 +445,28 @@ export default function Dashboard() {
         // Fetch leaderboard
         const leaderboardRes = await fetchLeaderboard();
         setLeaderboard(extractResults(leaderboardRes));
-        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        setIsLoading(prev => ({ ...prev, leaderboard: false, all: false }));
         
       } catch (err) {
         console.error('Failed to load dashboard data', err);
+        setDebugInfo(`Failed to load dashboard data: ${err.message}`);
         setIsLoading({
           leaderboard: false,
           history: false,
           rank: false,
-          uploadStats: false
+          uploadStats: false,
+          all: false
         });
 
         // Even if API fails, check if we should show tutorial for new users
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
         if (!hasSeenTutorial) {
+          console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
+          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setTimeout(() => {
-            setShowTutorial(true);
-          }, 1000);
+            setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
+            localStorage.setItem('hasSeenTutorial', 'true');
+          }, 1500);
         }
       }
     };
@@ -366,8 +474,9 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Handle tutorial completion
+  // Handle tutorial completion (for manual start from modal)
   const handleTutorialComplete = (startTour) => {
+    console.log('Tutorial completed, allow tutorial:', startTour);
     setShowTutorial(false);
     localStorage.setItem('hasSeenTutorial', 'true');
     
@@ -402,34 +511,6 @@ export default function Dashboard() {
     setTourState(prev => ({ ...prev, isActive: false }));
   };
 
-  // Calculate stats from real data
-  const calculateStats = () => {
-    const testsTaken = testHistory.length;
-    let totalScorePercentage = 0;
-    let scoredTests = 0;
-
-    testHistory.forEach(session => {
-      const questionCount = session.questions?.length || 0;
-      const score = Number(session.score) || 0;
-      
-      if (questionCount > 0) {
-        const sessionScore = (score / questionCount) * 100;
-        totalScorePercentage += sessionScore;
-        scoredTests++;
-      }
-    });
-
-    const averageScore = scoredTests > 0
-      ? Math.round(totalScorePercentage / scoredTests)
-      : 0;
-
-    return {
-      testsTaken,
-      averageScore,
-      currentRank: userRank,
-    };
-  };
-  
   const stats = calculateStats();
 
   // Get performance rating description
@@ -485,7 +566,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Tutorial Modal - Only shows for new users */}
+      {/* Tutorial Modal - Only shows for manual activation */}
       {showTutorial && (
         <TutorialModal 
           isOpen={showTutorial}
@@ -503,6 +584,23 @@ export default function Dashboard() {
         onNext={handleNextStep}
         onPrev={handlePrevStep}
       />
+
+      {/* Debug Info - Only show in development */}
+      {process.env.NODE_ENV === 'development' && debugInfo && (
+        <div className="fixed bottom-4 left-4 z-40 bg-black bg-opacity-80 text-white p-4 rounded-lg max-w-md max-h-64 overflow-auto text-xs">
+          <h3 className="font-bold mb-2">Debug Info:</h3>
+          <pre>{debugInfo}</pre>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('hasSeenTutorial');
+              setDebugInfo('Tutorial reset - refresh page to see tour');
+            }}
+            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
+          >
+            Reset Tutorial
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
@@ -550,7 +648,7 @@ export default function Dashboard() {
         {activeTab === 'dashboard' && (
           <div>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="stats-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-4">
@@ -634,7 +732,7 @@ export default function Dashboard() {
             
             {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Performance Overview
@@ -681,7 +779,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     Leaderboard
@@ -740,7 +838,7 @@ export default function Dashboard() {
             </div>
             
             {/* Quick Actions */}
-            <div className="bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
+            <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                   Quick Actions
