@@ -166,31 +166,45 @@ export default function Dashboard() {
     const storedName = localStorage.getItem('username') || 'User';
     setUserName(storedName);
 
+    console.log('🔍 Dashboard mounted - Starting data fetch');
+
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
-        // Fetch leaderboard
-        const leaderboardRes = await fetchLeaderboard();
-        setLeaderboard(extractResults(leaderboardRes));
-        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        console.log('🔍 Fetching user history...');
         
-        // Fetch user history - FIXED: Properly handle paginated response
+        // Fetch user history first to check if user is new
         const historyRes = await fetchUserHistory();
-        const historyData = extractResults(historyRes);
+        const historyData = extractResults(historyRes) || [];
         
-        console.log('Fetched history data:', historyData);
+        console.log('🔍 Fetched history data:', historyData);
+        console.log('🔍 History length:', historyData.length);
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
         // Check if user is new and show tutorial
-        if (isNewUser(historyData)) {
-          const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-          if (!hasSeenTutorial) {
-            // Small delay to ensure dashboard is fully loaded
-            setTimeout(() => {
-              setShowTutorial(true);
-            }, 1000);
-          }
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+        const isNew = isNewUser(historyData);
+        
+        console.log('🔍 User status check:', {
+          isNew,
+          hasSeenTutorial,
+          historyLength: historyData.length,
+          historyData
+        });
+
+        if (isNew && !hasSeenTutorial) {
+          console.log('🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
+          // Small delay to ensure dashboard is fully loaded
+          setTimeout(() => {
+            console.log('🎯 Setting showTutorial to true');
+            setShowTutorial(true);
+          }, 1000);
+        } else {
+          console.log('❌ NOT showing tutorial - Reason:', {
+            isNew,
+            hasSeenTutorial
+          });
         }
         
         // Calculate total test score from history
@@ -235,6 +249,11 @@ export default function Dashboard() {
           rankInfo: calculateRank(approvedUploads)
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
+
+        // Fetch leaderboard
+        const leaderboardRes = await fetchLeaderboard();
+        setLeaderboard(extractResults(leaderboardRes));
+        setIsLoading(prev => ({ ...prev, leaderboard: false }));
         
       } catch (err) {
         console.error('Failed to load dashboard data', err);
@@ -248,6 +267,7 @@ export default function Dashboard() {
         // Even if API fails, check if we should show tutorial for new users
         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
         if (!hasSeenTutorial) {
+          console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
           setTimeout(() => {
             setShowTutorial(true);
           }, 1000);
@@ -260,6 +280,7 @@ export default function Dashboard() {
 
   // Handle tutorial completion
   const handleTutorialComplete = (allowTutorial) => {
+    console.log('Tutorial completed, allow tutorial:', allowTutorial);
     setShowTutorial(false);
     localStorage.setItem('hasSeenTutorial', 'true');
     
@@ -363,6 +384,30 @@ export default function Dashboard() {
         onClose={() => handleTutorialComplete(false)}
         onStartTutorial={() => handleTutorialComplete(true)}
       />
+
+      {/* Temporary test button - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <button
+            onClick={() => {
+              console.log('Manual tutorial trigger');
+              setShowTutorial(true);
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
+          >
+            Test Tutorial
+          </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem('hasSeenTutorial');
+              console.log('Reset tutorial flag');
+            }}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg font-medium mt-2 block w-full"
+          >
+            Reset Tutorial
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
