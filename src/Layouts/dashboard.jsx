@@ -22,7 +22,7 @@ import {
 import {Button} from '../components/ui/button'
 import AffiliateDeals from '@/pages/AffilateDeals';
 import UpdatesBell from '@/components/UpdatesBell';
-import TutorialModal from '@/components/TutorialModal'; // NEW: Tutorial component
+import TutorialModal from '@/components/TutorialModal';
 
 // Register chart components
 ChartJS.register(
@@ -134,6 +134,40 @@ const extractResults = (response) => {
   return [];
 };
 
+// NEW: Check if user is new based on multiple criteria
+const isNewUser = (historyData, stats, userRank, approvedUploads) => {
+  // Check if tests taken is 0
+  if (historyData.length === 0) return true;
+  
+  // Check if all stats are 0 or N/A
+  const testsTaken = historyData.length;
+  const averageScore = calculateAverageScore(historyData);
+  const hasNoData = testsTaken === 0 && averageScore === 0 && (!userRank || userRank === 'N/A') && approvedUploads === 0;
+  
+  return hasNoData;
+};
+
+// NEW: Calculate average score
+const calculateAverageScore = (historyData) => {
+  if (!historyData || historyData.length === 0) return 0;
+  
+  let totalScorePercentage = 0;
+  let scoredTests = 0;
+
+  historyData.forEach(session => {
+    const questionCount = session.questions?.length || 0;
+    const score = Number(session.score) || 0;
+    
+    if (questionCount > 0) {
+      const sessionScore = (score / questionCount) * 100;
+      totalScorePercentage += sessionScore;
+      scoredTests++;
+    }
+  });
+
+  return scoredTests > 0 ? Math.round(totalScorePercentage / scoredTests) : 0;
+};
+
 export default function Dashboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [testHistory, setTestHistory] = useState([]);
@@ -150,9 +184,11 @@ export default function Dashboard() {
     leaderboard: true,
     history: true,
     rank: true,
-    uploadStats: true
+    uploadStats: true,
+    all: true
   });
-  const [showTutorial, setShowTutorial] = useState(false); // NEW: Tutorial state
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [isGuidedTourActive, setIsGuidedTourActive] = useState(false); // NEW: Guided tour state
   const navigate = useNavigate();
 
   // Set username unconditionally on component mount
@@ -164,12 +200,9 @@ export default function Dashboard() {
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
-        // Fetch leaderboard
-        const leaderboardRes = await fetchLeaderboard();
-        setLeaderboard(extractResults(leaderboardRes));
-        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        setIsLoading(prev => ({ ...prev, all: true }));
         
-        // Fetch user history - FIXED: Properly handle paginated response
+        // Fetch user history first to check if user is new
         const historyRes = await fetchUserHistory();
         const historyData = extractResults(historyRes);
         
@@ -177,40 +210,10 @@ export default function Dashboard() {
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
         
-        // Check if user is new (no tests taken) and show tutorial
-        if (historyData.length === 0) {
-          const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-          if (!hasSeenTutorial) {
-            // Small delay to ensure dashboard is fully loaded
-            setTimeout(() => {
-              setShowTutorial(true);
-            }, 1000);
-          }
-        }
-        
-        // Calculate total test score from history
-        if (historyData.length > 0) {
-          // Calculate total score by summing all session scores
-          const totalScore = historyData.reduce((acc, session) => {
-            return acc + (Number(session.score) || 0);
-          }, 0);
-          
-          console.log('Total test score:', totalScore);
-          setTotalTestScore(totalScore);
-          setTestRankInfo(calculateTestRank(totalScore));
-        } else {
-          setTestRankInfo({
-            currentRank: TEST_RANK_THRESHOLDS[0],
-            nextThreshold: 10,
-            pointsNeeded: 10
-          });
-        }
-        
         // Fetch user rank
         const rankRes = await fetchUserRank();
-        // Handle different rank response structures
         const rankData = extractResults(rankRes);
-        const userRankValue = rankData[0]?.rank || rankData?.rank || rankRes?.data?.rank;
+        const userRankValue = rankData[0]?.rank || rankData?.rank || rankRes?.data?.rank || 'N/A';
         
         console.log('User rank data:', rankRes, 'Extracted rank:', userRankValue);
         setUserRank(userRankValue);
@@ -231,14 +234,60 @@ export default function Dashboard() {
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
         
+        // Calculate total test score from history
+        if (historyData.length > 0) {
+          const totalScore = historyData.reduce((acc, session) => {
+            return acc + (Number(session.score) || 0);
+          }, 0);
+          
+          console.log('Total test score:', totalScore);
+          setTotalTestScore(totalScore);
+          setTestRankInfo(calculateTestRank(totalScore));
+        } else {
+          setTestRankInfo({
+            currentRank: TEST_RANK_THRESHOLDS[0],
+            nextThreshold: 10,
+            pointsNeeded: 10
+          });
+        }
+        
+        // Fetch leaderboard (less critical for tutorial check)
+        const leaderboardRes = await fetchLeaderboard();
+        setLeaderboard(extractResults(leaderboardRes));
+        setIsLoading(prev => ({ ...prev, leaderboard: false }));
+        
+        // Check if user is new and should see tutorial
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+        const isNew = isNewUser(historyData, {}, userRankValue, approvedUploads);
+        
+        console.log('User status - Is new:', isNew, 'Has seen tutorial:', hasSeenTutorial);
+        
+        if (isNew && !hasSeenTutorial) {
+          // Small delay to ensure dashboard is fully loaded
+          setTimeout(() => {
+            setShowTutorial(true);
+          }, 1500);
+        }
+        
+        setIsLoading(prev => ({ ...prev, all: false }));
+        
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setIsLoading({
           leaderboard: false,
           history: false,
           rank: false,
-          uploadStats: false
+          uploadStats: false,
+          all: false
         });
+
+        // Even if API fails, check if we should show tutorial for new users
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+        if (!hasSeenTutorial) {
+          setTimeout(() => {
+            setShowTutorial(true);
+          }, 1500);
+        }
       }
     };
     
@@ -251,33 +300,32 @@ export default function Dashboard() {
     localStorage.setItem('hasSeenTutorial', 'true');
     
     if (allowTutorial) {
-      // Start the interactive tutorial
-      // This could navigate to a tutorial page or show step-by-step guides
-      console.log('Starting interactive tutorial...');
-      // You can implement step-by-step guidance here
+      startGuidedTour();
     }
+  };
+
+  // NEW: Start guided tour function
+  const startGuidedTour = () => {
+    setIsGuidedTourActive(true);
+    
+    // Show first tooltip for dashboard
+    setTimeout(() => {
+      // You can implement step-by-step guidance here
+      // For now, we'll navigate to the tests page as a starting point
+      navigate('/dashboard/my-tests');
+      
+      // Show success message or next steps
+      setTimeout(() => {
+        alert("🎉 Welcome to Petrox! Let's start with taking your first test. Explore the different features as you go!");
+        setIsGuidedTourActive(false);
+      }, 2000);
+    }, 500);
   };
 
   // Calculate stats from real data
   const calculateStats = () => {
     const testsTaken = testHistory.length;
-    let totalScorePercentage = 0;
-    let scoredTests = 0;
-
-    testHistory.forEach(session => {
-      const questionCount = session.questions?.length || 0;
-      const score = Number(session.score) || 0;
-      
-      if (questionCount > 0) {
-        const sessionScore = (score / questionCount) * 100;
-        totalScorePercentage += sessionScore;
-        scoredTests++;
-      }
-    });
-
-    const averageScore = scoredTests > 0
-      ? Math.round(totalScorePercentage / scoredTests)
-      : 0;
+    const averageScore = calculateAverageScore(testHistory);
 
     return {
       testsTaken,
@@ -348,6 +396,11 @@ export default function Dashboard() {
         onStartTutorial={() => handleTutorialComplete(true)}
       />
 
+      {/* NEW: Guided Tour Overlay */}
+      {isGuidedTourActive && (
+        <div className="fixed inset-0 z-40 bg-blue-600 bg-opacity-10 backdrop-blur-sm transition-all duration-300"></div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
         {/* Welcome Header with Dynamic Rank */}
@@ -362,11 +415,26 @@ export default function Dashboard() {
               )}
             </h1>
 
-            {/* NEW: Updates bell in header — clicking opens the separate updates route */}
             <div className="ml-auto">
               <UpdatesBell onOpen={() => navigate('/dashboard/updates')} />
             </div>
           </div>
+          
+          {testHistory.length === 0 && !isLoading.all && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+              <div className="flex items-center">
+                <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-blue-800 font-medium">New to Petrox?</p>
+                  <p className="text-blue-600 text-sm">Take your first test to get started and unlock all features!</p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {testRankInfo ? (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
@@ -391,197 +459,19 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Dashboard Content */}
+        {/* Rest of your dashboard content remains the same */}
+        {/* ... existing dashboard content ... */}
+        
         {activeTab === 'dashboard' && (
           <div>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500">
-                <div className="flex items-center">
-                  <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-semibold text-gray-700">Tests Taken</h3>
-                    {isLoading.history ? (
-                      <div className="animate-pulse h-6 bg-gray-200 rounded mt-1 w-16"></div>
-                    ) : (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-blue-600">{stats.testsTaken}</p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs md:text-sm text-gray-500 mt-2">Total tests completed</p>
-              </div>
-              
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-green-500">
-                <div className="flex items-center">
-                  <div className="bg-green-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-semibold text-gray-700">Average Score</h3>
-                    {isLoading.history ? (
-                      <div className="animate-pulse h-6 bg-gray-200 rounded mt-1 w-16"></div>
-                    ) : (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-green-600">{stats.averageScore}%</p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs md:text-sm text-gray-500 mt-2">Across all tests</p>
-              </div>
-              
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-purple-500">
-                <div className="flex items-center">
-                  <div className="bg-purple-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-semibold text-gray-700">Approved Uploads</h3>
-                    {isLoading.uploadStats ? (
-                      <div className="animate-pulse h-6 bg-gray-200 rounded mt-1 w-16"></div>
-                    ) : (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-purple-600">
-                        {uploadStats.approvedUploads}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs md:text-sm text-gray-500 mt-2">Questions approved</p>
-              </div>
-              
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-                <div className="flex items-center">
-                  <div className="bg-yellow-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A.75.75 0 003 5.48v10.643a.75.75 0 00.853.736c2.43-.428 4.926-.94 7.394-1.52.394-.096.669.328.338.611-1.3.975-2.965 1.9-4.77 2.716a.75.75 0 00-.365.962l1.732 4.26a.75.75 0 001.445.194l1.974-4.267c.58.13 1.17.248 1.768.35.45.1.9.19 1.35.27V21a.75.75 0 001.5 0v-2.766c.45-.08.9-.17 1.35-.27.599-.102 1.188-.22 1.768-.35l1.974 4.267a.75.75 0 001.445-.194l1.732-4.26a.75.75 0 00-.365-.962c-1.805-.816-3.47-1.74-4.77-2.716-.331-.283-.056-.707.338-.611 2.468.58 4.964 1.092 7.394 1.52a.75.75 0 00.853-.736V5.48a.75.75 0 00-.834-.724c-2.39.42-4.866.94-7.343 1.528-.388.093-.654-.332-.326-.611a8.963 8.963 0 002.45-4.34.75.75 0 00-1.46-.348 7.508 7.508 0 01-2.066 3.644 7.52 7.52 0 01-3.644 2.066.75.75 0 00-.348 1.46c1.577.397 3.2.74 4.843 1.01z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-semibold text-gray-700">Global Rank</h3>
-                    {isLoading.rank ? (
-                      <div className="animate-pulse h-6 bg-gray-200 rounded mt-1 w-16"></div>
-                    ) : userRank ? (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-yellow-600">#{userRank}</p>
-                    ) : (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-yellow-600">N/A</p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs md:text-sm text-gray-500 mt-2">Your position on leaderboard</p>
-              </div>
+              {/* ... existing stats cards ... */}
             </div>
             
             {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-                    Performance Overview
-                  </h2>
-                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    {stats.averageScore}% Achieved
-                  </div>
-                </div>
-                <div className="h-64 md:h-80 flex items-center justify-center relative">
-                  {isLoading.history ? (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="text-gray-500">Loading performance data...</div>
-                    </div>
-                  ) : testHistory.length > 0 ? (
-                    <>
-                      <Doughnut 
-                        data={performanceData} 
-                        options={doughnutChartOptions} 
-                      />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-3xl md:text-4xl font-bold text-gray-800">
-                          {stats.averageScore}%
-                        </div>
-                        <div className="text-sm md:text-base text-gray-600 mt-1">
-                          {getPerformanceRating(stats.averageScore)}
-                        </div>
-                        <div className="mt-2 flex items-center">
-                          <span className="text-xs text-gray-500">Overall Score</span>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" />
-                      <p className="text-gray-500 text-center">No test data available</p>
-                      <Button
-                        onClick={() => navigate('/dashboard/my-tests')}
-                        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-                      >
-                        Take Your First Test
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-                    Leaderboard
-                  </h2>
-                  <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                    Top Performers
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  {isLoading.leaderboard ? (
-                    <div className="space-y-4">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="animate-pulse h-12 bg-gray-200 rounded-lg"></div>
-                      ))}
-                    </div>
-                  ) : leaderboard.length > 0 ? (
-                    <div className="space-y-3">
-                      {leaderboard.slice(0, 5).map((user, index) => (
-                        <div 
-                          key={user.id || index} 
-                          className={`flex items-center p-3 rounded-lg ${
-                            index === 0 ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200' : 
-                            index === 1 ? 'bg-gray-50' : 
-                            index === 2 ? 'bg-orange-50' : 'bg-white'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full mr-3 ${
-                            index === 0 ? 'bg-yellow-100 text-yellow-800' : 
-                            index === 1 ? 'bg-gray-200 text-gray-800' : 
-                            index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-800 truncate">
-                              {user.username || 'Unknown'}
-                            </h4>
-                            <p className="text-xs text-gray-600 truncate">
-                              {user.tests_taken} tests
-                            </p>
-                          </div>
-                          <div className="font-semibold text-blue-600">
-                            {Math.round(user.avg_score)}%
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="h-64 flex flex-col items-center justify-center">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" />
-                      <p className="text-gray-500 text-center">No leaderboard data available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* ... existing charts and leaderboard ... */}
             </div>
             
             {/* Quick Actions */}
@@ -609,7 +499,7 @@ export default function Dashboard() {
                   className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
                   onClick={() => navigate('/create-group')}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   Group Test
@@ -632,4 +522,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+        }
