@@ -136,14 +136,7 @@ const extractResults = (response) => {
 
 // Enhanced check if user is new based on multiple factors
 const isNewUser = (historyData, userRank, approvedUploads, averageScore) => {
-  console.log('🔍 Checking if user is new with data:', {
-    historyLength: historyData?.length,
-    userRank,
-    approvedUploads,
-    averageScore
-  });
-
-  // User is new if ANY of these conditions are true:
+  // User is new if ANY of these conditions are true
   const conditions = {
     noHistory: !historyData || historyData.length === 0,
     noRank: !userRank || userRank === null || userRank === 'N/A',
@@ -151,35 +144,30 @@ const isNewUser = (historyData, userRank, approvedUploads, averageScore) => {
     noScore: averageScore === 0
   };
 
-  console.log('🔍 New user conditions:', conditions);
-
   const isNew = conditions.noHistory || conditions.noRank || conditions.noUploads || conditions.noScore;
-  
-  console.log('🔍 User is new:', isNew);
-  return isNew;
+  return { isNew, conditions };
 };
 
-// Custom Tour Component - Enhanced with proper positioning
+// Custom Tour Component (simple, dependency-free)
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) => {
-  if (!isActive || !steps[currentStep]) return null;
+  if (!isActive || !steps?.length) return null;
 
   const step = steps[currentStep];
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay with hole for highlighted element */}
-      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"></div>
-      
-      {/* Tooltip */}
-      <div 
-        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200 z-50"
+    <div className="fixed inset-0 z-50 pointer-events-auto">
+      {/* dark overlay */}
+      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" />
+
+      {/* Tooltip centered near given position */}
+      <div
+        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200"
         style={{
           top: step.position?.top || '50%',
           left: step.position?.left || '50%',
           transform: 'translate(-50%, -50%)'
         }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <div className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">
@@ -187,44 +175,29 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) =
             </div>
             <h3 className="font-bold text-gray-800">{step.title}</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Content */}
         <p className="text-gray-600 text-sm mb-4">{step.content}</p>
 
-        {/* Progress and Navigation */}
         <div className="flex justify-between items-center">
           <div className="flex space-x-1">
             {steps.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentStep ? 'bg-blue-600 w-4' : 'bg-gray-300'
-                }`}
-              />
+              <div key={index} className={`w-2 h-2 rounded-full transition-all ${index === currentStep ? 'bg-blue-600 w-4' : 'bg-gray-300'}`} />
             ))}
           </div>
+
           <div className="flex space-x-2">
             {currentStep > 0 && (
-              <button
-                onClick={onPrev}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-              >
+              <button onClick={onPrev} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">
                 Back
               </button>
             )}
-            <button
-              onClick={onNext}
-              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
+            <button onClick={onNext} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
               {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'}
             </button>
           </div>
@@ -255,57 +228,59 @@ export default function Dashboard() {
   });
   const [showTutorial, setShowTutorial] = useState(false);
   const [isNewUserFlag, setIsNewUserFlag] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(''); // NEW: Debug info state
+  const [debugInfo, setDebugInfo] = useState('');
+  const [stats, setStats] = useState({ testsTaken: 0, averageScore: 0, currentRank: null });
+
   const navigate = useNavigate();
 
-  // Custom Tour State - Enhanced with better positioning
+  // Custom Tour State
   const [tourState, setTourState] = useState({
     isActive: false,
     currentStep: 0,
     steps: [
       {
-        title: '👋 Welcome to Your Dashboard!',
-        content: 'This is your personal dashboard where you can track your progress, see your stats, and access all features.',
-        position: { top: '20%', left: '50%' }
-      },
-      {
-        title: '📊 Your Performance Stats',
-        content: 'Here you can see your key metrics: tests taken, average score, approved uploads, and global rank. Track your improvement over time!',
-        position: { top: '35%', left: '50%' }
+        title: '📊 Dashboard Overview',
+        content: 'This is your dashboard overview. See tests taken, average score, approved uploads, and global rank at a glance.',
+        position: { top: '28%', left: '50%' }
       },
       {
         title: '📈 Performance Chart',
-        content: 'This visual chart shows your average score. Aim for higher percentages to improve your ranking!',
-        position: { top: '55%', left: '25%' }
+        content: 'This chart shows your average score across all tests. Aim to improve this number by practicing.',
+        position: { top: '40%', left: '30%' }
       },
       {
         title: '🏆 Leaderboard',
-        content: 'See how you rank against other users. Improve your scores and upload quality questions to climb higher!',
-        position: { top: '55%', left: '75%' }
+        content: 'See top performers here — climb by improving scores and contributing quality questions.',
+        position: { top: '40%', left: '75%' }
       },
       {
         title: '🚀 Quick Actions',
-        content: 'Quick access to start new tests, create group tests, or chat with PetroMark AI for assistance.',
-        position: { top: '80%', left: '50%' }
+        content: 'Quick actions let you start a test, create a group test, or access AI features quickly.',
+        position: { top: '78%', left: '50%' }
       },
       {
-        title: '🎯 Ready to Begin!',
-        content: 'You\'re all set! Start by taking your first test or explore other features. Happy learning!',
-        position: { top: '50%', left: '50%' }
+        title: '🧭 Navigation',
+        content: 'Use the sidebar to access tests, uploads, history, and settings.',
+        position: { top: '50%', left: '10%' }
       }
     ]
   });
 
-  // Calculate stats from real data
-  const calculateStats = () => {
-    const testsTaken = testHistory.length;
+  // Recalculate stats whenever history or rank changes
+  useEffect(() => {
+    const newStats = calculateStatsFromHistory(testHistory, userRank);
+    setStats(newStats);
+  }, [testHistory, userRank]);
+
+  // Helper to calculate stats from a history array (pure, deterministic)
+  const calculateStatsFromHistory = (historyArray = [], currentRank = null) => {
+    const testsTaken = (historyArray || []).length;
     let totalScorePercentage = 0;
     let scoredTests = 0;
 
-    testHistory.forEach(session => {
+    (historyArray || []).forEach(session => {
       const questionCount = session.questions?.length || 0;
       const score = Number(session.score) || 0;
-      
       if (questionCount > 0) {
         const sessionScore = (score / questionCount) * 100;
         totalScorePercentage += sessionScore;
@@ -313,77 +288,44 @@ export default function Dashboard() {
       }
     });
 
-    const averageScore = scoredTests > 0
-      ? Math.round(totalScorePercentage / scoredTests)
-      : 0;
+    const averageScore = scoredTests > 0 ? Math.round(totalScorePercentage / scoredTests) : 0;
 
-    return {
-      testsTaken,
-      averageScore,
-      currentRank: userRank,
-    };
+    return { testsTaken, averageScore, currentRank };
   };
 
-  // Reset tutorial for testing - REMOVE IN PRODUCTION
-  const resetTutorialForTesting = () => {
-    localStorage.removeItem('hasSeenTutorial');
-    console.log('🎯 Tutorial reset for testing');
-    setDebugInfo('Tutorial reset - refresh page to see tour');
-  };
-
-  // Set username unconditionally on component mount
   useEffect(() => {
-    // Set username from localStorage immediately
+    // Set username immediately
     const storedName = localStorage.getItem('username') || 'User';
     setUserName(storedName);
 
     console.log('🔍 Dashboard mounted - Starting data fetch');
     setDebugInfo('Dashboard mounted - Starting data fetch');
 
-    // Check if we should reset tutorial for new users (development only)
-    if (process.env.NODE_ENV === 'development') {
-      const storedTutorialFlag = localStorage.getItem('hasSeenTutorial');
-      console.log('🔍 Current tutorial flag:', storedTutorialFlag);
-    }
-
-    // Fetch all dashboard data
     const fetchDashboardData = async () => {
       try {
         setIsLoading(prev => ({ ...prev, all: true }));
-        
-        console.log('🔍 Fetching user history...');
-        setDebugInfo('Fetching user history...');
 
-        // Fetch user history first to check if user is new
+        console.log('🔍 Fetching user history...');
         const historyRes = await fetchUserHistory();
         const historyData = extractResults(historyRes) || [];
-        
         console.log('🔍 Fetched history data:', historyData);
-        console.log('🔍 History length:', historyData.length);
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
-        
+
         // Fetch user rank
         console.log('🔍 Fetching user rank...');
-        setDebugInfo('Fetching user rank...');
         const rankRes = await fetchUserRank();
         const rankData = extractResults(rankRes);
         const userRankValue = rankData?.rank || rankRes?.data?.rank || rankData[0]?.rank || null;
-        
         console.log('🔍 User rank data:', rankRes, 'Extracted rank:', userRankValue);
         setUserRank(userRankValue);
         setIsLoading(prev => ({ ...prev, rank: false }));
-        
+
         // Fetch upload stats
         console.log('🔍 Fetching upload stats...');
-        setDebugInfo('Fetching upload stats...');
         const uploadStatsRes = await fetchUserUploadStats();
         const uploadData = extractResults(uploadStatsRes);
-        const approvedUploads = uploadData[0]?.approved_uploads || 
-                              uploadData?.approved_uploads || 
-                              uploadStatsRes?.data?.approved_uploads || 
-                              0;
-        
+        const approvedUploads = uploadData[0]?.approved_uploads || uploadData?.approved_uploads || uploadStatsRes?.data?.approved_uploads || 0;
         console.log('🔍 Approved uploads:', approvedUploads);
         setUploadStats({
           approvedUploads,
@@ -391,109 +333,78 @@ export default function Dashboard() {
         });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
 
-        // Calculate stats to get average score
-        const stats = calculateStats();
-        console.log('🔍 Calculated stats:', stats);
+        // Calculate stats from the freshly-fetched history
+        const newStats = calculateStatsFromHistory(historyData, userRankValue);
+        setStats(newStats);
 
-        // Check if user is new and show tutorial
-        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        const isNew = isNewUser(historyData, userRankValue, approvedUploads, stats.averageScore);
-        
-        setIsNewUserFlag(isNew);
+        // Determine whether user is new
+        const newUserCheck = isNewUser(historyData, userRankValue, approvedUploads, newStats.averageScore);
+        setIsNewUserFlag(newUserCheck.isNew);
+
+        // Normalize hasSeenTutorial to a boolean
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial') === 'true';
+
+        // Force-show conditions described by you: if testsTaken is 0 OR rank is null/'N/A' AND averageScore === 0 -> start tour
+        const shouldForceStart = ((newStats.testsTaken === 0 || !userRankValue || userRankValue === 'N/A') && newStats.averageScore === 0 && approvedUploads === 0);
 
         console.log('🔍 Final user status check:', {
-          isNew,
+          isNew: newUserCheck.isNew,
+          conditions: newUserCheck.conditions,
           hasSeenTutorial,
-          historyLength: historyData.length,
-          userRank: userRankValue,
+          newStats,
           approvedUploads,
-          averageScore: stats.averageScore
+          shouldForceStart
         });
 
-        setDebugInfo(`
-          User Status Check:
-          - Is New: ${isNew}
-          - Has Seen Tutorial: ${hasSeenTutorial}
-          - History Length: ${historyData.length}
-          - User Rank: ${userRankValue}
-          - Approved Uploads: ${approvedUploads}
-          - Average Score: ${stats.averageScore}
-          - Conditions:
-            * No History: ${!historyData || historyData.length === 0}
-            * No Rank: ${!userRankValue || userRankValue === null || userRankValue === 'N/A'}
-            * No Uploads: ${approvedUploads === 0}
-            * No Score: ${stats.averageScore === 0}
-        `);
+        setDebugInfo(prev => prev + `\nUser Status: isNew=${newUserCheck.isNew}, hasSeenTutorial=${hasSeenTutorial}, shouldForceStart=${shouldForceStart}`);
 
-        // FIXED: Check if user is new AND has not seen tutorial OR if tutorial flag is improperly set
-        const shouldShowTutorial = isNew && (!hasSeenTutorial || hasSeenTutorial === 'false');
-        
-        if (shouldShowTutorial) {
-          console.log('🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
-          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - User is new and has not seen tutorial');
-          
-          // Start the tour automatically for new users after a short delay
+        // Decide to show tutorial:
+        // - If user considered new by combined rules AND hasn't seen the tutorial
+        // - OR if the "force start" conditions specifically match (testsTaken 0 or rank missing) AND hasn't seen it
+        if ((!hasSeenTutorial && newUserCheck.isNew) || (!hasSeenTutorial && shouldForceStart)) {
+          console.log('🎯 SHOWING TUTORIAL - Conditions matched and user has not seen it');
           setTimeout(() => {
-            console.log('🎯 Starting tour automatically for new user');
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
-            // Set the flag only when tour actually starts
             localStorage.setItem('hasSeenTutorial', 'true');
-          }, 2000);
+          }, 700);
         } else {
-          console.log('❌ NOT showing tutorial - Reason:', {
-            isNew,
-            hasSeenTutorial,
-            shouldShowTutorial
-          });
-          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, hasSeenTutorial: ${hasSeenTutorial}, shouldShowTutorial: ${shouldShowTutorial}`);
+          console.log('❌ NOT showing tutorial - Reason:', { isNew: newUserCheck.isNew, hasSeenTutorial, shouldForceStart });
+          setDebugInfo(prev => prev + `\nNOT showing tutorial - isNew=${newUserCheck.isNew}, hasSeenTutorial=${hasSeenTutorial}, shouldForceStart=${shouldForceStart}`);
         }
-        
-        // Calculate total test score from history
+
+        // Calculate total test score from historyData (use the freshly fetched array)
         if (historyData.length > 0) {
           const totalScore = historyData.reduce((acc, session) => {
             return acc + (Number(session.score) || 0);
           }, 0);
-          
-          console.log('Total test score:', totalScore);
           setTotalTestScore(totalScore);
           setTestRankInfo(calculateTestRank(totalScore));
         } else {
-          setTestRankInfo({
-            currentRank: TEST_RANK_THRESHOLDS[0],
-            nextThreshold: 10,
-            pointsNeeded: 10
-          });
+          setTestRankInfo({ currentRank: TEST_RANK_THRESHOLDS[0], nextThreshold: 10, pointsNeeded: 10 });
         }
 
         // Fetch leaderboard
         const leaderboardRes = await fetchLeaderboard();
         setLeaderboard(extractResults(leaderboardRes));
         setIsLoading(prev => ({ ...prev, leaderboard: false, all: false }));
-        
+
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setDebugInfo(`Failed to load dashboard data: ${err.message}`);
-        setIsLoading({
-          leaderboard: false,
-          history: false,
-          rank: false,
-          uploadStats: false,
-          all: false
-        });
+        setIsLoading({ leaderboard: false, history: false, rank: false, uploadStats: false, all: false });
 
-        // Even if API fails, check if we should show tutorial for new users
-        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-        if (!hasSeenTutorial || hasSeenTutorial === 'false') {
-          console.log('🎯 SHOWING TUTORIAL - API failed but user is likely new');
-          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - API failed but user is likely new');
+        // If API fails, still attempt to show tutorial for brand new users who haven't seen it
+        const hasSeenTutorial = localStorage.getItem('hasSeenTutorial') === 'true';
+        if (!hasSeenTutorial) {
+          console.log('🎯 SHOWING TUTORIAL - API failed but user likely new');
           setTimeout(() => {
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
             localStorage.setItem('hasSeenTutorial', 'true');
-          }, 2000);
+          }, 700);
         }
       }
     };
-    
+
     fetchDashboardData();
   }, []);
 
@@ -502,9 +413,7 @@ export default function Dashboard() {
     console.log('Tutorial completed, allow tutorial:', startTour);
     setShowTutorial(false);
     localStorage.setItem('hasSeenTutorial', 'true');
-    
     if (startTour) {
-      // Start the custom tour
       setTimeout(() => {
         setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
       }, 500);
@@ -524,17 +433,12 @@ export default function Dashboard() {
   };
 
   const handlePrevStep = () => {
-    setTourState(prev => ({
-      ...prev,
-      currentStep: Math.max(0, prev.currentStep - 1)
-    }));
+    setTourState(prev => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
   };
 
   const handleCloseTour = () => {
     setTourState(prev => ({ ...prev, isActive: false }));
   };
-
-  const stats = calculateStats();
 
   // Get performance rating description
   const getPerformanceRating = (score) => {
@@ -548,13 +452,12 @@ export default function Dashboard() {
   // Create performance doughnut chart data
   const getPerformanceData = () => {
     const [colorStart, colorEnd] = getGradientColors(stats.averageScore);
-    
     return {
       datasets: [{
         data: [stats.averageScore, 100 - stats.averageScore],
         backgroundColor: [
           `linear-gradient(135deg, ${colorStart}, ${colorEnd})`,
-          'rgba(229, 231, 235, 0.3)' // Light gray for the remaining
+          'rgba(229, 231, 235, 0.3)'
         ],
         borderWidth: 0,
         borderRadius: 10,
@@ -570,21 +473,11 @@ export default function Dashboard() {
   const doughnutChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        enabled: false
-      },
-    },
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
     cutout: '75%',
-    rotation: 270, // Start from top
-    circumference: 360, // Full circle
-    animation: {
-      animateRotate: true,
-      animateScale: true
-    }
+    rotation: 270,
+    circumference: 360,
+    animation: { animateRotate: true, animateScale: true }
   };
 
   return (
@@ -614,18 +507,13 @@ export default function Dashboard() {
           <h3 className="font-bold mb-2">Debug Info:</h3>
           <pre>{debugInfo}</pre>
           <button 
-            onClick={resetTutorialForTesting}
+            onClick={() => {
+              localStorage.removeItem('hasSeenTutorial');
+              setDebugInfo('Tutorial reset - refresh page to see tour');
+            }}
             className="mt-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
           >
             Reset Tutorial
-          </button>
-          <button 
-            onClick={() => {
-              setDebugInfo('');
-            }}
-            className="mt-2 ml-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs"
-          >
-            Clear Debug
           </button>
         </div>
       )}
@@ -648,7 +536,7 @@ export default function Dashboard() {
               <UpdatesBell onOpen={() => navigate('/dashboard/updates')} />
             </div>
           </div>
-          
+
           {testRankInfo ? (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
               {totalTestScore === 0 ? (
@@ -660,11 +548,9 @@ export default function Dashboard() {
               )}
             </p>
           ) : (
-            <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
-              Loading your rank information...
-            </p>
+            <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">Loading your rank information...</p>
           )}
-          
+
           {!isLoading.uploadStats && uploadStats.rankInfo.nextRank && (
             <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">
               Upload {uploadStats.rankInfo.uploadsNeeded} more approved questions to become a {uploadStats.rankInfo.nextRank}
@@ -695,7 +581,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Total tests completed</p>
               </div>
-              
+
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-green-500">
                 <div className="flex items-center">
                   <div className="bg-green-100 p-2 rounded-lg mr-4">
@@ -714,7 +600,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Across all tests</p>
               </div>
-              
+
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-purple-500">
                 <div className="flex items-center">
                   <div className="bg-purple-100 p-2 rounded-lg mr-4">
@@ -727,15 +613,13 @@ export default function Dashboard() {
                     {isLoading.uploadStats ? (
                       <div className="animate-pulse h-6 bg-gray-200 rounded mt-1 w-16"></div>
                     ) : (
-                      <p className="text-2xl md:text-3xl font-bold mt-1 text-purple-600">
-                        {uploadStats.approvedUploads}
-                      </p>
+                      <p className="text-2xl md:text-3xl font-bold mt-1 text-purple-600">{uploadStats.approvedUploads}</p>
                     )}
                   </div>
                 </div>
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Questions approved</p>
               </div>
-              
+
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
                 <div className="flex items-center">
                   <div className="bg-yellow-100 p-2 rounded-lg mr-4">
@@ -757,152 +641,81 @@ export default function Dashboard() {
                 <p className="text-xs md:text-sm text-gray-500 mt-2">Your position on leaderboard</p>
               </div>
             </div>
-            
+
             {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
               <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-                    Performance Overview
-                  </h2>
-                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    {stats.averageScore}% Achieved
-                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">Performance Overview</h2>
+                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{stats.averageScore}% Achieved</div>
                 </div>
                 <div className="h-64 md:h-80 flex items-center justify-center relative">
                   {isLoading.history ? (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="text-gray-500">Loading performance data...</div>
-                    </div>
+                    <div className="h-full flex items-center justify-center"><div className="text-gray-500">Loading performance data...</div></div>
                   ) : testHistory.length > 0 ? (
                     <>
-                      <Doughnut 
-                        data={performanceData} 
-                        options={doughnutChartOptions} 
-                      />
+                      <Doughnut data={performanceData} options={doughnutChartOptions} />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-3xl md:text-4xl font-bold text-gray-800">
-                          {stats.averageScore}%
-                        </div>
-                        <div className="text-sm md:text-base text-gray-600 mt-1">
-                          {getPerformanceRating(stats.averageScore)}
-                        </div>
-                        <div className="mt-2 flex items-center">
-                          <span className="text-xs text-gray-500">Overall Score</span>
-                        </div>
+                        <div className="text-3xl md:text-4xl font-bold text-gray-800">{stats.averageScore}%</div>
+                        <div className="text-sm md:text-base text-gray-600 mt-1">{getPerformanceRating(stats.averageScore)}</div>
+                        <div className="mt-2 flex items-center"><span className="text-xs text-gray-500">Overall Score</span></div>
                       </div>
                     </>
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center">
                       <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" />
                       <p className="text-gray-500 text-center">No test data available</p>
-                      <Button
-                        onClick={() => navigate('/dashboard/my-tests')}
-                        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-                      >
-                        Take Your First Test
-                      </Button>
+                      <Button onClick={() => navigate('/dashboard/my-tests')} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Take Your First Test</Button>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-                    Leaderboard
-                  </h2>
-                  <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                    Top Performers
-                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">Leaderboard</h2>
+                  <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Top Performers</div>
                 </div>
                 <div className="overflow-x-auto">
                   {isLoading.leaderboard ? (
-                    <div className="space-y-4">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="animate-pulse h-12 bg-gray-200 rounded-lg"></div>
-                      ))}
-                    </div>
+                    <div className="space-y-4">{[...Array(5)].map((_, i) => (<div key={i} className="animate-pulse h-12 bg-gray-200 rounded-lg"></div>))}</div>
                   ) : leaderboard.length > 0 ? (
                     <div className="space-y-3">
                       {leaderboard.slice(0, 5).map((user, index) => (
-                        <div 
-                          key={user.id || index} 
-                          className={`flex items-center p-3 rounded-lg ${
-                            index === 0 ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200' : 
-                            index === 1 ? 'bg-gray-50' : 
-                            index === 2 ? 'bg-orange-50' : 'bg-white'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full mr-3 ${
-                            index === 0 ? 'bg-yellow-100 text-yellow-800' : 
-                            index === 1 ? 'bg-gray-200 text-gray-800' : 
-                            index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {index + 1}
-                          </div>
+                        <div key={user.id || index} className={`flex items-center p-3 rounded-lg ${index === 0 ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200' : index === 1 ? 'bg-gray-50' : index === 2 ? 'bg-orange-50' : 'bg-white'}`}>
+                          <div className={`w-8 h-8 flex items-center justify-center rounded-full mr-3 ${index === 0 ? 'bg-yellow-100 text-yellow-800' : index === 1 ? 'bg-gray-200 text-gray-800' : index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>{index + 1}</div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-800 truncate">
-                              {user.username || 'Unknown'}
-                            </h4>
-                            <p className="text-xs text-gray-600 truncate">
-                              {user.tests_taken} tests
-                            </p>
+                            <h4 className="font-medium text-gray-800 truncate">{user.username || 'Unknown'}</h4>
+                            <p className="text-xs text-gray-600 truncate">{user.tests_taken} tests</p>
                           </div>
-                          <div className="font-semibold text-blue-600">
-                            {Math.round(user.avg_score)}%
-                          </div>
+                          <div className="font-semibold text-blue-600">{Math.round(user.avg_score)}%</div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="h-64 flex flex-col items-center justify-center">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" />
-                      <p className="text-gray-500 text-center">No leaderboard data available</p>
-                    </div>
+                    <div className="h-64 flex flex-col items-center justify-center"><div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" /><p className="text-gray-500 text-center">No leaderboard data available</p></div>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Quick Actions */}
             <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-                  Quick Actions
-                </h2>
-                <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                  Get Started
-                </div>
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800">Quick Actions</h2>
+                <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Get Started</div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  onClick={() => navigate('/dashboard/my-tests')}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
+                <Button onClick={() => navigate('/dashboard/my-tests')} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   Start New Test
                 </Button>
-                
-                <Button 
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
-                  onClick={() => navigate('/create-group')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center" onClick={() => navigate('/create-group')}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   Group Test
                 </Button>
-                
-                <Button 
-                  onClick={() => setActiveTab('petromark')}
-                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
+                <Button onClick={() => setActiveTab('petromark')} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                   PetroMark AI
                 </Button>
               </div>
