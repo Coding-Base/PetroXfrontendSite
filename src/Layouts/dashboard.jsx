@@ -160,10 +160,19 @@ const isNewUser = (historyData, userRank, approvedUploads, averageScore) => {
 };
 
 // Custom Tour Component - Enhanced with proper positioning
-const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) => {
+const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
   if (!isActive || !steps[currentStep]) return null;
 
   const step = steps[currentStep];
+
+  const handleNext = () => {
+    if (currentStep === steps.length - 1) {
+      // Last step - complete the tour
+      onComplete();
+    } else {
+      onNext();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -222,7 +231,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive }) =
               </button>
             )}
             <button
-              onClick={onNext}
+              onClick={handleNext}
               className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'}
@@ -256,7 +265,7 @@ export default function Dashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isNewUserFlag, setIsNewUserFlag] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
-  const [hasTourBeenShown, setHasTourBeenShown] = useState(false); // Track if tour was shown this session
+  const [hasTourBeenShown, setHasTourBeenShown] = useState(false);
   const navigate = useNavigate();
 
   // Custom Tour State - Enhanced with better positioning
@@ -297,6 +306,31 @@ export default function Dashboard() {
     ]
   });
 
+  // Check if user has completed tour before
+  const hasCompletedTour = () => {
+    // Use a different localStorage key to avoid conflicts
+    const tourCompleted = localStorage.getItem('userDashboardTourCompleted');
+    const userSpecificKey = localStorage.getItem(`user_${userName}_tour_completed`);
+    
+    console.log('🔍 Tour completion check:', {
+      general: tourCompleted,
+      userSpecific: userSpecificKey,
+      userName
+    });
+    
+    return tourCompleted === 'true' || userSpecificKey === 'true';
+  };
+
+  // Mark tour as completed
+  const markTourAsCompleted = () => {
+    // Set both general and user-specific flags
+    localStorage.setItem('userDashboardTourCompleted', 'true');
+    localStorage.setItem(`user_${userName}_tour_completed`, 'true');
+    
+    console.log('✅ Tour marked as completed for user:', userName);
+    setDebugInfo(prev => prev + `\n✅ Tour marked as completed for user: ${userName}`);
+  };
+
   // Calculate stats from real data
   const calculateStats = () => {
     const testsTaken = testHistory.length;
@@ -325,9 +359,10 @@ export default function Dashboard() {
     };
   };
 
-  // Reset tutorial for testing - REMOVE IN PRODUCTION
+  // Reset tutorial for testing
   const resetTutorialForTesting = () => {
-    localStorage.removeItem('hasSeenTutorial');
+    localStorage.removeItem('userDashboardTourCompleted');
+    localStorage.removeItem(`user_${userName}_tour_completed`);
     setHasTourBeenShown(false);
     console.log('🎯 Tutorial reset for testing');
     setDebugInfo('Tutorial reset - refresh page to see tour');
@@ -342,15 +377,9 @@ export default function Dashboard() {
     console.log('🔍 Dashboard mounted - Starting data fetch');
     setDebugInfo('Dashboard mounted - Starting data fetch');
 
-    // Clear any existing tutorial flags to ensure it works
-    const storedTutorialFlag = localStorage.getItem('hasSeenTutorial');
-    console.log('🔍 Current tutorial flag in localStorage:', storedTutorialFlag);
-    
-    if (process.env.NODE_ENV === 'development') {
-      // In development, we can be more aggressive about resetting for testing
-      localStorage.removeItem('hasSeenTutorial');
-      console.log('🔍 Cleared tutorial flag for development');
-    }
+    // Check tour completion status
+    const tourCompleted = hasCompletedTour();
+    console.log('🔍 Tour completed status:', tourCompleted);
 
     // Fetch all dashboard data
     const fetchDashboardData = async () => {
@@ -408,6 +437,7 @@ export default function Dashboard() {
 
         console.log('🔍 Final user status check:', {
           isNew,
+          tourCompleted,
           historyLength: historyData.length,
           userRank: userRankValue,
           approvedUploads,
@@ -418,6 +448,7 @@ export default function Dashboard() {
         setDebugInfo(`
           User Status Check:
           - Is New: ${isNew}
+          - Tour Completed: ${tourCompleted}
           - History Length: ${historyData.length}
           - User Rank: ${userRankValue}
           - Approved Uploads: ${approvedUploads}
@@ -430,25 +461,25 @@ export default function Dashboard() {
             * No Score: ${stats.averageScore === 0}
         `);
 
-        // FIXED: Only check if user is new - completely ignore localStorage
-        if (isNew && !hasTourBeenShown) {
-          console.log('🎯 SHOWING TUTORIAL - User is new and tour not shown this session');
-          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - User is new and tour not shown this session');
+        // Show tutorial if user is new AND hasn't completed tour AND tour not shown this session
+        if (isNew && !tourCompleted && !hasTourBeenShown) {
+          console.log('🎯 SHOWING TUTORIAL - User is new and has not completed tour');
+          setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - User is new and has not completed tour');
           
           // Start the tour automatically for new users after a short delay
           setTimeout(() => {
             console.log('🎯 Starting tour automatically for new user');
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
             setHasTourBeenShown(true);
-            // Don't set localStorage flag at all
           }, 2000);
         } else {
           console.log('❌ NOT showing tutorial - Reason:', {
             isNew,
+            tourCompleted,
             hasTourBeenShown,
-            shouldShow: isNew && !hasTourBeenShown
+            shouldShow: isNew && !tourCompleted && !hasTourBeenShown
           });
-          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, hasTourBeenShown: ${hasTourBeenShown}`);
+          setDebugInfo(prev => prev + `\n❌ NOT showing tutorial - isNew: ${isNew}, tourCompleted: ${tourCompleted}, hasTourBeenShown: ${hasTourBeenShown}`);
         }
         
         // Calculate total test score from history
@@ -484,8 +515,9 @@ export default function Dashboard() {
           all: false
         });
 
-        // Even if API fails, show tutorial assuming user is new
-        if (!hasTourBeenShown) {
+        // Even if API fails, show tutorial assuming user is new and hasn't completed tour
+        const tourCompleted = hasCompletedTour();
+        if (!tourCompleted && !hasTourBeenShown) {
           console.log('🎯 SHOWING TUTORIAL - API failed but assuming user is new');
           setDebugInfo(prev => prev + '\n🎯 SHOWING TUTORIAL - API failed but assuming user is new');
           setTimeout(() => {
@@ -497,7 +529,7 @@ export default function Dashboard() {
     };
     
     fetchDashboardData();
-  }, [hasTourBeenShown]);
+  }, [hasTourBeenShown, userName]);
 
   // Handle tutorial completion (for manual start from modal)
   const handleTutorialComplete = (startTour) => {
@@ -513,14 +545,23 @@ export default function Dashboard() {
     }
   };
 
+  // Handle tour completion
+  const handleTourComplete = () => {
+    console.log('✅ Tour completed by user');
+    markTourAsCompleted();
+    setTourState(prev => ({ ...prev, isActive: false }));
+    setDebugInfo(prev => prev + '\n✅ Tour completed and marked as seen');
+  };
+
   // Tour navigation handlers
   const handleNextStep = () => {
     setTourState(prev => {
       if (prev.currentStep < prev.steps.length - 1) {
         return { ...prev, currentStep: prev.currentStep + 1 };
       } else {
-        // Tour finished
-        return { ...prev, isActive: false };
+        // Tour finished - mark as completed
+        handleTourComplete();
+        return prev;
       }
     });
   };
@@ -533,7 +574,10 @@ export default function Dashboard() {
   };
 
   const handleCloseTour = () => {
+    // Don't mark as completed if user closes early
+    console.log('Tour closed early by user');
     setTourState(prev => ({ ...prev, isActive: false }));
+    setDebugInfo(prev => prev + '\n⚠️ Tour closed early by user');
   };
 
   const stats = calculateStats();
@@ -608,6 +652,7 @@ export default function Dashboard() {
         onClose={handleCloseTour}
         onNext={handleNextStep}
         onPrev={handlePrevStep}
+        onComplete={handleTourComplete}
       />
 
       {/* Debug Info - Only show in development */}
