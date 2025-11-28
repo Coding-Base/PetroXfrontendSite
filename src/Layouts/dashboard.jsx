@@ -104,7 +104,6 @@ const extractResults = (response) => {
   return [];
 };
 
-/* determine new user by multiple signals */
 const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) => {
   const conditions = {
     noHistory: !historyData || historyData.length === 0,
@@ -117,12 +116,76 @@ const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) 
 };
 
 /* -------------------------
-   Tour Component (no deps)
+   Anchored Custom Tour
    ------------------------- */
 
+/**
+ * CustomTour supports:
+ *  - steps: array of { title, content, position?: {top,left}, selector?: string }
+ *  - If selector is present the tooltip will anchor near that element using getBoundingClientRect
+ */
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
-  if (!isActive || !Array.isArray(steps) || steps.length === 0) return null;
-  const step = steps[currentStep] || steps[0];
+  const [pos, setPos] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+  const tooltipRef = useRef(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const updatePosition = () => {
+      const step = steps?.[currentStep];
+      if (!step) return setPos({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+
+      // If step has selector try to anchor to it
+      if (step.selector) {
+        try {
+          const el = document.querySelector(step.selector);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            // Determine tooltip placement (above preferred)
+            const tooltipWidth = tooltipRef.current?.offsetWidth || 300;
+            const tooltipHeight = tooltipRef.current?.offsetHeight || 120;
+
+            // default horizontal center above element
+            let top = rect.top - tooltipHeight - 12; // 12px gap
+            let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+            // if not enough space on top, place below
+            if (top < 8) {
+              top = rect.bottom + 12;
+            }
+
+            // ensure not off-screen horizontally
+            const padding = 8;
+            const maxLeft = window.innerWidth - tooltipWidth - padding;
+            left = Math.min(Math.max(left, padding), Math.max(maxLeft, padding));
+
+            // convert to px string
+            setPos({ top: `${top + window.scrollY}px`, left: `${left + window.scrollX}px`, transform: 'none' });
+            return;
+          }
+        } catch (e) {
+          // fallback to percentage
+        }
+      }
+
+      // Fallback: use provided percent position or center
+      const top = step.position?.top || '50%';
+      const left = step.position?.left || '50%';
+      setPos({ top, left, transform: 'translate(-50%, -50%)' });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+    };
+  }, [isActive, currentStep, steps]);
+
+  if (!isActive || !steps?.[currentStep]) return null;
+  const step = steps[currentStep];
 
   const handleNext = () => {
     if (currentStep === steps.length - 1) onComplete();
@@ -130,22 +193,31 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
   };
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      {/* semi-opaque overlay */}
+      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm pointer-events-auto"></div>
+
+      {/* tooltip */}
       <div
-        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200 z-50"
+        ref={tooltipRef}
+        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200 pointer-events-auto z-50"
         style={{
-          top: step.position?.top || '50%',
-          left: step.position?.left || '50%',
-          transform: 'translate(-50%, -50%)'
+          position: 'absolute',
+          top: pos.top,
+          left: pos.left,
+          transform: pos.transform || 'translate(-50%, -50%)'
         }}
+        role="dialog"
+        aria-modal="true"
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <div className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">{currentStep + 1}</div>
+            <div className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">
+              {currentStep + 1}
+            </div>
             <h3 className="font-bold text-gray-800">{step.title}</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -154,14 +226,17 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
 
         <div className="flex justify-between items-center">
           <div className="flex space-x-1">
-            {steps.map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentStep ? 'bg-blue-600 w-4' : 'bg-gray-300'}`} />)}
+            {steps.map((_, index) => (
+              <div key={index} className={`w-2 h-2 rounded-full transition-all ${index === currentStep ? 'bg-blue-600 w-4' : 'bg-gray-300'}`} />
+            ))}
           </div>
-
           <div className="flex space-x-2">
             {currentStep > 0 && (
-              <button onClick={onPrev} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Back</button>
+              <button onClick={onPrev} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors pointer-events-auto">
+                Back
+              </button>
             )}
-            <button onClick={handleNext} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+            <button onClick={handleNext} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors pointer-events-auto">
               {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'}
             </button>
           </div>
@@ -196,18 +271,19 @@ export default function Dashboard() {
     isActive: false,
     currentStep: 0,
     steps: [
+      // now include selectors where possible
       { title: '👋 Welcome to Your Dashboard!', content: 'This is your personal dashboard where you can track your progress, see your stats, and access all features.', position: { top: '20%', left: '50%' } },
-      { title: '📊 Your Performance Stats', content: 'Here you can see your key metrics: tests taken, average score, approved uploads, and global rank. Track your improvement over time!', position: { top: '35%', left: '50%' } },
-      { title: '📈 Performance Chart', content: 'This visual chart shows your average score. Aim for higher percentages to improve your ranking!', position: { top: '55%', left: '25%' } },
-      { title: '🏆 Leaderboard', content: 'See how you rank against other users. Improve your scores and upload quality questions to climb higher!', position: { top: '55%', left: '75%' } },
-      { title: '🚀 Quick Actions', content: 'Quick access to start new tests, create group tests, or chat with PetroMark AI for assistance.', position: { top: '80%', left: '50%' } },
+      { title: '📊 Your Performance Stats', content: 'Here you can see your key metrics: tests taken, average score, approved uploads, and global rank. Track your improvement over time!', selector: '[data-tour="stats"]' },
+      { title: '📈 Performance Chart', content: 'This visual chart shows your average score. Aim for higher percentages to improve your ranking!', selector: '[data-tour="performance-chart"]' },
+      { title: '🏆 Leaderboard', content: 'See how you rank against other users. Improve your scores and upload quality questions to climb higher!', selector: '[data-tour="leaderboard"]' },
+      { title: '🚀 Quick Actions', content: 'Quick access to start new tests, create group tests, or chat with PetroMark AI for assistance.', selector: '[data-tour="quick-actions"]' },
       { title: '🎯 Ready to Begin!', content: "You're all set! Start by taking your first test or explore other features. Happy learning!", position: { top: '50%', left: '50%' } }
     ]
   });
 
   // refs & guards
   const mountedRef = useRef(false); // prevent Strict Mode double-run
-  const sessionTourShownRef = useRef(false); // session-only guard (no rerenders)
+  const sessionTourShownRef = useRef(false); // session-only guard
 
   // local storage per-user key helpers
   const getUserTourKey = (username) => `petrox_user_${username}_tour_completed`;
@@ -226,17 +302,16 @@ export default function Dashboard() {
     } catch (e) { /* ignore */ }
   };
 
-  // cleanup old tour keys to avoid localStorage bloat (keeps current + last 5)
+  // cleanup localStorage old tour keys
   const cleanupOldUserData = (currentUser) => {
     try {
       const keys = Object.keys(localStorage).filter(k => k.startsWith('petrox_user_') && k.endsWith('_tour_completed'));
-      // keep currentUser and 5 most recent (by insertion order is not reliable - so keep first 5)
       const keep = new Set([getUserTourKey(currentUser), ...keys.slice(0, 5)]);
       keys.forEach(k => { if (!keep.has(k)) localStorage.removeItem(k); });
     } catch (e) {}
   };
 
-  // pure function: calculate stats from provided array (DO NOT rely on state reads)
+  // pure function: calculate stats from provided array (no setState reliance)
   const calculateStatsFromArray = (historyArr = [], currentRank = null) => {
     const testsTaken = (historyArr || []).length;
     let totalScorePercentage = 0;
@@ -291,7 +366,7 @@ export default function Dashboard() {
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
         setDebugInfo(prev => prev + `\n🔍 Approved uploads: ${approvedUploads}`);
 
-        // compute stats from fetched data (CRITICAL: do NOT rely on setState followed by reading state)
+        // compute stats from fetched data
         const computedStats = calculateStatsFromArray(historyData, userRankValue);
         setDebugInfo(prev => prev + `\n🔍 Computed stats from history: ${JSON.stringify(computedStats)}`);
 
@@ -335,6 +410,7 @@ export default function Dashboard() {
         setIsLoading({ leaderboard: false, history: false, rank: false, uploadStats: false, all: false });
 
         // fallback: if user hasn't completed tour and not shown in session, start tour
+        const storedName = localStorage.getItem('username') || 'User';
         const completed = userHasCompletedTour(storedName);
         if (!completed && !sessionTourShownRef.current) {
           setTimeout(() => {
@@ -349,7 +425,7 @@ export default function Dashboard() {
     fetchDashboard();
   }, []); // mount only
 
-  // handle manual modal start (keeps same behaviour)
+  // handle manual modal start
   const handleTutorialComplete = (startTour) => {
     setShowTutorial(false);
     if (startTour) {
@@ -383,7 +459,6 @@ export default function Dashboard() {
   const handlePrevStep = () => setTourState(prev => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
 
   const handleCloseTour = () => {
-    // do not mark completed
     setTourState(prev => ({ ...prev, isActive: false }));
     setDebugInfo(prev => prev + '\n⚠️ Tour closed early by user (not marked completed)');
   };
@@ -407,7 +482,7 @@ export default function Dashboard() {
     setDebugInfo(prev => prev + '\n🔁 Reset tutorial for ALL users');
   };
 
-  // UI stats (derived from testHistory state)
+  // UI stats derived from testHistory state
   const stats = calculateStatsFromArray(testHistory, userRank);
 
   const getPerformanceData = () => {
@@ -442,7 +517,6 @@ export default function Dashboard() {
     animation: { animateRotate: true, animateScale: true }
   };
 
-  // small helper for performance label
   const getPerformanceRating = (score) => {
     if (score >= 90) return 'Excellent!';
     if (score >= 80) return 'Great job!';
@@ -494,7 +568,7 @@ export default function Dashboard() {
       {/* Main content (kept styling/layout intact) */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
         {/* Welcome Header with Dynamic Rank */}
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 md:mb-8" data-tour="header">
           <div className="flex items-center">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
               Welcome, {userName} 👋
@@ -533,11 +607,13 @@ export default function Dashboard() {
         {activeTab === 'dashboard' && (
           <div>
             {/* Stats Cards */}
-            <div className="stats-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+            <div className="stats-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8" data-tour="stats">
+              <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-blue-500" data-tour="tests-taken">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-semibold text-gray-700">Tests Taken</h3>
@@ -554,7 +630,9 @@ export default function Dashboard() {
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-green-500">
                 <div className="flex items-center">
                   <div className="bg-green-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-semibold text-gray-700">Average Score</h3>
@@ -571,7 +649,9 @@ export default function Dashboard() {
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-purple-500">
                 <div className="flex items-center">
                   <div className="bg-purple-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-semibold text-gray-700">Approved Uploads</h3>
@@ -588,7 +668,9 @@ export default function Dashboard() {
               <div className="bg-white p-4 md:p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
                 <div className="flex items-center">
                   <div className="bg-yellow-100 p-2 rounded-lg mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A.75.75 0 003 5.48v10.643a.75.75 0 00.853.736c2.43-.428 4.926-.94 7.394-1.52.394-.096.669.328.338.611-1.3.975-2.965 1.9-4.77 2.716a.75.75 0 00-.365.962l1.732 4.26a.75.75 0 001.445.194l1.974-4.267c.58.13 1.17.248 1.768.35.45.1.9.19 1.35.27V21a.75.75 0 001.5 0v-2.766c.45-.08.9-.17 1.35-.27.599-.102 1.188-.22 1.768-.35l1.974 4.267a.75.75 0 001.445-.194l1.732-4.26a.75.75 0 00-.365-.962c-1.805-.816-3.47-1.74-4.77-2.716-.331-.283-.056-.707.338-.611 2.468.58 4.964 1.092 7.394 1.52a.75.75 0 00.853-.736V5.48a.75.75 0 00-.834-.724c-2.39.42-4.866.94-7.343 1.528-.388.093-.654-.332-.326-.611a8.963 8.963 0 002.45-4.34.75.75 0 00-1.46-.348 7.508 7.508 0 01-2.066 3.644 7.52 7.52 0 01-3.644 2.066.75.75 0 00-.348 1.46c1.577.397 3.2.74 4.843 1.01z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A.75.75 0 003 5.48v10.643a.75.75 0 00.853.736c2.43-.428 4.926-.94 7.394-1.52.394-.096.669.328.338.611-1.3.975-2.965 1.9-4.77 2.716a.75.75 0 00-.365.962l1.732 4.26a.75.75 0 001.445.194l1.974-4.267c.58.13 1.17.248 1.768.35.45.1.9.19 1.35.27V21a.75.75 0 001.5 0v-2.766c.45-.08.9-.17 1.35-.27.599-.102 1.188-.22 1.768-.35l1.974 4.267a.75.75 0 001.445-.194l1.732-4.26a.75.75 0 00-.365-.962c-1.805-.816-3.47-1.74-4.77-2.716-.331-.283-.056-.707.338-.611 2.468.58 4.964 1.092 7.394 1.52a.75.75 0 00.853-.736V5.48a.75.75 0 00-.834-.724c-2.39.42-4.866.94-7.343 1.528-.388.093-.654-.332-.326-.611a8.963 8.963 0 002.45-4.34.75.75 0 00-1.46-.348 7.508 7.508 0 01-2.066 3.644 7.52 7.52 0 01-3.644 2.066.75.75 0 00-.348 1.46c1.577.397 3.2.74 4.843 1.01z" />
+                    </svg>
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-semibold text-gray-700">Global Rank</h3>
@@ -607,7 +689,7 @@ export default function Dashboard() {
 
             {/* Charts and Leaderboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-              <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="performance-chart bg-white p-4 md:p-6 rounded-xl shadow-md" data-tour="performance-chart">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">Performance Overview</h2>
                   <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{stats.averageScore}% Achieved</div>
@@ -634,7 +716,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md">
+              <div className="leaderboard-section bg-white p-4 md:p-6 rounded-xl shadow-md" data-tour="leaderboard">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg md:text-xl font-semibold text-gray-800">Leaderboard</h2>
                   <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Top Performers</div>
@@ -666,7 +748,7 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8">
+            <div className="quick-actions bg-white p-4 md:p-6 rounded-xl shadow-md mb-6 md:mb-8" data-tour="quick-actions">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-800">Quick Actions</h2>
                 <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Get Started</div>
