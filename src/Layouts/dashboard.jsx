@@ -1,8 +1,8 @@
-// Dashboard.jsx
+// dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  startTest, 
+import {
+  startTest,
   fetchLeaderboard,
   fetchUserHistory,
   fetchUserRank,
@@ -20,7 +20,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import {Button} from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import AffiliateDeals from '@/pages/AffilateDeals';
 import UpdatesBell from '@/components/UpdatesBell';
 import TutorialModal from '@/components/TutorialModal';
@@ -116,22 +116,26 @@ const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) 
 };
 
 /* -------------------------
-   Anchored Custom Tour (with arrow + scrollIntoView)
+   CustomTour (anchored + hole in overlay)
    ------------------------- */
 
 /**
  * CustomTour supports:
  *  - steps: array of { title, content, position?: {top,left}, selector?: string }
- *  - If selector is present the tooltip will anchor near that element using getBoundingClientRect
- *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector present
+ *  - If selector is present the tooltip anchors to it and the overlay cuts a circular hole so target is visible.
+ *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector present.
  */
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
   const [pos, setPos] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
   const [arrow, setArrow] = useState({ left: '50%', direction: 'down', visible: false });
+  const [hole, setHole] = useState({ visible: false, cx: 0, cy: 0, r: 0 });
   const tooltipRef = useRef(null);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      setHole({ visible: false, cx: 0, cy: 0, r: 0 });
+      return;
+    }
 
     let cancelled = false;
 
@@ -144,16 +148,10 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
         try {
           const el = document.querySelector(step.selector);
           if (el) {
-            // Scroll target into view smoothly for polished UX
-            try {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-            } catch (e) {
-              // ignore scroll errors
-            }
+            // scroll into view for smooth UX
+            try { el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ }
 
-            // Wait a tick so layout stabilizes after scroll
             await new Promise(res => setTimeout(res, 220));
-
             if (cancelled) return;
 
             const rect = el.getBoundingClientRect();
@@ -161,7 +159,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
             const tooltipWidth = tooltipEl?.offsetWidth || 320;
             const tooltipHeight = tooltipEl?.offsetHeight || 140;
 
-            // compute preferred placement: above element if enough space, otherwise below
+            // compute placement preference
             const spaceAbove = rect.top;
             const spaceBelow = window.innerHeight - rect.bottom;
             const preferAbove = spaceAbove > tooltipHeight + 12 || spaceAbove > spaceBelow;
@@ -170,49 +168,50 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
             let leftPx;
 
             if (preferAbove) {
-              topPx = rect.top - tooltipHeight - 12; // 12px gap
+              topPx = rect.top - tooltipHeight - 12;
               setArrow(prev => ({ ...prev, direction: 'down' }));
             } else {
               topPx = rect.bottom + 12;
               setArrow(prev => ({ ...prev, direction: 'up' }));
             }
 
-            // center tooltip horizontally on element
             leftPx = rect.left + rect.width / 2 - tooltipWidth / 2;
 
-            // ensure within viewport horizontally
+            // constrain horizontally
             const padding = 8;
             const maxLeft = window.innerWidth - tooltipWidth - padding;
             leftPx = Math.min(Math.max(leftPx, padding), Math.max(maxLeft, padding));
 
-            // compute arrow left offset relative to tooltip left
-            const elementCenterX = rect.left + rect.width / 2 + window.scrollX;
-            const tooltipLeftOnPage = leftPx + window.scrollX;
-            let arrowLeftOffset = elementCenterX - tooltipLeftOnPage;
-            // clamp arrow inside tooltip
-            const minArrow = 12;
-            const maxArrow = (tooltipWidth || 320) - 12;
-            arrowLeftOffset = Math.min(Math.max(arrowLeftOffset, minArrow), maxArrow);
+            // arrow offset relative to tooltip
+            const elementCenterX = rect.left + rect.width / 2;
+            const arrowLeftOffset = Math.min(Math.max(elementCenterX - leftPx, 12), (tooltipWidth || 320) - 12);
 
             setPos({
-              top: `${topPx + window.scrollY}px`,
-              left: `${leftPx + window.scrollX}px`,
+              top: `${topPx}px`,
+              left: `${leftPx}px`,
               transform: 'none'
             });
 
             setArrow({ left: `${arrowLeftOffset}px`, direction: preferAbove ? 'down' : 'up', visible: true });
+
+            // compute hole (viewport coordinates)
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const r = Math.max(rect.width, rect.height) / 2 + 18; // padding
+            setHole({ visible: true, cx, cy, r });
             return;
           }
         } catch (e) {
-          // fallback to percent positioning
+          // fallthrough to percent-based
         }
       }
 
-      // fallback to percent positions
-      const top = step.position?.top || '50%';
-      const left = step.position?.left || '50%';
+      // fallback to percent-based position & no hole
+      const top = steps[currentStep].position?.top || '50%';
+      const left = steps[currentStep].position?.left || '50%';
       setPos({ top, left, transform: 'translate(-50%, -50%)' });
       setArrow({ left: '50%', direction: 'down', visible: false });
+      setHole({ visible: false, cx: 0, cy: 0, r: 0 });
     };
 
     updatePosition();
@@ -235,18 +234,31 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     else onNext();
   };
 
-  // small inline arrow styles (we keep minimal CSS here)
-  const arrowBase = {
-    width: 0,
-    height: 0,
-    position: 'absolute',
-    zIndex: 60,
+  // overlay style - lighter and optionally with hole
+  const overlayBase = {
+    position: 'fixed',
+    inset: 0,
+    transition: 'clip-path 0.18s ease, background-color 0.18s ease',
+    zIndex: 49
   };
 
+  const overlayStyle = hole.visible
+    ? {
+        ...overlayBase,
+        backgroundColor: 'rgba(0,0,0,0.45)', // slightly lighter than before
+        WebkitClipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`,
+        clipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`
+      }
+    : {
+        ...overlayBase,
+        backgroundColor: 'rgba(0,0,0,0.36)', // default lighter overlay
+        clipPath: 'none'
+      };
+
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm pointer-events-auto" />
+    <div className="fixed inset-0 z-50 pointer-events-none" aria-hidden={!isActive}>
+      {/* overlay with optional hole so the target is visible */}
+      <div style={overlayStyle} className="pointer-events-auto" />
 
       {/* tooltip */}
       <div
@@ -268,26 +280,21 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
             style={{
               position: 'absolute',
               left: arrow.left,
-              // place arrow at top edge when arrow.direction === 'up' (tooltip below element)
               top: arrow.direction === 'up' ? '-8px' : undefined,
               bottom: arrow.direction === 'down' ? '-8px' : undefined,
               transform: 'translateX(-50%)',
               pointerEvents: 'none'
             }}
           >
-            {/* triangle using borders */}
             <div
               style={{
-                ...arrowBase,
+                width: 0,
+                height: 0,
                 borderLeft: '8px solid transparent',
                 borderRight: '8px solid transparent',
-                ...(arrow.direction === 'up'
-                  ? { borderBottom: '8px solid white' } // pointing up (tooltip below element)
-                  : { borderTop: '8px solid white' } // pointing down (tooltip above element)
-                )
+                ...(arrow.direction === 'up' ? { borderBottom: '8px solid white' } : { borderTop: '8px solid white' })
               }}
             />
-            {/* subtle shadow under arrow */}
             <div
               style={{
                 position: 'absolute',
@@ -377,24 +384,18 @@ export default function Dashboard() {
   });
 
   // refs & guards
-  const mountedRef = useRef(false); // prevent double-run
-  const sessionTourShownRef = useRef(false); // session-only guard
+  const mountedRef = useRef(false);
+  const sessionTourShownRef = useRef(false);
 
   // local storage per-user key helpers
   const getUserTourKey = (username) => `petrox_user_${username}_tour_completed`;
   const userHasCompletedTour = (username) => {
     if (!username || username === 'User') return false;
-    try {
-      return localStorage.getItem(getUserTourKey(username)) === 'true';
-    } catch (e) {
-      return false;
-    }
+    try { return localStorage.getItem(getUserTourKey(username)) === 'true'; } catch (e) { return false; }
   };
   const markTourCompletedForUser = (username) => {
     if (!username || username === 'User') return;
-    try {
-      localStorage.setItem(getUserTourKey(username), 'true');
-    } catch (e) { /* ignore */ }
+    try { localStorage.setItem(getUserTourKey(username), 'true'); } catch (e) {}
   };
 
   // cleanup localStorage old tour keys
@@ -406,7 +407,7 @@ export default function Dashboard() {
     } catch (e) {}
   };
 
-  // pure function: calculate stats from provided array (no setState reliance)
+  // calculate stats (pure)
   const calculateStatsFromArray = (historyArr = [], currentRank = null) => {
     const testsTaken = (historyArr || []).length;
     let totalScorePercentage = 0;
@@ -424,7 +425,7 @@ export default function Dashboard() {
     return { testsTaken, averageScore, currentRank };
   };
 
-  // Fetch dashboard data (runs once on mount)
+  // fetch dashboard on mount (only once)
   useEffect(() => {
     if (mountedRef.current) return;
     mountedRef.current = true;
@@ -461,7 +462,7 @@ export default function Dashboard() {
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
         setDebugInfo(prev => prev + `\n🔍 Approved uploads: ${approvedUploads}`);
 
-        // compute stats from fetched data
+        // compute stats
         const computedStats = calculateStatsFromArray(historyData, userRankValue);
         setDebugInfo(prev => prev + `\n🔍 Computed stats from history: ${JSON.stringify(computedStats)}`);
 
@@ -469,12 +470,11 @@ export default function Dashboard() {
         const { isNew, conditions } = getIsNewUserInfo(historyData, userRankValue, approvedUploads, computedStats.averageScore);
         setDebugInfo(prev => prev + `\n🔍 New user conditions: ${JSON.stringify(conditions)} -> isNew=${isNew}`);
 
-        // has completed tour check
+        // tour flags
         const completed = userHasCompletedTour(storedName);
         const sessionShown = sessionTourShownRef.current;
         setDebugInfo(prev => prev + `\n🔍 Tour flags: completed=${completed}, sessionShown=${sessionShown}`);
 
-        // Show tour if user is new and hasn't completed and not shown in this session
         if (isNew && !completed && !sessionShown) {
           setDebugInfo(prev => prev + '\n🎯 Showing tutorial (conditions met)');
           setTimeout(() => {
@@ -486,7 +486,7 @@ export default function Dashboard() {
           setDebugInfo(prev => prev + `\n❌ Not showing tutorial (isNew=${isNew}, completed=${completed}, sessionShown=${sessionShown})`);
         }
 
-        // compute test rank & total score
+        // test rank & total score
         if (historyData.length > 0) {
           const totalScore = historyData.reduce((acc, s) => acc + (Number(s.score) || 0), 0);
           setTotalTestScore(totalScore);
@@ -504,9 +504,9 @@ export default function Dashboard() {
         setDebugInfo(prev => prev + `\n❗ Failed to load dashboard data: ${err?.message || err}`);
         setIsLoading({ leaderboard: false, history: false, rank: false, uploadStats: false, all: false });
 
-        // fallback: if user hasn't completed tour and not shown in session, start tour
-        const storedName = localStorage.getItem('username') || 'User';
-        const completed = userHasCompletedTour(storedName);
+        // fallback tour
+        const stored = localStorage.getItem('username') || 'User';
+        const completed = userHasCompletedTour(stored);
         if (!completed && !sessionTourShownRef.current) {
           setTimeout(() => {
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
@@ -518,9 +518,9 @@ export default function Dashboard() {
     };
 
     fetchDashboard();
-  }, []); // mount only
+  }, []);
 
-  // handle manual modal start
+  // handle modal start
   const handleTutorialComplete = (startTour) => {
     setShowTutorial(false);
     if (startTour) {
@@ -542,12 +542,9 @@ export default function Dashboard() {
   // navigation handlers
   const handleNextStep = () => {
     setTourState(prev => {
-      if (prev.currentStep < prev.steps.length - 1) {
-        return { ...prev, currentStep: prev.currentStep + 1 };
-      } else {
-        handleTourComplete();
-        return prev;
-      }
+      if (prev.currentStep < prev.steps.length - 1) return { ...prev, currentStep: prev.currentStep + 1 };
+      handleTourComplete();
+      return prev;
     });
   };
 
@@ -560,18 +557,13 @@ export default function Dashboard() {
 
   // dev helpers
   const resetTutorialForCurrentUser = () => {
-    try {
-      const key = getUserTourKey(userName);
-      localStorage.removeItem(key);
-    } catch (e) {}
+    try { localStorage.removeItem(getUserTourKey(userName)); } catch (e) {}
     sessionTourShownRef.current = false;
     setDebugInfo(prev => prev + `\n🔁 Reset tutorial for current user ${userName}`);
   };
   const resetTutorialForAllUsers = () => {
     try {
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('petrox_user_') && k.endsWith('_tour_completed'))
-        .forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('petrox_user_') && k.endsWith('_tour_completed')).forEach(k => localStorage.removeItem(k));
     } catch (e) {}
     sessionTourShownRef.current = false;
     setDebugInfo(prev => prev + '\n🔁 Reset tutorial for ALL users');
@@ -602,10 +594,7 @@ export default function Dashboard() {
   const doughnutChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: false }
-    },
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
     cutout: '75%',
     rotation: 270,
     circumference: 360,
@@ -660,7 +649,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Main content (kept styling/layout intact) */}
+      {/* Main content (layout & styling intact) */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto">
         {/* Welcome Header with Dynamic Rank */}
         <div className="mb-6 md:mb-8" data-tour="header">
