@@ -123,7 +123,8 @@ const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) 
  * CustomTour supports:
  *  - steps: array of { title, content, position?: {top,left}, selector?: string }
  *  - If selector is present the tooltip anchors to it and the overlay cuts a circular hole so target is visible.
- *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector present.
+ *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector is present.
+ *  - Overlay opacity has been reduced so the dashboard remains visible while touring.
  */
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
   const [pos, setPos] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
@@ -143,14 +144,11 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
       const step = steps?.[currentStep];
       if (!step) return setPos({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
 
-      // If step has selector try to anchor to it
       if (step.selector) {
         try {
           const el = document.querySelector(step.selector);
           if (el) {
-            // scroll into view for smooth UX
-            try { el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ }
-
+            try { el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch (e) {}
             await new Promise(res => setTimeout(res, 220));
             if (cancelled) return;
 
@@ -159,7 +157,6 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
             const tooltipWidth = tooltipEl?.offsetWidth || 320;
             const tooltipHeight = tooltipEl?.offsetHeight || 140;
 
-            // compute placement preference
             const spaceAbove = rect.top;
             const spaceBelow = window.innerHeight - rect.bottom;
             const preferAbove = spaceAbove > tooltipHeight + 12 || spaceAbove > spaceBelow;
@@ -177,12 +174,10 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
 
             leftPx = rect.left + rect.width / 2 - tooltipWidth / 2;
 
-            // constrain horizontally
             const padding = 8;
             const maxLeft = window.innerWidth - tooltipWidth - padding;
             leftPx = Math.min(Math.max(leftPx, padding), Math.max(maxLeft, padding));
 
-            // arrow offset relative to tooltip
             const elementCenterX = rect.left + rect.width / 2;
             const arrowLeftOffset = Math.min(Math.max(elementCenterX - leftPx, 12), (tooltipWidth || 320) - 12);
 
@@ -194,19 +189,15 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
 
             setArrow({ left: `${arrowLeftOffset}px`, direction: preferAbove ? 'down' : 'up', visible: true });
 
-            // compute hole (viewport coordinates)
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
-            const r = Math.max(rect.width, rect.height) / 2 + 18; // padding
+            const r = Math.max(rect.width, rect.height) / 2 + 18;
             setHole({ visible: true, cx, cy, r });
             return;
           }
-        } catch (e) {
-          // fallthrough to percent-based
-        }
+        } catch (e) {}
       }
 
-      // fallback to percent-based position & no hole
       const top = steps[currentStep].position?.top || '50%';
       const left = steps[currentStep].position?.left || '50%';
       setPos({ top, left, transform: 'translate(-50%, -50%)' });
@@ -234,7 +225,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     else onNext();
   };
 
-  // overlay style - lighter and optionally with hole
+  // overlay style - reduced opacity so dashboard remains visible
   const overlayBase = {
     position: 'fixed',
     inset: 0,
@@ -242,16 +233,17 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     zIndex: 49
   };
 
+  // IMPORTANT: reduced opacities here (user requested lighter overlay)
   const overlayStyle = hole.visible
     ? {
         ...overlayBase,
-        backgroundColor: 'rgba(0,0,0,0.45)', // slightly lighter than before
+        backgroundColor: 'rgba(0,0,0,0.18)', // lighter when hole is present
         WebkitClipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`,
         clipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`
       }
     : {
         ...overlayBase,
-        backgroundColor: 'rgba(0,0,0,0.36)', // default lighter overlay
+        backgroundColor: 'rgba(0,0,0,0.14)', // default lighter overlay
         clipPath: 'none'
       };
 
