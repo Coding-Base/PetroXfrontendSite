@@ -116,22 +116,26 @@ const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) 
 };
 
 /* -------------------------
-   Anchored Custom Tour
+   Anchored Custom Tour (with arrow + scrollIntoView)
    ------------------------- */
 
 /**
  * CustomTour supports:
  *  - steps: array of { title, content, position?: {top,left}, selector?: string }
  *  - If selector is present the tooltip will anchor near that element using getBoundingClientRect
+ *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector present
  */
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
   const [pos, setPos] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+  const [arrow, setArrow] = useState({ left: '50%', direction: 'down', visible: false });
   const tooltipRef = useRef(null);
 
   useEffect(() => {
     if (!isActive) return;
 
-    const updatePosition = () => {
+    let cancelled = false;
+
+    const updatePosition = async () => {
       const step = steps?.[currentStep];
       if (!step) return setPos({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
 
@@ -140,47 +144,86 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
         try {
           const el = document.querySelector(step.selector);
           if (el) {
-            const rect = el.getBoundingClientRect();
-            // Determine tooltip placement (above preferred)
-            const tooltipWidth = tooltipRef.current?.offsetWidth || 300;
-            const tooltipHeight = tooltipRef.current?.offsetHeight || 120;
-
-            // default horizontal center above element
-            let top = rect.top - tooltipHeight - 12; // 12px gap
-            let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-
-            // if not enough space on top, place below
-            if (top < 8) {
-              top = rect.bottom + 12;
+            // Scroll target into view smoothly for polished UX
+            try {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            } catch (e) {
+              // ignore scroll errors
             }
 
-            // ensure not off-screen horizontally
+            // Wait a tick so layout stabilizes after scroll
+            await new Promise(res => setTimeout(res, 220));
+
+            if (cancelled) return;
+
+            const rect = el.getBoundingClientRect();
+            const tooltipEl = tooltipRef.current;
+            const tooltipWidth = tooltipEl?.offsetWidth || 320;
+            const tooltipHeight = tooltipEl?.offsetHeight || 140;
+
+            // compute preferred placement: above element if enough space, otherwise below
+            const spaceAbove = rect.top;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const preferAbove = spaceAbove > tooltipHeight + 12 || spaceAbove > spaceBelow;
+
+            let topPx;
+            let leftPx;
+
+            if (preferAbove) {
+              topPx = rect.top - tooltipHeight - 12; // 12px gap
+              setArrow(prev => ({ ...prev, direction: 'down' }));
+            } else {
+              topPx = rect.bottom + 12;
+              setArrow(prev => ({ ...prev, direction: 'up' }));
+            }
+
+            // center tooltip horizontally on element
+            leftPx = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+            // ensure within viewport horizontally
             const padding = 8;
             const maxLeft = window.innerWidth - tooltipWidth - padding;
-            left = Math.min(Math.max(left, padding), Math.max(maxLeft, padding));
+            leftPx = Math.min(Math.max(leftPx, padding), Math.max(maxLeft, padding));
 
-            // convert to px string
-            setPos({ top: `${top + window.scrollY}px`, left: `${left + window.scrollX}px`, transform: 'none' });
+            // compute arrow left offset relative to tooltip left
+            const elementCenterX = rect.left + rect.width / 2 + window.scrollX;
+            const tooltipLeftOnPage = leftPx + window.scrollX;
+            let arrowLeftOffset = elementCenterX - tooltipLeftOnPage;
+            // clamp arrow inside tooltip
+            const minArrow = 12;
+            const maxArrow = (tooltipWidth || 320) - 12;
+            arrowLeftOffset = Math.min(Math.max(arrowLeftOffset, minArrow), maxArrow);
+
+            setPos({
+              top: `${topPx + window.scrollY}px`,
+              left: `${leftPx + window.scrollX}px`,
+              transform: 'none'
+            });
+
+            setArrow({ left: `${arrowLeftOffset}px`, direction: preferAbove ? 'down' : 'up', visible: true });
             return;
           }
         } catch (e) {
-          // fallback to percentage
+          // fallback to percent positioning
         }
       }
 
-      // Fallback: use provided percent position or center
+      // fallback to percent positions
       const top = step.position?.top || '50%';
       const left = step.position?.left || '50%';
       setPos({ top, left, transform: 'translate(-50%, -50%)' });
+      setArrow({ left: '50%', direction: 'down', visible: false });
     };
 
     updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, { passive: true });
+    const onResize = () => updatePosition();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, { passive: true });
 
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition);
+      cancelled = true;
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onResize);
     };
   }, [isActive, currentStep, steps]);
 
@@ -192,24 +235,77 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     else onNext();
   };
 
+  // small inline arrow styles (we keep minimal CSS here)
+  const arrowBase = {
+    width: 0,
+    height: 0,
+    position: 'absolute',
+    zIndex: 60,
+  };
+
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* semi-opaque overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm pointer-events-auto"></div>
+      {/* overlay */}
+      <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm pointer-events-auto" />
 
       {/* tooltip */}
       <div
         ref={tooltipRef}
         className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm animate-in fade-in-90 zoom-in-90 border border-gray-200 pointer-events-auto z-50"
         style={{
-          position: 'absolute',
           top: pos.top,
           left: pos.left,
-          transform: pos.transform || 'translate(-50%, -50%)'
+          transform: pos.transform || 'translate(-50%, -50%)',
+          position: 'absolute'
         }}
         role="dialog"
         aria-modal="true"
       >
+        {/* arrow - show only when anchored */}
+        {arrow.visible && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: arrow.left,
+              // place arrow at top edge when arrow.direction === 'up' (tooltip below element)
+              top: arrow.direction === 'up' ? '-8px' : undefined,
+              bottom: arrow.direction === 'down' ? '-8px' : undefined,
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* triangle using borders */}
+            <div
+              style={{
+                ...arrowBase,
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                ...(arrow.direction === 'up'
+                  ? { borderBottom: '8px solid white' } // pointing up (tooltip below element)
+                  : { borderTop: '8px solid white' } // pointing down (tooltip above element)
+                )
+              }}
+            />
+            {/* subtle shadow under arrow */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '-8px',
+                top: arrow.direction === 'up' ? '8px' : undefined,
+                bottom: arrow.direction === 'down' ? '8px' : undefined,
+                width: '16px',
+                height: '6px',
+                filter: 'blur(4px)',
+                opacity: 0.06,
+                background: 'black',
+                borderRadius: 3,
+                transform: 'translateY(0.5px)'
+              }}
+            />
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <div className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">
@@ -271,7 +367,6 @@ export default function Dashboard() {
     isActive: false,
     currentStep: 0,
     steps: [
-      // now include selectors where possible
       { title: '👋 Welcome to Your Dashboard!', content: 'This is your personal dashboard where you can track your progress, see your stats, and access all features.', position: { top: '20%', left: '50%' } },
       { title: '📊 Your Performance Stats', content: 'Here you can see your key metrics: tests taken, average score, approved uploads, and global rank. Track your improvement over time!', selector: '[data-tour="stats"]' },
       { title: '📈 Performance Chart', content: 'This visual chart shows your average score. Aim for higher percentages to improve your ranking!', selector: '[data-tour="performance-chart"]' },
@@ -282,7 +377,7 @@ export default function Dashboard() {
   });
 
   // refs & guards
-  const mountedRef = useRef(false); // prevent Strict Mode double-run
+  const mountedRef = useRef(false); // prevent double-run
   const sessionTourShownRef = useRef(false); // session-only guard
 
   // local storage per-user key helpers
