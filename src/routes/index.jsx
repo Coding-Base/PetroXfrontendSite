@@ -1,3 +1,4 @@
+// routes/index.jsx
 import NotFound from '../pages/NotFound';
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Outlet, useRoutes, useLocation } from 'react-router-dom';
@@ -25,6 +26,8 @@ const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 const Updates = lazy(() => import('../pages/UpdatesTab'))
+// New lazy import for EnrollCourse page
+const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
 
 // ----------------------------------------------------------------------
 
@@ -58,7 +61,7 @@ export default function AppRouter() {
         },
          {
           path: 'updates',
-          element: (<> <Updates /><TrackPageViews /></>) 
+          element: (<> <Updates /><TrackPageViews /></>)
          },
         {
           path: 'group-test/:testId',
@@ -108,6 +111,11 @@ export default function AppRouter() {
         {
           path: 'settings',
           element: <Settings />
+        },
+        // ENROLL COURSE route (dashboard nested)
+        {
+          path: 'enroll-course',
+          element: (<><EnrollCoursePage /> <TrackPageViews /></>)
         }
       ]
     }
@@ -181,6 +189,16 @@ export default function AppRouter() {
         </>
       )
     },
+    // Also expose /enroll-course at top-level so older navigation links continue to work
+    {
+      path: '/enroll-course',
+      element: (
+        <>
+          <TrackPageViews />
+          <EnrollCoursePage />
+        </>
+      )
+    }
   ];
 
   const routes = useRoutes([...dashboardRoutes, ...publicRoutes]);
