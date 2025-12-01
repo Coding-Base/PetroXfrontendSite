@@ -33,6 +33,12 @@ export const navItems = [
     label: 'Tests'
   },
   {
+    id: 'enrolled-courses',
+    title: 'Enrolled Courses',
+    href: '/dashboard/enroll-course',
+    icon: 'book-open'
+  },
+  {
     title: 'Course Materials',
     href: '/dashboard/materials-management',
     icon: 'textbook',
