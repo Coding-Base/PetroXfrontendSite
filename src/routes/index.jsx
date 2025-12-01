@@ -27,7 +27,7 @@ const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 const Updates = lazy(() => import('../pages/UpdatesTab'))
 // New lazy import for EnrollCourse page
-const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
+const EnrollCoursePage = lazy(() => import('../features/courses/EnrollCoursePage'));
 
 // ----------------------------------------------------------------------
 
