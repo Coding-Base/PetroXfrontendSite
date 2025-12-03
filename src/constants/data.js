@@ -7,14 +7,14 @@ export const navItems = [
   },
   {
     title: "Learning System",
-    icon: "Brain",
+    icon: "brain",
     href: "/dashboard/learning-system",
     disabled: false,
     label: 'Learning System'
   },
   {
     title: "Updates",
-    icon: "Bell",
+    icon: "bell",
     href: "/dashboard/updates",
     disabled: false,
     label: 'UPDATES AND PETROX NEWS '
@@ -35,7 +35,7 @@ export const navItems = [
   {
     id: 'enrolled-courses',
     title: 'Enrolled Courses',
-    href: '/dashboard/enroll-course',
+    href: '/dashboard/enrolled-courses',
     icon: 'textbook'
   },
   {
