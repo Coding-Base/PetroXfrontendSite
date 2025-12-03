@@ -163,6 +163,15 @@ export const deleteComment = (id) =>
 // ---------------------------
 // OTHER (tests, leaderboard, materials, etc.)
 // ---------------------------
+//Monetization APIs
+export const checkActivationStatus = () => 
+  api.get('/monetization/activation/my_status/');
+
+export const verifyActivationCode = (code) => 
+  api.post('/monetization/activation/verify_code/', { code });
+
+export const getMonetizationInfo = () => 
+  api.get('/monetization/activation/monetization_info/');
 
 export const fetchCourses = () => api.get('/api/courses/');
 
