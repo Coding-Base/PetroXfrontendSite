@@ -235,10 +235,10 @@ export const uploadPassQuestions = (payload) => api.post('/api/upload-pass-quest
 // SPECIAL COURSES (NEW FEATURE)
 // ---------------------------
 export const fetchSpecialCourses = (query = '') => 
-  api.get('/api/courses/', { params: { q: query } });
+  api.get('/api/special-courses/', { params: { q: query } });
 
 export const enrollCourse = (courseId) =>
-  api.post(`/api/courses/${courseId}/enroll/`);
+  api.post(`/api/special-courses/${courseId}/enroll/`);
 
 export const fetchEnrollmentDetail = (enrollmentId) =>
   api.get(`/api/enrollment/${enrollmentId}/`);
@@ -253,7 +253,7 @@ export const submitExam = (enrollmentId, answers) =>
   api.post(`/api/enrollment/${enrollmentId}/submit/`, { answers });
 
 export const exportCourseResults = (courseId) =>
-  api.get(`/api/courses/${courseId}/export/`);
+  api.get(`/api/special-courses/${courseId}/export/`);
 
 // Default export (axios instance) kept for convenience
 export default api;
