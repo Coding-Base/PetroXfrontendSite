@@ -16,7 +16,7 @@ import { useFeatureActivation } from '@/hooks/useFeatureActivation';
 export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
   const path = usePathname();
   const { isMinimized } = useSidebar();
-  const { isUnlocked, monetizationInfo, verifyCode } = useFeatureActivation();
+  const { isUnlocked, monetizationInfo, verifyCode, loading } = useFeatureActivation();
   const [showModal, setShowModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [pendingHref, setPendingHref] = useState(null);
@@ -43,7 +43,8 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
 
             // Determine if this tab should be protected. Allow 'enrolled-courses' always.
             const protectedTab = !item.href.includes('enrolled-courses');
-            const shouldBlock = monetizationInfo?.is_enabled && !isUnlocked && protectedTab;
+            // While loading monetization info, block protected tabs to avoid early navigation
+            const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
 
             const handleClick = (e) => {
               // If monetization is enabled and feature locked, show modal
