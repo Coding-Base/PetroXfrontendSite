@@ -15,7 +15,10 @@ export const useFeatureActivation = () => {
   const fetchActivationStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/monetization/activation/my_status/');
+      // Prevent cached 304 responses by requesting fresh data
+      const response = await axios.get('/api/monetization/activation/my_status/', {
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      });
       setStatus(response.data);
       setError(null);
     } catch (err) {
@@ -29,7 +32,10 @@ export const useFeatureActivation = () => {
   // Fetch monetization info
   const fetchMonetizationInfo = async () => {
     try {
-      const response = await axios.get('/api/monetization/activation/monetization_info/');
+      // Prevent cached 304 responses by requesting fresh data
+      const response = await axios.get('/api/monetization/activation/monetization_info/', {
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      });
       setMonetizationInfo(response.data);
     } catch (err) {
       console.error('Failed to fetch monetization info:', err);
@@ -57,8 +63,22 @@ export const useFeatureActivation = () => {
     fetchMonetizationInfo();
   }, []);
 
-  // Check if user is unlocked (or if monetization is disabled)
-  const isUnlocked = status?.status === 'unlocked' || monetizationInfo?.is_enabled === false;
+  // Determine unlocked state conservatively:
+  // - While loading: treat as locked (not unlocked)
+  // - If monetization info is unknown (null) after loading, be conservative and treat as enabled (locked)
+  // - Otherwise user is unlocked if their status is 'unlocked' or monetization is explicitly disabled
+  let isUnlocked = false;
+  if (loading) {
+    isUnlocked = false;
+  } else {
+    const monetizationEnabled = monetizationInfo?.is_enabled;
+    if (monetizationInfo == null) {
+      // unknown monetization state: default to locked unless user status says unlocked
+      isUnlocked = status?.status === 'unlocked';
+    } else {
+      isUnlocked = status?.status === 'unlocked' || monetizationEnabled === false;
+    }
+  }
 
   return {
     status,
