@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Build absolute backend API base if environment provides server URL.
+const RAW_BACKEND = import.meta.env.VITE_SERVER_URL || import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_API_BASE = RAW_BACKEND ? RAW_BACKEND.replace(/\/$/, '') + '/api' : '';
+
 /**
  * Hook to check if user's features are unlocked
  * Returns activation status, monetization settings, and functions to verify codes
@@ -16,7 +20,8 @@ export const useFeatureActivation = () => {
     try {
       setLoading(true);
       // Prevent cached 304 responses by requesting fresh data
-      const response = await axios.get('/api/monetization/activation/my_status/', {
+      const url = BACKEND_API_BASE ? `${BACKEND_API_BASE}/monetization/activation/my_status/` : '/api/monetization/activation/my_status/';
+      const response = await axios.get(url, {
         headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
       });
       setStatus(response.data);
@@ -33,7 +38,8 @@ export const useFeatureActivation = () => {
   const fetchMonetizationInfo = async () => {
     try {
       // Prevent cached 304 responses by requesting fresh data
-      const response = await axios.get('/api/monetization/activation/monetization_info/', {
+      const url = BACKEND_API_BASE ? `${BACKEND_API_BASE}/monetization/activation/monetization_info/` : '/api/monetization/activation/monetization_info/';
+      const response = await axios.get(url, {
         headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
       });
       setMonetizationInfo(response.data);
@@ -45,9 +51,10 @@ export const useFeatureActivation = () => {
   // Verify activation code
   const verifyCode = async (code) => {
     try {
-      const response = await axios.post('/api/monetization/activation/verify_code/', {
-        code: code.trim().toUpperCase()
-      });
+      const url = BACKEND_API_BASE ? `${BACKEND_API_BASE}/monetization/activation/verify_code/` : '/api/monetization/activation/verify_code/';
+      const response = await axios.post(url, {
+          code: code.trim().toUpperCase()
+        });
       setStatus(response.data.data);
       return { success: true, message: response.data.message };
     } catch (err) {
