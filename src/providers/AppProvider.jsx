@@ -31,7 +31,7 @@ const ErrorFallback = ({ error }) => {
 
 export default function AppProvider({ children }) {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
       <BrowserRouter>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <QueryClientProvider client={queryClient}>
