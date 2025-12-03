@@ -55,11 +55,11 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
 
         <button
           className={`w-full rounded-lg px-4 py-3 text-left transition ${
-            activeTab === 'createTest' ? 'bg-blue-600' : 'hover:bg-blue-700'
+            activeTab === 'enrolledCourses' ? 'bg-blue-600' : 'hover:bg-blue-700'
           }`}
-          onClick={() => handleMenuItemClick('createTest')}
+          onClick={() => handleMenuItemClick('enrolledCourses')}
         >
-          Create Test
+          Enrolled Courses
         </button>
 
         <button
