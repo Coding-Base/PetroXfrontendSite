@@ -348,6 +348,44 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
 export default function Dashboard() {
   const navigate = useNavigate();
 
+  // DEV: sanity-check imported components that are critical for rendering.
+  // Missing imports (undefined) can cause React "element type is invalid" errors
+  // that are hard to debug in production builds. Log them and show a helpful UI
+  // instead of letting React crash.
+  const _missing = [];
+  try {
+    if (typeof Doughnut === 'undefined') _missing.push('Doughnut');
+  } catch (e) {}
+  try {
+    if (typeof AffiliateDeals === 'undefined') _missing.push('AffiliateDeals');
+  } catch (e) {}
+  try {
+    if (typeof UpdatesBell === 'undefined') _missing.push('UpdatesBell');
+  } catch (e) {}
+  try {
+    if (typeof TutorialModal === 'undefined') _missing.push('TutorialModal');
+  } catch (e) {}
+
+  if (_missing.length > 0) {
+    // Log full diagnostic to console for easier debugging
+    // eslint-disable-next-line no-console
+    console.error('Dashboard: missing imports detected:', _missing);
+    return (
+      <div className="flex h-screen items-center justify-center p-6">
+        <div className="max-w-xl w-full bg-white p-6 rounded-lg shadow-md border border-red-100">
+          <h2 className="text-lg font-bold text-red-600 mb-2">Rendering error — missing modules</h2>
+          <p className="text-sm text-gray-700 mb-4">The dashboard could not render because the following imports are missing or undefined:</p>
+          <ul className="list-disc list-inside text-sm text-gray-700 mb-4">
+            {_missing.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-gray-500">Check your import paths, alias config (vite `resolve.alias`) and that the components export default/named correctly.</p>
+        </div>
+      </div>
+    );
+  }
+
   // state
   const [leaderboard, setLeaderboard] = useState([]);
   const [testHistory, setTestHistory] = useState([]);
