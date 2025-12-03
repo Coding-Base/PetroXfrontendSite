@@ -22,13 +22,13 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
     <nav className="grid items-start gap-2">
       <TooltipProvider>
         {items.map((item, index) => {
-          // Use a safe fallback if the icon key is missing
-          const Icon = Icons[item.icon] || Icons['arrowRight'];
           if (!item.href) return null;
           
+          // Get the icon component from the Icons object
+          const Icon = Icons[item.icon];
+          
           // Debug: log icon resolution for troubleshooting
-          const isValidIcon = Icon && typeof Icon === 'function';
-          if (!isValidIcon) {
+          if (!Icon) {
             // eslint-disable-next-line no-console
             console.warn(`Icon "${item.icon}" not found or invalid for "${item.title}"`);
           }
@@ -47,7 +47,7 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
                     if (setOpen) setOpen(false);
                   }}
                 >
-                  {isValidIcon ? (
+                  {Icon ? (
                     <Icon className={`ml-2.5 h-5 w-5 text-white`} />
                   ) : (
                     <span className="ml-2.5 h-5 w-5 text-white flex items-center justify-center">?</span>
