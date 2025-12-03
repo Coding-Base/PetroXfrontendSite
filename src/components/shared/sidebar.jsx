@@ -35,13 +35,17 @@ export default function Sidebar({ className }) {
             <img src={logo} alt="Petrox logo" className="h-24 object-contain" />
           </div>
         )}
-        <ChevronsLeft
+        <button
+          type="button"
+          onClick={handleToggle}
           className={cn(
-            'h-6 w-6 text-white cursor-pointer rounded-full bg-transparent',
+            'p-1 text-white hover:bg-blue-700 rounded transition',
             isMinimized && 'rotate-180'
           )}
-          onClick={handleToggle}
-        />
+          aria-label="Toggle sidebar"
+        >
+          <ChevronsLeft className="h-5 w-5" />
+        </button>
       </div>
       <div className="space-y-4 py-4">
         <div className="px-2 py-2">

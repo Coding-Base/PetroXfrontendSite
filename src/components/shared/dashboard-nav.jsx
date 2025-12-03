@@ -9,7 +9,6 @@ import {
 } from '../ui/tooltip';
 import { usePathname } from '../../routes/hooks';
 import { Link } from 'react-router-dom';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
   const path = usePathname();
@@ -19,7 +18,6 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
     return null;
   }
 
-  console.log('isActive', isMobileNav, isMinimized);
   return (
     <nav className="grid items-start gap-2">
       <TooltipProvider>
@@ -27,6 +25,14 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
           // Use a safe fallback if the icon key is missing
           const Icon = Icons[item.icon] || Icons['arrowRight'];
           if (!item.href) return null;
+          
+          // Debug: log icon resolution for troubleshooting
+          const isValidIcon = Icon && typeof Icon === 'function';
+          if (!isValidIcon) {
+            // eslint-disable-next-line no-console
+            console.warn(`Icon "${item.icon}" not found or invalid for "${item.title}"`);
+          }
+          
           return (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
@@ -41,10 +47,10 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
                     if (setOpen) setOpen(false);
                   }}
                 >
-                  {typeof Icon === 'function' ? (
+                  {isValidIcon ? (
                     <Icon className={`ml-2.5 h-5 w-5 text-white`} />
                   ) : (
-                    <span className="ml-2.5 h-5 w-5 text-white">•</span>
+                    <span className="ml-2.5 h-5 w-5 text-white flex items-center justify-center">?</span>
                   )}
 
                   {isMobileNav || (!isMinimized && !isMobileNav) ? (
