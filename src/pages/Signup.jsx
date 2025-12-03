@@ -12,10 +12,14 @@ export default function SignUp() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
+  const [department, setDepartment] = useState('');
   const [errors, setErrors] = useState({
     username: '',
     email: '',
     password: '',
+    registrationNumber: '',
+    department: '',
     form: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +32,7 @@ export default function SignUp() {
 
   // Relaxed validation: allow almost any characters for username/password
   const validateForm = () => {
-    const newErrors = { username: '', email: '', password: '', form: '' };
+    const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
     let isValid = true;
 
     // Username: require at least 2 visible characters
@@ -58,6 +62,12 @@ export default function SignUp() {
       isValid = false;
     }
 
+    // Registration Number: optional but if provided, should be non-empty
+    if (registrationNumber && !registrationNumber.trim()) {
+      newErrors.registrationNumber = 'Registration number cannot be empty if provided';
+      isValid = false;
+    }
+
     setErrors(newErrors);
     return isValid;
   };
@@ -77,7 +87,7 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrors({ username: '', email: '', password: '', form: '' });
+    setErrors({ username: '', email: '', password: '', registrationNumber: '', department: '', form: '' });
 
     // Client-side validation (lightweight)
     if (!validateForm()) return;
@@ -85,7 +95,13 @@ export default function SignUp() {
     setIsLoading(true);
     try {
       // We send username exactly as typed (preserve uppercase / special chars)
-      await registerUser(username.trim(), email.trim(), password);
+      await registerUser(
+        username.trim(),
+        email.trim(),
+        password,
+        registrationNumber.trim(),
+        department.trim()
+      );
       // On success, redirect to login and provide a flag so SignIn can show a success message
       navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(username.trim())}`);
     } catch (err) {
@@ -93,10 +109,12 @@ export default function SignUp() {
       const serverData = err?.response?.data;
       if (serverData) {
         // field-level
-        const newErrors = { username: '', email: '', password: '', form: '' };
+        const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
         if (serverData.username) newErrors.username = Array.isArray(serverData.username) ? serverData.username.join(' ') : String(serverData.username);
         if (serverData.email) newErrors.email = Array.isArray(serverData.email) ? serverData.email.join(' ') : String(serverData.email);
         if (serverData.password) newErrors.password = Array.isArray(serverData.password) ? serverData.password.join(' ') : String(serverData.password);
+        if (serverData.registration_number) newErrors.registrationNumber = Array.isArray(serverData.registration_number) ? serverData.registration_number.join(' ') : String(serverData.registration_number);
+        if (serverData.department) newErrors.department = Array.isArray(serverData.department) ? serverData.department.join(' ') : String(serverData.department);
         // general
         if (serverData.detail) newErrors.form = String(serverData.detail);
         else if (serverData.error) newErrors.form = String(serverData.error);
@@ -137,7 +155,7 @@ export default function SignUp() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
@@ -158,13 +176,13 @@ export default function SignUp() {
                   if (errors.username) setErrors(prev => ({ ...prev, username: '' }));
                 }}
                 required
-                placeholder="Choose a username (letters, numbers & symbols allowed)"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                placeholder="Choose a username"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
+            {errors.username && <p className="mt-1 text-xs text-red-600">{errors.username}</p>}
           </div>
 
           <div className="space-y-2">
@@ -189,12 +207,12 @@ export default function SignUp() {
                 }}
                 required
                 placeholder="your.email@example.com"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
@@ -217,13 +235,55 @@ export default function SignUp() {
                   if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
                 }}
                 required
-                placeholder="At least 6 characters — symbols allowed"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-3 transition duration-200 ${
+                placeholder="At least 6 characters"
+                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
               />
             </div>
-            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
+              Registration Number (Optional)
+            </label>
+            <input
+              id="registrationNumber"
+              name="registrationNumber"
+              type="text"
+              value={registrationNumber}
+              onChange={(e) => {
+                setRegistrationNumber(e.target.value);
+                if (errors.registrationNumber) setErrors(prev => ({ ...prev, registrationNumber: '' }));
+              }}
+              placeholder="e.g., 001/2024/001"
+              className={`mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
+                errors.registrationNumber ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+              }`}
+            />
+            {errors.registrationNumber && <p className="mt-1 text-xs text-red-600">{errors.registrationNumber}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+              Department (Optional)
+            </label>
+            <input
+              id="department"
+              name="department"
+              type="text"
+              value={department}
+              onChange={(e) => {
+                setDepartment(e.target.value);
+                if (errors.department) setErrors(prev => ({ ...prev, department: '' }));
+              }}
+              placeholder="e.g., Computer Science"
+              className={`mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
+                errors.department ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+              }`}
+            />
+            {errors.department && <p className="mt-1 text-xs text-red-600">{errors.department}</p>}
           </div>
 
           <Button
