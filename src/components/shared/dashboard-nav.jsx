@@ -42,9 +42,9 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
                   }}
                 >
                   {typeof Icon === 'function' ? (
-                    <Icon className={`ml-2.5 size-5 text-white`} />
+                    <Icon className={`ml-2.5 h-5 w-5 text-white`} />
                   ) : (
-                    <span className="ml-2.5 size-5 text-white">•</span>
+                    <span className="ml-2.5 h-5 w-5 text-white">•</span>
                   )}
 
                   {isMobileNav || (!isMinimized && !isMobileNav) ? (
