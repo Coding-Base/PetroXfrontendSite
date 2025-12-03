@@ -93,8 +93,8 @@ export const Icons = {
   // test: GraduationCap,
   logout: LogOut,
   tool: Wrench,
-  Compass: Compass,
-  Book: Book,
-  Brain:Brain,
-  Bell:Bell,
+  compass: Compass,
+  book: Book,
+  brain: Brain,
+  bell: Bell,
 };
