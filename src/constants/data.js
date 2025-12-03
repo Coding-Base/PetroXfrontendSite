@@ -36,7 +36,7 @@ export const navItems = [
     id: 'enrolled-courses',
     title: 'Enrolled Courses',
     href: '/dashboard/enroll-course',
-    icon: 'book-open'
+    icon: 'textbook'
   },
   {
     title: 'Course Materials',
