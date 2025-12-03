@@ -90,7 +90,6 @@ export const Icons = {
   textbook: BookOpen,
   history: History,
   ai: Bot,
-  // test: GraduationCap,
   logout: LogOut,
   tool: Wrench,
   compass: Compass,
@@ -98,3 +97,5 @@ export const Icons = {
   brain: Brain,
   bell: Bell,
 };
+
+export default Icons;
