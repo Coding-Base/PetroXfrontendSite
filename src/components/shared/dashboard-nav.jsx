@@ -43,43 +43,63 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
 
             // Determine if this tab should be protected. Allow 'enrolled-courses' always.
             const protectedTab = !item.href.includes('enrolled-courses');
+            const shouldBlock = monetizationInfo?.is_enabled && !isUnlocked && protectedTab;
 
-            const handleClick = async (e) => {
-              // If monetization is enabled and feature locked, intercept navigation
-              if (monetizationInfo?.is_enabled && !isUnlocked && protectedTab) {
+            const handleClick = (e) => {
+              // If monetization is enabled and feature locked, show modal
+              if (shouldBlock) {
                 e.preventDefault();
                 setPendingHref(item.href);
                 setShowModal(true);
-                return;
+                return false;
               }
 
               if (setOpen) setOpen(false);
             };
 
+            const commonClassName = cn(
+              'hover:text-muted-foreground flex items-center gap-2 overflow-hidden rounded-md py-2 text-sm font-medium transition-all',
+              path === item.href ? 'bg-blue-700 text-black hover:text-black' : 'transparent',
+              item.disabled && 'cursor-not-allowed opacity-80',
+              shouldBlock && 'cursor-not-allowed opacity-50 bg-gray-600'
+            );
+
+            const tabContent = (
+              <>
+                {Icon ? (
+                  <Icon className={`ml-2.5 h-5 w-5 text-white`} />
+                ) : (
+                  <span className="ml-2.5 h-5 w-5 text-white flex items-center justify-center">?</span>
+                )}
+
+                {isMobileNav || (!isMinimized && !isMobileNav) ? (
+                  <span className="mr-2 truncate text-white">{item.title}</span>
+                ) : (
+                  ''
+                )}
+              </>
+            );
+
             return (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
-                  <Link
-                    to={item.disabled ? '/' : item.href}
-                    className={cn(
-                      'hover:text-muted-foreground flex items-center gap-2 overflow-hidden rounded-md py-2 text-sm font-medium',
-                      path === item.href ? 'bg-blue-700 text-black hover:text-black' : 'transparent',
-                      item.disabled && 'cursor-not-allowed opacity-80'
-                    )}
-                    onClick={handleClick}
-                  >
-                    {Icon ? (
-                      <Icon className={`ml-2.5 h-5 w-5 text-white`} />
-                    ) : (
-                      <span className="ml-2.5 h-5 w-5 text-white flex items-center justify-center">?</span>
-                    )}
-
-                    {isMobileNav || (!isMinimized && !isMobileNav) ? (
-                      <span className="mr-2 truncate text-white">{item.title}</span>
-                    ) : (
-                      ''
-                    )}
-                  </Link>
+                  {shouldBlock ? (
+                    <button
+                      type="button"
+                      onClick={handleClick}
+                      className={commonClassName}
+                    >
+                      {tabContent}
+                    </button>
+                  ) : (
+                    <Link
+                      to={item.disabled ? '/' : item.href}
+                      className={commonClassName}
+                      onClick={handleClick}
+                    >
+                      {tabContent}
+                    </Link>
+                  )}
                 </TooltipTrigger>
                 <TooltipContent
                   align="center"
