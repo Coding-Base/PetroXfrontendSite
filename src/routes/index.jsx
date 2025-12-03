@@ -54,7 +54,7 @@ export default function AppRouter() {
       path: '/dashboard',
       element: (
         <NewDashboardLayout>
-          <Suspense>
+          <Suspense fallback={<div className="h-full flex items-center justify-center">Loading...</div>}>
             <TrackPageViews /> {/* Add tracker here */}
             <Outlet />
           </Suspense>
