@@ -21,6 +21,8 @@ import {
   Legend
 } from 'chart.js';
 import { Button } from '../components/ui/button';
+import ActivationModal from '../components/shared/ActivationModal';
+import { useFeatureActivation } from '@/hooks/useFeatureActivation';
 import AffiliateDeals from '@/pages/AffilateDeals';
 import UpdatesBell from '@/components/UpdatesBell';
 import TutorialModal from '@/components/TutorialModal';
@@ -396,6 +398,10 @@ export default function Dashboard() {
   const [totalTestScore, setTotalTestScore] = useState(0);
   const [testRankInfo, setTestRankInfo] = useState(null);
   const [isLoading, setIsLoading] = useState({ leaderboard: true, history: true, rank: true, uploadStats: true, all: true });
+  const { isUnlocked, monetizationInfo, loading: monetizationLoading, verifyCode } = useFeatureActivation();
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [isVerifyingActivation, setIsVerifyingActivation] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
 
@@ -692,7 +698,13 @@ export default function Dashboard() {
             </h1>
 
             <div className="ml-auto">
-              <UpdatesBell onOpen={() => navigate('/dashboard/updates')} />
+              <UpdatesBell onOpen={() => {
+                const path = '/dashboard/updates';
+                const protectedPath = true;
+                const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                navigate(path);
+              }} />
             </div>
           </div>
 
@@ -824,7 +836,13 @@ export default function Dashboard() {
                     <div className="h-full flex flex-col items-center justify-center">
                       <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-4" />
                       <p className="text-gray-500 text-center">No test data available</p>
-                      <Button onClick={() => navigate('/dashboard/my-tests')} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Take Your First Test</Button>
+                      <Button onClick={() => {
+                        const path = '/dashboard/my-tests';
+                        const protectedPath = true;
+                        const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                        if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                        navigate(path);
+                      }} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Take Your First Test</Button>
                     </div>
                   )}
                 </div>
@@ -868,27 +886,56 @@ export default function Dashboard() {
                 <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Get Started</div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <Button onClick={() => navigate('/dashboard/enrolled-courses')} className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                <Button onClick={() => {
+                    const path = '/dashboard/enrolled-courses';
+                    const protectedPath = !(path.includes('/enrolled-courses'));
+                    const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                    if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                    navigate(path);
+                  }} className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   Enrolled Courses
                 </Button>
 
-                <Button onClick={() => navigate('/dashboard/enroll-course')} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                <Button onClick={() => {
+                    const path = '/dashboard/enroll-course';
+                    const protectedPath = !(path.includes('/enrolled-courses'));
+                    const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                    if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                    navigate(path);
+                  }} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   Search & Enroll
                 </Button>
 
-                <Button onClick={() => navigate('/dashboard/my-tests')} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                <Button onClick={() => {
+                    const path = '/dashboard/my-tests';
+                    const protectedPath = !(path.includes('/enrolled-courses'));
+                    const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                    if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                    navigate(path);
+                  }} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   Start Test
                 </Button>
 
-                <Button onClick={() => navigate('/create-group')} className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                <Button onClick={() => {
+                    const path = '/create-group';
+                    const protectedPath = true;
+                    const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                    if (shouldBlock) { setPendingAction(() => () => navigate(path)); setShowActivationModal(true); return; }
+                    navigate(path);
+                  }} className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   Group Test
                 </Button>
 
-                <Button onClick={() => setActiveTab('petromark')} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                <Button onClick={() => {
+                    const protectedPath = true;
+                    const shouldBlock = protectedPath && (monetizationLoading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+                    if (shouldBlock) { setPendingAction(() => () => setActiveTab('petromark')); setShowActivationModal(true); return; }
+                    setActiveTab('petromark');
+                  }} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                   PetroMark AI
                 </Button>
@@ -897,6 +944,27 @@ export default function Dashboard() {
           </div>
         )}
         <AffiliateDeals />
+        {/* Activation modal for quick actions */}
+        <ActivationModal
+          isOpen={showActivationModal}
+          onClose={() => setShowActivationModal(false)}
+          monetizationInfo={monetizationInfo}
+          onCodeSubmit={async (code) => {
+            setIsVerifyingActivation(true);
+            try {
+              const res = await verifyCode(code);
+              if (res.success && pendingAction) {
+                pendingAction();
+                setPendingAction(null);
+                setShowActivationModal(false);
+              }
+              return res;
+            } finally {
+              setIsVerifyingActivation(false);
+            }
+          }}
+          isVerifying={isVerifyingActivation}
+        />
       </div>
     </div>
   );

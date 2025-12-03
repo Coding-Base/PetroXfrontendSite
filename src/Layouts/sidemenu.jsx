@@ -1,15 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trackMenuClick, trackLogout } from '../utils/analytics';
 import logo from '../assets/logo.png';
+import ActivationModal from '../components/shared/ActivationModal';
+import { useFeatureActivation } from '@/hooks/useFeatureActivation';
 
 function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu }) {
   const navigate = useNavigate();
 
+  const { isUnlocked, monetizationInfo, loading, verifyCode } = useFeatureActivation();
+  const [showModal, setShowModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
   const handleMenuItemClick = (tabName) => {
+    const protectedTab = !(tabName === 'enrolledCourses' || tabName === 'dashboard');
+    const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+
+    if (shouldBlock) {
+      // Store the intended action and show activation modal
+      setPendingAction(() => () => handleMenuItemClickExecute(tabName));
+      setShowModal(true);
+      return;
+    }
+
+    // Not blocked: perform the action
+    handleMenuItemClickExecute(tabName);
+  };
+
+  const handleMenuItemClickExecute = (tabName) => {
     setActiveTab(tabName);
-    trackMenuClick(tabName);  // Track menu click
-    
+    trackMenuClick(tabName); // Track menu click
+
     // Handle tab-specific actions
     switch(tabName) {
       case 'createTest':
@@ -143,6 +164,23 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           Logout
         </button>
       </div>
+      {/* Activation modal for protected menu items */}
+      <ActivationModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        monetizationInfo={monetizationInfo}
+        onCodeSubmit={async (code) => {
+          const res = await verifyCode(code);
+          if (res.success && pendingAction) {
+            // execute the stored action
+            pendingAction();
+            setPendingAction(null);
+            setShowModal(false);
+          }
+          return res;
+        }}
+        isVerifying={false}
+      />
     </div>
   );
 }
