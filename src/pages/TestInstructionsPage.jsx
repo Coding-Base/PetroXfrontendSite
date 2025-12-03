@@ -27,8 +27,8 @@ export default function TestInstructionsPage() {
   const course = enrollment?.course;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="max-w-3xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 flex items-start md:items-center justify-center">
+      <div className="max-w-3xl w-full max-h-[calc(100vh-4rem)] overflow-auto mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-12 text-white">

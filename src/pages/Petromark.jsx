@@ -20,7 +20,7 @@ const PetroMarkAI = () => {
   }, []);
 
   return (
-    <div className="h-[calc(100vh-200px)] rounded-xl bg-gray-50 p-4 shadow-md md:p-6">
+    <div className="max-h-[calc(100vh-4rem)] md:h-[calc(100vh-200px)] rounded-xl bg-gray-50 p-4 shadow-md md:p-6 overflow-auto">
       <div className="mb-4 flex items-center md:mb-6">
         <div className="mr-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 p-2 md:mr-4 md:p-3">
           <svg
@@ -48,9 +48,9 @@ const PetroMarkAI = () => {
         </div>
       </div>
 
-      <div className="h-[calc(100%-80px)] overflow-hidden rounded-lg border">
+      <div className="h-full overflow-auto rounded-lg border">
         <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-auto">
             <elevenlabs-convai agent-id="agent_01jx3tjzhyfjnt6cxax880pxx4"></elevenlabs-convai>
           </div>
         </div>

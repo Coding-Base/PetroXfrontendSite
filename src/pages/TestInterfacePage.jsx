@@ -112,7 +112,8 @@ export default function TestInterfacePage() {
         </div>
       </div>
 
-      <div className="pt-20 pb-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 px-4">
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 max-h-[calc(100vh-5rem)] overflow-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content Area */}
         <div className="lg:col-span-3">
           {/* Questions */}
@@ -197,7 +198,7 @@ export default function TestInterfacePage() {
         </div>
 
         {/* Sidebar - Question Navigation */}
-        <div className="lg:col-span-1 h-fit sticky top-24">
+        <div className="lg:col-span-1 h-fit lg:sticky lg:top-24">
           <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
             <h3 className="font-semibold text-gray-800 mb-4">Questions</h3>
             

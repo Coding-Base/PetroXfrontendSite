@@ -21,8 +21,8 @@ export default function TestCompletionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-4 flex items-start md:items-center justify-center">
+      <div className="max-w-2xl w-full max-h-[calc(100vh-4rem)] overflow-auto mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 text-center">
           {/* Icon */}
           <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-100 rounded-full mb-6">
