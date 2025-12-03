@@ -37,7 +37,7 @@ export default function Sidebar({ className }) {
         )}
         <ChevronsLeft
           className={cn(
-            'bg-background text-foreground size-8 cursor-pointer rounded-full border text-white',
+            'h-6 w-6 text-white cursor-pointer rounded-full bg-transparent',
             isMinimized && 'rotate-180'
           )}
           onClick={handleToggle}
