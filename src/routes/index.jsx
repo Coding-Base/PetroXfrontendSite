@@ -26,8 +26,14 @@ const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 const Updates = lazy(() => import('../pages/UpdatesTab'))
-// New lazy import for EnrollCourse page
-const EnrollCoursePage = lazy(() => import('../features/courses/EnrollCoursePage'));
+// New lazy imports for Special Courses feature
+const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
+const EnrolledCoursesPage = lazy(() => import('../pages/EnrolledCoursesPage'));
+const CourseWaitingPage = lazy(() => import('../pages/CourseWaitingPage'));
+const TestInstructionsPage = lazy(() => import('../pages/TestInstructionsPage'));
+const TestInterfacePage = lazy(() => import('../pages/TestInterfacePage'));
+const TestSubmissionSuccessPage = lazy(() => import('../pages/TestSubmissionSuccessPage'));
+const TestCompletionPage = lazy(() => import('../pages/TestCompletionPage'));
 
 // ----------------------------------------------------------------------
 
@@ -116,6 +122,31 @@ export default function AppRouter() {
         {
           path: 'enroll-course',
           element: (<><EnrollCoursePage /> <TrackPageViews /></>)
+        },
+        // Special Courses Routes
+        {
+          path: 'enrolled-courses',
+          element: (<><EnrolledCoursesPage /> <TrackPageViews /></>)
+        },
+        {
+          path: 'course/:enrollmentId/waiting',
+          element: (<><CourseWaitingPage /> <TrackPageViews /></>)
+        },
+        {
+          path: 'course/:enrollmentId/instructions',
+          element: (<><TestInstructionsPage /> <TrackPageViews /></>)
+        },
+        {
+          path: 'course/:enrollmentId/take-test',
+          element: (<><TestInterfacePage /> <TrackPageViews /></>)
+        },
+        {
+          path: 'course/:enrollmentId/submitted',
+          element: (<><TestSubmissionSuccessPage /> <TrackPageViews /></>)
+        },
+        {
+          path: 'course/:enrollmentId/completed',
+          element: (<><TestCompletionPage /> <TrackPageViews /></>)
         }
       ]
     }
@@ -186,16 +217,6 @@ export default function AppRouter() {
         <>
           <TrackPageViews /> {/* Add tracker here */}
           <GroupTestPage />
-        </>
-      )
-    },
-    // Also expose /enroll-course at top-level so older navigation links continue to work
-    {
-      path: '/enroll-course',
-      element: (
-        <>
-          <TrackPageViews />
-          <EnrollCoursePage />
         </>
       )
     }
