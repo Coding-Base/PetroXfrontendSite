@@ -16,9 +16,15 @@ export const useCourses = () => {
       setLoading(true);
       setError(null);
       const response = await fetchSpecialCourses(query);
+      // Debug: log backend response so we can see returned shape and ids
+      // This helps diagnose why enroll may return 404 (e.g., id mismatch)
+      // eslint-disable-next-line no-console
+      console.debug('useCourses.searchCourses response:', response?.data);
       const coursesList = Array.isArray(response?.data) ? response.data : response?.data?.results || [];
       setCourses(coursesList);
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('useCourses.searchCourses error:', err?.response || err);
       setError(err?.message || 'Failed to fetch courses');
       setCourses([]);
     } finally {
@@ -30,8 +36,12 @@ export const useCourses = () => {
     try {
       setError(null);
       const response = await enrollCourse(courseId);
+      // eslint-disable-next-line no-console
+      console.debug('useCourses.enroll response:', response?.data);
       return response?.data;
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('useCourses.enroll error:', err?.response || err);
       setError(err?.message || 'Failed to enroll in course');
       throw err;
     }
