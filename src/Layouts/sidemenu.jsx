@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { trackMenuClick, trackLogout } from '../utils/analytics';
 import logo from '../assets/logo.png';
 import ActivationModal from '../components/shared/ActivationModal';
+import { Icons } from '../components/ui/icons';
 import { useFeatureActivation } from '@/hooks/useFeatureActivation';
 
 function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu }) {
@@ -13,6 +14,7 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
   const [pendingAction, setPendingAction] = useState(null);
 
   const handleMenuItemClick = (tabName) => {
+    // Treat enrolled courses and dashboard as safe (not protected)
     const protectedTab = !(tabName === 'enrolledCourses' || tabName === 'dashboard');
     const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
 
@@ -71,7 +73,10 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('dashboard')}
         >
-          Dashboard
+          <div className="flex items-center justify-between">
+            <span>Dashboard</span>
+            {/* dashboard is not protected; show nothing here */}
+          </div>
         </button>
 
         <button
@@ -80,7 +85,10 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('enrolledCourses')}
         >
-          Enrolled Courses
+          <div className="flex items-center justify-between">
+            <span>Enrolled Courses</span>
+            {/* enrolled courses is not protected */}
+          </div>
         </button>
 
         <button
@@ -89,7 +97,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('createGroupTest')}
         >
-          Create Group Test
+          <div className="flex items-center justify-between">
+            <span>Create Group Test</span>
+            {(() => {
+              const protectedTab = !( 'createGroupTest' === 'enrolledCourses' || 'createGroupTest' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         <button
@@ -98,7 +113,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('UploadPastQuestions')}
         >
-          Upload Past Questions
+          <div className="flex items-center justify-between">
+            <span>Upload Past Questions</span>
+            {(() => {
+              const protectedTab = !( 'UploadPastQuestions' === 'enrolledCourses' || 'UploadPastQuestions' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         <button
@@ -107,7 +129,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('MaterialManagement')}
         >
-          Material Management
+          <div className="flex items-center justify-between">
+            <span>Material Management</span>
+            {(() => {
+              const protectedTab = !( 'MaterialManagement' === 'enrolledCourses' || 'MaterialManagement' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         <button
@@ -116,7 +145,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('petromark')}
         >
-          PetroMark AI
+          <div className="flex items-center justify-between">
+            <span>PetroMark AI</span>
+            {(() => {
+              const protectedTab = !( 'petromark' === 'enrolledCourses' || 'petromark' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         <button
@@ -125,7 +161,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('history')}
         >
-          History
+          <div className="flex items-center justify-between">
+            <span>History</span>
+            {(() => {
+              const protectedTab = !( 'history' === 'enrolledCourses' || 'history' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         <button
@@ -134,7 +177,14 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
           }`}
           onClick={() => handleMenuItemClick('settings')}
         >
-          Settings
+          <div className="flex items-center justify-between">
+            <span>Settings</span>
+            {(() => {
+              const protectedTab = !( 'settings' === 'enrolledCourses' || 'settings' === 'dashboard');
+              const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
+              return shouldBlock ? (Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null) : null;
+            })()}
+          </div>
         </button>
 
         {/* Tutorial reset button - Only show if needed */}
