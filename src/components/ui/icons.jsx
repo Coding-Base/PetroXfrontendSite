@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Check,
+  Lock,
   ChevronLeft,
   ChevronRight,
   CircuitBoardIcon,
@@ -96,6 +97,7 @@ export const Icons = {
   book: Book,
   brain: Brain,
   bell: Bell,
+  lock: Lock,
 };
 
 export default Icons;
