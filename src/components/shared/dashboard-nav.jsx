@@ -41,8 +41,10 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
               console.warn(`Icon "${item.icon}" not found or invalid for "${item.title}"`);
             }
 
-            // Determine if this tab should be protected. Allow 'enrolled-courses' always.
-            const protectedTab = !item.href.includes('enrolled-courses');
+            // Determine if this tab should be protected.
+            // Exclude certain safe paths (enrolled courses, dashboard and login/logout) from protection.
+            const safeExclusions = ['/dashboard', '/login', '/dashboard/enrolled-courses'];
+            const protectedTab = !safeExclusions.some(p => item.href.startsWith(p));
             // While loading monetization info, block protected tabs to avoid early navigation
             const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
 
@@ -74,7 +76,15 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
                 )}
 
                 {isMobileNav || (!isMinimized && !isMobileNav) ? (
-                  <span className="mr-2 truncate text-white">{item.title}</span>
+                  <span className="mr-2 truncate text-white flex items-center">
+                    <span>{item.title}</span>
+                    {shouldBlock && (
+                      // lock icon for protected tab
+                      <span className="ml-2 inline-flex items-center">
+                        {Icons.lock ? <Icons.lock className="h-4 w-4 text-yellow-200" /> : null}
+                      </span>
+                    )}
+                  </span>
                 ) : (
                   ''
                 )}

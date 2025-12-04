@@ -9,50 +9,37 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showCode, setShowCode] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
     if (!code.trim()) {
       setError('Please enter an activation code');
       return;
     }
-
-    const result = await onCodeSubmit(code);
-    if (result.success) {
-      setSuccess(result.message);
+    
+    try {
+      await onCodeSubmit(code);
+      setSuccess('Code verified successfully!');
       setCode('');
-      // Close modal after short delay
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } else {
-      setError(result.message);
+    } catch (err) {
+      setError(err.message || 'Invalid code. Please try again.');
     }
   };
 
-  if (!monetizationInfo) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Unlock Full PetroX Features</DialogTitle>
+          <DialogTitle>Unlock Premium Features</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Payment Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">
-              To access the full features of PetroX, kindly make a payment of ₦{monetizationInfo.price} to the account details below:
+          <div className="bg-blue-50 border border-blue-200 rounded p-4 space-y-2">
+            <p className="text-sm font-medium text-blue-900">
+              💳 Send payment to:
             </p>
-            
-            <div className="bg-white p-3 rounded border border-gray-200 mb-3">
-              <p className="text-sm font-mono text-gray-800">{monetizationInfo.payment_account}</p>
-            </div>
-
             <p className="text-sm text-gray-600">
               After payment, forward the receipt to WhatsApp: <span className="font-semibold">{monetizationInfo.whatsapp_number}</span>
             </p>
@@ -69,21 +56,18 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
                 <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
                   Enter activation code
                 </label>
-                <input
-                  id="code"
-                  type="text"
-                  placeholder="E.g., ABC123DEF456"
-                  value={code}
-                  onChange={(e) => {
-                    setCode(e.target.value);
-                    setError('');
-                    setSuccess('');
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isVerifying}
-                />
+                <div className="relative">
+                  <input
+                    id="code"
+                    type={showCode ? 'text' : 'password'}
+                    inputMode="text"
+                    placeholder="E.g., ABC123DEF456"
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded">
                   {error}
@@ -96,13 +80,30 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isVerifying || !code.trim()}
-                className="w-full py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {isVerifying ? 'Verifying...' : 'Verify Code'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isVerifying || !code.trim()}
+                  className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isVerifying ? 'Verifying...' : 'Verify Code'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    // clear state and close modal
+                    setCode('');
+                    setError('');
+                    setSuccess('');
+                    if (!isVerifying) onClose();
+                  }}
+                  disabled={isVerifying}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </form>
           </div>
 
