@@ -42,9 +42,9 @@ export default function DashboardNav({ items, setOpen, isMobileNav = false }) {
             }
 
             // Determine if this tab should be protected.
-            // Exclude certain safe paths (enrolled courses, dashboard and login/logout) from protection.
+            // Only dashboard, enrolled courses, and logout/login are unprotected
             const safeExclusions = ['/dashboard', '/login', '/dashboard/enrolled-courses'];
-            const protectedTab = !safeExclusions.some(p => item.href.startsWith(p));
+            const protectedTab = !safeExclusions.some(p => item.href === p);
             // While loading monetization info, block protected tabs to avoid early navigation
             const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked));
 
