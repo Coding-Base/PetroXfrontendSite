@@ -60,8 +60,9 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
                 <div className="relative">
                   <input
                     id="code"
+                    style={{color:'white'}}
                     type={showCode ? 'text' : 'password'}
-                    inputMode="text"
+                    inputMode="password"
                     placeholder="E.g., ABC123DEF456"
                     value={code}
                     onChange={e => setCode(e.target.value)}
@@ -119,3 +120,4 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
     </Dialog>
   );
 }
+
