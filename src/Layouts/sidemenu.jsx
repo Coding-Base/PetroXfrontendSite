@@ -58,7 +58,7 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
     localStorage.clear();
     trackLogout();  // Track logout event
     navigate('/login');
-  };
+          const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked && !safeExclusions.some((p) => item.href === p)));
 
   return (
     <div className="hidden flex-col bg-blue-800 p-6 text-white md:flex md:w-64 sidebar-menu">
@@ -234,5 +234,5 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
     </div>
   );
 }
-
+}
 export default SideMenu;
