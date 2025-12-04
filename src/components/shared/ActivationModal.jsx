@@ -38,7 +38,7 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
         <div className="space-y-4">
           {/* Payment Instructions */}
           <div className="bg-blue-50 border border-blue-200 rounded p-4 space-y-2">
-            <p className="text-sm font-medium text-blue-900"> 💳 To have Full access to all the features of PetroX send  the sum of <span className="font-semibold">{monetizationInfo.price}</span> to </br> <span className="font-semibold">{monetizationInfo.payment_account}</span>:
+            <p className="text-sm font-medium text-blue-900"> 💳 To have Full access to all the features of PetroX send  the sum of <span className="font-semibold">{monetizationInfo.price}</span> to  <span className="font-semibold">{monetizationInfo.payment_account}</span>
             </p>
             <p className="text-sm text-gray-600">
               After payment, forward the receipt to WhatsApp: <span className="font-semibold">{monetizationInfo.whatsapp_number}</span>
@@ -119,5 +119,6 @@ export default function ActivationModal({ isOpen, onClose, monetizationInfo, onC
     </Dialog>
   );
 }
+
 
 
