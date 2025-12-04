@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
  * Displays payment instructions and code verification form
  */
 export default function ActivationModal({ isOpen, onClose, monetizationInfo, onCodeSubmit, isVerifying = false }) {
+  if (!monetizationInfo) return null;
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
