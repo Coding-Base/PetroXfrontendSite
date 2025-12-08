@@ -6,85 +6,147 @@ import axios from 'axios';
 /**
  * ReviewPage
  *
- * - Shows performance summary by default.
- * - When switching to "View Answers" (detailed) the page will show only the QUESTIONS
- *   the user answered incorrectly. For each such question it shows:
- *     - the question text
- *     - "Your answer" (letter + option text or raw text if that's what was stored)
- *     - "Correct answer" (letter + option text)
+ * Props:
+ * - sessionId: id of the test session to fetch from the backend (preferred)
+ * - isOpen: modal visibility
+ * - onClose: close callback
+ * - onRetake: retake callback (optional)
+ * - localAnswers: optional object mapping questionId -> user's selected answer (e.g. { "459": "B", "526": "A" })
  *
- * It will try to derive the user's answer from:
- *  - question.user_answer / selected_choice / user_choice / selected_option
- *  - top-level testDetails.answers / testDetails.responses / testDetails.user_answers
- *
- * It also preserves ordering when the session provides a question_order array.
+ * Behavior:
+ * - If sessionId is provided we fetch the session payload from the backend and merge localAnswers into it (localAnswers wins).
+ * - If sessionId is not provided but localAnswers is provided, we build a minimal testDetails object so the review can still show the user's submitted answers
+ *   (note: in that case question text/options may be missing unless the parent passes richer question data).
+ * - Detailed view shows ONLY the questions the user got wrong, and for each shows:
+ *     - Your Answer (letter + text if possible)
+ *     - Correct Answer (letter + text if possible)
  */
 
-const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
+const ReviewPage = ({ sessionId, isOpen, onClose, onRetake, localAnswers }) => {
   const [testDetails, setTestDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeView, setActiveView] = useState('summary'); // 'summary' or 'detailed'
 
   useEffect(() => {
-    if (!isOpen || !sessionId) return;
+    if (!isOpen) return;
 
     const fetchResults = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('access_token');
-        const response = await axios.get(
-          `https://petroxtestbackend.onrender.com/api/test-session/${sessionId}/`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
+      // If sessionId is provided, fetch remote session and merge localAnswers into it
+      if (sessionId) {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem('access_token');
+          const response = await axios.get(
+            `https://petroxtestbackend.onrender.com/api/test-session/${sessionId}/`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+          let details = response.data ?? {};
 
-        // Save raw response — we'll normalize below
-        setTestDetails(response.data);
-        setError('');
-      } catch (err) {
-        console.error('Failed to fetch test results', err);
-        setError('Failed to load test results. Please try again.');
-        setTestDetails(null);
-      } finally {
-        setLoading(false);
+          // If there are local answers, merge them into the question objects (override any server-stored user_answer)
+          if (localAnswers && typeof localAnswers === 'object' && Array.isArray(details.questions)) {
+            const localMap = {};
+            Object.entries(localAnswers).forEach(([k, v]) => {
+              localMap[String(k)] = v;
+            });
+
+            details = {
+              ...details,
+              questions: details.questions.map((q) => ({
+                ...q,
+                // server could already have per-question user_answer; localAnswers take precedence
+                user_answer: localMap[String(q.id)] ?? q.user_answer ?? q.selected_choice ?? q.answer ?? null
+              }))
+            };
+          }
+
+          setTestDetails(details);
+          setError('');
+        } catch (err) {
+          console.error('Failed to fetch test results', err);
+          setError('Failed to load test results. Please try again.');
+          setTestDetails(null);
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
+
+      // If no sessionId but we have localAnswers, build a minimal details object so review still shows user's answers
+      if (!sessionId && localAnswers && typeof localAnswers === 'object') {
+        try {
+          setLoading(true);
+          const questions = Object.entries(localAnswers).map(([qid, answer], idx) => ({
+            id: Number(qid) || qid,
+            question_text: 'Question text not available (session not fetched)',
+            option_a: '',
+            option_b: '',
+            option_c: '',
+            option_d: '',
+            correct_option: null,
+            user_answer: answer,
+            // keep position
+            _tmp_index: idx
+          }));
+
+          const details = {
+            id: null,
+            user: null,
+            course: null,
+            questions,
+            start_time: null,
+            end_time: null,
+            score: null,
+            duration: null,
+            question_count: questions.length
+          };
+
+          setTestDetails(details);
+          setError('');
+        } catch (err) {
+          console.error('Failed to build fallback test details', err);
+          setError('Failed to prepare review data.');
+          setTestDetails(null);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // otherwise nothing to show
+      setTestDetails(null);
+      setLoading(false);
     };
 
     fetchResults();
-  }, [sessionId, isOpen]);
+  }, [sessionId, isOpen, localAnswers]);
 
   // Helper: get option text safely (supports option_a...option_d)
   const getOptionText = (question, optionKey) => {
-    if (!optionKey && optionKey !== 0) return 'Not answered';
+    if (optionKey === null || optionKey === undefined || optionKey === '') return 'Not answered';
     // If optionKey looks like an option letter "A","B", ...
     if (typeof optionKey === 'string' && optionKey.length <= 2) {
       const key = optionKey.toString().toUpperCase();
       const field = `option_${key.toLowerCase()}`;
-      // Some servers return the full text as optionKey (e.g. "I chose X")
       if (question && question[field]) return question[field];
-      // fallback: optionKey itself (maybe backend stored full text)
+      // fallback: maybe backend stored the full text as the answer
       return optionKey;
     }
-    // If optionKey is already full text, just return it
+    // If optionKey is numeric or long text, convert to string
     return String(optionKey);
   };
 
   // Normalize the server response into a consistent questions array.
-  // Each normalized question will have:
-  //  - id, question_text, option_a...option_d
-  //  - user_answer (letter or text)
-  //  - correct_option (letter or text)
-  //  - is_correct (bool)
-  //  - number (position in the session order)
+  // Accepts optional externalAnswers map to prefer when deciding user's answer (but we already prefer localAnswers during fetch merge).
   const normalizeQuestions = (details) => {
     if (!details) return [];
 
     // try to get question ordering from session (if provided)
     const orderArr = details.question_order || details.questions_order || details.order || null;
 
-    // possible top-level answers mapping
+    // possible top-level answers mapping (if server returned them)
     const topLevelAnswers =
       details.answers ||
       details.responses ||
@@ -93,12 +155,13 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
       details.answerMap ||
       null;
 
-    // if topLevelAnswers is an array of objects, convert to map by question id
+    // convert topLevelAnswers to map
     const makeAnswerMap = (a) => {
       if (!a) return {};
       if (Array.isArray(a)) {
         const m = {};
         a.forEach((item) => {
+          if (!item) return;
           // common shapes: { question: id, choice: 'A' } or { question_id: id, answer: 'A' }
           if (item.question || item.question_id || item.q) {
             const qid = item.question || item.question_id || item.q;
@@ -111,7 +174,6 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
         return m;
       }
       if (typeof a === 'object') {
-        // assume object mapping like { "12": "A", "13": "B" } or { 12: { choice: 'A' } }
         const m = {};
         Object.entries(a).forEach(([k, v]) => {
           if (v && typeof v === 'object') {
@@ -128,9 +190,7 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
     const answerMap = makeAnswerMap(topLevelAnswers);
     const rawQuestions = Array.isArray(details.questions) ? details.questions : [];
 
-    // If the details returned something like an array of question IDs in order, but not the objects,
-    // we can't reconstruct full questions here — fallback to rawQuestions.
-    // Build a map of question id -> index in orderArr for numbering
+    // build order index if present
     const orderIndex = {};
     if (Array.isArray(orderArr)) {
       orderArr.forEach((qid, idx) => {
@@ -138,31 +198,23 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
       });
     }
 
-    // normalize each question
     const normalized = rawQuestions.map((q, idx) => {
       const qid = q.id ?? q.pk ?? q.question_id ?? null;
-      // find user's answer: per-question fields or top-level answer map
+
+      // user answer may be present in per-question fields or top-level mapping
       const userAns =
-        q.user_answer ??
-        q.selected_choice ??
-        q.user_choice ??
-        q.selected_option ??
-        q.user_selected ??
-        q.answer ??
+        (q && (q.user_answer ?? q.selected_choice ?? q.user_choice ?? q.selected_option ?? q.user_selected ?? q.answer)) ??
         answerMap[String(qid)] ??
         answerMap[qid] ??
         null;
 
-      // find correct option
       const correctOpt = q.correct_option ?? q.correct ?? q.answer_key ?? q.correct_answer ?? null;
 
-      // determine is_correct: prefer server value if present, else compare
       let isCorrect = null;
       if (typeof q.is_correct === 'boolean') {
         isCorrect = q.is_correct;
       } else if (userAns != null && correctOpt != null) {
         try {
-          // compare letters or raw strings
           const ua = String(userAns).trim().toUpperCase();
           const ca = String(correctOpt).trim().toUpperCase();
           isCorrect = ua === ca;
@@ -170,14 +222,13 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
           isCorrect = false;
         }
       } else {
+        // if server explicitly included score or marking, and q has no correct option, set false by default
         isCorrect = false;
       }
 
-      // compute display texts for user answer and correct answer
       const userAnswerText = userAns ? getOptionText(q, userAns) : 'Not answered';
       const correctAnswerText = correctOpt ? getOptionText(q, correctOpt) : 'Not provided';
 
-      // compute display number: prefer explicit session order; else fallback to array index + 1
       const number = orderIndex[String(qid)] != null ? orderIndex[String(qid)] + 1 : idx + 1;
 
       return {
@@ -188,21 +239,19 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
         correct_option: correctOpt,
         correct_option_text: correctAnswerText,
         is_correct: Boolean(isCorrect),
-        number,
+        number
       };
     });
 
-    // If we have an explicit orderArr, sort normalized by that order
+    // sort by explicit order if provided
     if (Array.isArray(orderArr) && normalized.length > 0) {
       normalized.sort((a, b) => {
         const ai = orderIndex[String(a.id)] ?? a.number ?? 0;
         const bi = orderIndex[String(b.id)] ?? b.number ?? 0;
         return ai - bi;
       });
-      // re-number sequentially to match ordering
       normalized.forEach((q, i) => (q.number = i + 1));
     } else {
-      // ensure numbers are sequential
       normalized.forEach((q, i) => (q.number = i + 1));
     }
 
@@ -443,5 +492,3 @@ const ReviewPage = ({ sessionId, isOpen, onClose, onRetake }) => {
 };
 
 export default ReviewPage;
-
-
