@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { registerUser } from '../api';
 import image from "../images/finallogo.png";
@@ -24,55 +24,73 @@ export default function SignUp() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Clear any existing tokens when component mounts
+  // small email hint message (format-only)
+  const [emailVerifyMsg, setEmailVerifyMsg] = useState('');
+
+  // password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Clear tokens on mount
   useEffect(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   }, []);
 
-  // Relaxed validation: allow almost any characters for username/password
-  const validateForm = () => {
-    const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
-    let isValid = true;
+  // -------------------------
+  // Password strength utils
+  // -------------------------
+  const passwordCriteria = useMemo(() => ({
+    length: password.length >= 8,
+    lower: /[a-z]/.test(password),
+    upper: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password)
+  }), [password]);
 
-    // Username: require at least 2 visible characters
-    if (!username || !username.trim()) {
-      newErrors.username = 'Username is required';
-      isValid = false;
-    } else if (username.trim().length < 2) {
-      newErrors.username = 'Username must be at least 2 characters';
-      isValid = false;
-    }
+  const passwordScore = useMemo(() => {
+    return Object.values(passwordCriteria).reduce((s, v) => s + (v ? 1 : 0), 0);
+  }, [passwordCriteria]);
 
-    // Email: still validate basic email format (helps avoid typos)
-    if (!email || !email.trim()) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-      isValid = false;
-    }
+  const strengthLabel = useMemo(() => {
+    if (!password) return { label: 'Empty', color: 'bg-gray-200', pct: 0 };
+    if (passwordScore <= 1) return { label: 'Very weak', color: 'bg-red-300', pct: 20 };
+    if (passwordScore === 2) return { label: 'Weak', color: 'bg-red-400', pct: 40 };
+    if (passwordScore === 3) return { label: 'Fair', color: 'bg-yellow-300', pct: 60 };
+    if (passwordScore === 4) return { label: 'Good', color: 'bg-green-300', pct: 80 };
+    return { label: 'Strong', color: 'bg-green-600', pct: 100 };
+  }, [passwordScore, password]);
 
-    // Password: allow symbols, uppercase, lowercase, digits — require min length 6
-    if (!password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      isValid = false;
-    }
+  // Minimum policy: length >= 8 && at least 3 criteria total (length + 2 others)
+  const meetsPasswordPolicy = useMemo(() => {
+    const lengthOk = passwordCriteria.length;
+    const otherCount = (passwordCriteria.lower ? 1 : 0) + (passwordCriteria.upper ? 1 : 0) + (passwordCriteria.number ? 1 : 0) + (passwordCriteria.special ? 1 : 0);
+    return lengthOk && otherCount >= 2; // length + at least two others = 3/5
+  }, [passwordCriteria]);
 
-    // Registration Number: optional but if provided, should be non-empty
-    if (registrationNumber && !registrationNumber.trim()) {
-      newErrors.registrationNumber = 'Registration number cannot be empty if provided';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
+  // -------------------------
+  // Email format check only
+  // -------------------------
+  const emailFormatValid = (value) => {
+    if (!value || !value.trim()) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   };
 
-  // Helper to extract friendly messages from server responses
+  const handleEmailBlur = () => {
+    setEmailVerifyMsg('');
+    if (!email) {
+      setEmailVerifyMsg('');
+      return;
+    }
+    if (emailFormatValid(email)) {
+      setEmailVerifyMsg('Email format looks good');
+      setErrors(prev => ({ ...prev, email: '' }));
+    } else {
+      setEmailVerifyMsg('');
+      setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+    }
+  };
+
+  // Convenience parse server errors
   const parseServerErrors = (data) => {
     if (!data) return 'Registration failed. Please try again.';
     const parts = [];
@@ -85,16 +103,53 @@ export default function SignUp() {
     return parts.join(' ').trim() || 'Registration failed. Please try again.';
   };
 
+  // Client-side validation (format & password policy)
+  const validateForm = () => {
+    const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
+    let isValid = true;
+
+    if (!username || !username.trim()) {
+      newErrors.username = 'Username is required';
+      isValid = false;
+    } else if (username.trim().length < 2) {
+      newErrors.username = 'Username must be at least 2 characters';
+      isValid = false;
+    }
+
+    if (!email || !email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!emailFormatValid(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    } else if (!meetsPasswordPolicy) {
+      newErrors.password = 'Password does not meet minimum strength requirements';
+      isValid = false;
+    }
+
+    if (registrationNumber && !registrationNumber.trim()) {
+      newErrors.registrationNumber = 'Registration number cannot be empty if provided';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({ username: '', email: '', password: '', registrationNumber: '', department: '', form: '' });
+    setEmailVerifyMsg('');
 
-    // Client-side validation (lightweight)
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      // We send username exactly as typed (preserve uppercase / special chars)
       await registerUser(
         username.trim(),
         email.trim(),
@@ -102,24 +157,21 @@ export default function SignUp() {
         registrationNumber.trim(),
         department.trim()
       );
-      // On success, redirect to login and provide a flag so SignIn can show a success message
+
       navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(username.trim())}`);
     } catch (err) {
       console.error("Registration Error:", err);
       const serverData = err?.response?.data;
       if (serverData) {
-        // field-level
         const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
         if (serverData.username) newErrors.username = Array.isArray(serverData.username) ? serverData.username.join(' ') : String(serverData.username);
         if (serverData.email) newErrors.email = Array.isArray(serverData.email) ? serverData.email.join(' ') : String(serverData.email);
         if (serverData.password) newErrors.password = Array.isArray(serverData.password) ? serverData.password.join(' ') : String(serverData.password);
         if (serverData.registration_number) newErrors.registrationNumber = Array.isArray(serverData.registration_number) ? serverData.registration_number.join(' ') : String(serverData.registration_number);
         if (serverData.department) newErrors.department = Array.isArray(serverData.department) ? serverData.department.join(' ') : String(serverData.department);
-        // general
         if (serverData.detail) newErrors.form = String(serverData.detail);
         else if (serverData.error) newErrors.form = String(serverData.error);
         else {
-          // fallback to joining any messages
           const parsed = parseServerErrors(serverData);
           if (!newErrors.username && !newErrors.email && !newErrors.password) newErrors.form = parsed;
         }
@@ -156,6 +208,7 @@ export default function SignUp() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {/* Username */}
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
@@ -180,11 +233,14 @@ export default function SignUp() {
                 className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
+                aria-invalid={!!errors.username}
+                aria-describedby={errors.username ? 'username-error' : undefined}
               />
             </div>
-            {errors.username && <p className="mt-1 text-xs text-red-600">{errors.username}</p>}
+            {errors.username && <p id="username-error" className="mt-1 text-xs text-red-600">{errors.username}</p>}
           </div>
 
+          {/* Email */}
           <div className="space-y-2">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
@@ -204,17 +260,25 @@ export default function SignUp() {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+                  setEmailVerifyMsg('');
                 }}
+                onBlur={handleEmailBlur}
                 required
                 placeholder="your.email@example.com"
                 className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : 'email-hint'}
               />
             </div>
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+            <div className="flex items-center justify-between">
+              {errors.email ? <p id="email-error" className="mt-1 text-xs text-red-600">{errors.email}</p>
+               : <p id="email-hint" className="mt-1 text-xs text-gray-500">{emailVerifyMsg || 'We only validate email format on this form.'}</p>}
+            </div>
           </div>
 
+          {/* Password */}
           <div className="space-y-2">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
@@ -225,25 +289,75 @@ export default function SignUp() {
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
               </div>
+
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
                 }}
                 required
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
                   errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                 }`}
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? 'password-error' : 'password-hint'}
               />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
             </div>
-            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+
+            <div className="mt-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-2 ${strengthLabel.color}`}
+                  style={{ width: `${strengthLabel.pct}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs font-medium text-gray-700">{strengthLabel.label}</p>
+                <p className="text-xs text-gray-500">{passwordScore}/5</p>
+              </div>
+
+              <ul className="mt-2 grid grid-cols-1 gap-1 text-xs">
+                <li className={`flex items-center ${passwordCriteria.length ? 'text-green-700' : 'text-gray-500'}`}>
+                  <span className="mr-2">{passwordCriteria.length ? '✓' : '○'}</span>
+                  At least 8 characters
+                </li>
+                <li className={`flex items-center ${passwordCriteria.upper ? 'text-green-700' : 'text-gray-500'}`}>
+                  <span className="mr-2">{passwordCriteria.upper ? '✓' : '○'}</span>
+                  At least one uppercase letter
+                </li>
+                <li className={`flex items-center ${passwordCriteria.lower ? 'text-green-700' : 'text-gray-500'}`}>
+                  <span className="mr-2">{passwordCriteria.lower ? '✓' : '○'}</span>
+                  At least one lowercase letter
+                </li>
+                <li className={`flex items-center ${passwordCriteria.number ? 'text-green-700' : 'text-gray-500'}`}>
+                  <span className="mr-2">{passwordCriteria.number ? '✓' : '○'}</span>
+                  At least one number
+                </li>
+                <li className={`flex items-center ${passwordCriteria.special ? 'text-green-700' : 'text-gray-500'}`}>
+                  <span className="mr-2">{passwordCriteria.special ? '✓' : '○'}</span>
+                  At least one symbol (e.g. !@#$%)
+                </li>
+              </ul>
+
+              {errors.password && <p id="password-error" className="mt-2 text-xs text-red-600">{errors.password}</p>}
+            </div>
           </div>
 
+          {/* Registration Number */}
           <div className="space-y-2">
             <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
               Registration Number (Optional)
@@ -265,6 +379,7 @@ export default function SignUp() {
             {errors.registrationNumber && <p className="mt-1 text-xs text-red-600">{errors.registrationNumber}</p>}
           </div>
 
+          {/* Department */}
           <div className="space-y-2">
             <label htmlFor="department" className="block text-sm font-medium text-gray-700">
               Department (Optional)
@@ -289,9 +404,7 @@ export default function SignUp() {
           <Button
             type="submit"
             disabled={isLoading}
-            className={`w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform ${
-              isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:-translate-y-0.5'
-            }`}
+            className={`w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform ${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -313,6 +426,10 @@ export default function SignUp() {
           >
             Sign In
           </Link>
+        </p>
+
+        <p className="mt-3 text-center text-xs text-gray-400">
+          We validate email format client-side only. If you want stronger verification (MX check, disposable blocking), we can add a server endpoint later.
         </p>
       </div>
     </div>
