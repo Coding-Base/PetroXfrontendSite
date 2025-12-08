@@ -46,6 +46,35 @@ export default function SignIn() {
     return parts.join(' ').trim() || 'Invalid credentials. Please try again.';
   };
 
+  // Robust role detection: supports many response shapes
+  const detectLecturer = (payload) => {
+    if (!payload) return false;
+    const user = payload.user ?? payload.user_info ?? payload.profile ?? payload;
+
+    if (!user) return false;
+
+    // Direct flags
+    if (user.is_staff === true || user.is_superuser === true) return true;
+    if (user.is_lecturer === true || user.role === 'lecturer' || user.role === 'teacher') return true;
+
+    // Profile nested flags
+    if (user.profile && (user.profile.is_lecturer === true || user.profile.role === 'lecturer' || user.profile.role === 'teacher')) return true;
+
+    // Groups: array of strings or objects
+    if (Array.isArray(user.groups) && user.groups.length > 0) {
+      if (user.groups.includes('Lecturer') || user.groups.includes('lecturer') || user.groups.includes('Teacher')) return true;
+      if (user.groups.some(g => typeof g === 'object' && (g.name === 'Lecturer' || g.name === 'lecturer' || g.name === 'Teacher'))) return true;
+    }
+
+    // roles field (array)
+    if (Array.isArray(user.roles) && user.roles.some(r => String(r).toLowerCase().includes('lect'))) return true;
+
+    // fallback: email domain heuristic (optional)
+    // if (typeof user.email === 'string' && user.email.endsWith('@faculty.example.com')) return true;
+
+    return false;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGlobalError('');
@@ -64,49 +93,32 @@ export default function SignIn() {
 
     setIsLoading(true);
     try {
-      // Important: preserve the exact return shape from loginUser (it might return axios response or raw data)
+      // loginUser can return axios response or raw payload; support both.
       const res = await loginUser(username.trim(), password);
-      const payload = res?.data ?? res; // support both shapes
+      const payload = res?.data ?? res;
 
-      // extract tokens from common shapes
-      const access = payload?.access ?? payload?.tokens?.access ?? payload?.token ?? payload?.access_token;
-      const refresh = payload?.refresh ?? payload?.tokens?.refresh ?? payload?.refresh_token;
+      // Extract tokens from common shapes
+      const access = payload?.access ?? payload?.token ?? payload?.access_token ?? payload?.tokens?.access;
+      const refresh = payload?.refresh ?? payload?.refresh_token ?? payload?.tokens?.refresh;
 
       if (access) localStorage.setItem('access_token', access);
       if (refresh) localStorage.setItem('refresh_token', refresh);
 
-      // determine user object (many backends return user inside payload.data.user)
+      // Store some user info if present
       const user = payload?.user ?? payload?.user_info ?? payload?.profile ?? payload;
-
-      // store sensible user values if present
       const actualUsername = user?.username ?? user?.email ?? username.trim();
       if (actualUsername) localStorage.setItem('username', actualUsername);
       if (user?.id) localStorage.setItem('user_id', user.id);
 
-      // Try to detect if the logged in user is a lecturer/staff so we can redirect to the right dashboard.
-      const isLecturer = (() => {
-        const u = user ?? payload;
-        if (!u) return false;
-        // common flags
-        if (u.is_staff || u.is_superuser) return true;
-        if (u.is_lecturer || u.role === 'lecturer') return true;
-        // nested profile checks
-        if (u.profile && (u.profile.is_lecturer || u.profile.role === 'lecturer')) return true;
-        // group shapes: array of strings or array of objects
-        if (Array.isArray(u.groups) && u.groups.length > 0) {
-          // groups might be ['Lecturer'] or [{id:1, name:'Lecturer'}]
-          if (u.groups.includes('Lecturer')) return true;
-          if (u.groups.some(g => (typeof g === 'string' ? g === 'Lecturer' : (g.name === 'Lecturer' || g === 'Lecturer')))) return true;
-        }
-        return false;
-      })();
-
+      // Detect lecturer and redirect accordingly
+      const isLecturer = detectLecturer(payload);
       localStorage.setItem('role', isLecturer ? 'lecturer' : 'student');
 
-      // Redirect based on role
       if (isLecturer) {
+        // Always send lecturers to their dashboard
         navigate('/lecturer-dashboard', { replace: true });
       } else {
+        // Normal users go to nextUrl (defaults to /dashboard)
         navigate(nextUrl, { replace: true });
       }
     } catch (err) {
