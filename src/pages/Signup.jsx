@@ -274,7 +274,7 @@ export default function SignUp() {
             </div>
             <div className="flex items-center justify-between">
               {errors.email ? <p id="email-error" className="mt-1 text-xs text-red-600">{errors.email}</p>
-               : <p id="email-hint" className="mt-1 text-xs text-gray-500">{emailVerifyMsg || 'We only validate email format on this form.'}</p>}
+               : <p id="email-hint" className="mt-1 text-xs text-gray-500">{emailVerifyMsg || ''}</p>}
             </div>
           </div>
 
@@ -433,4 +433,5 @@ export default function SignUp() {
     </div>
   );
 }
+
 
