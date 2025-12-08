@@ -46,6 +46,11 @@ export default function GroupTestPage() {
       setGroupTest(data);
       setQuestions(data.questions || []);
 
+      // If backend provides session_id on the test object, store it early
+      if (data.session_id) {
+        setSessionId(data.session_id);
+      }
+
       const startDate = parseUtcDate(data.scheduled_start);
       const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
 
@@ -166,15 +171,22 @@ export default function GroupTestPage() {
     if (!groupTest) return;
     try {
       const response = await submitTest(groupTest.session_id, answers);
+
+      // tolerant extraction of score & session id
+      const respData = response?.data ?? {};
+      const returnedScore = respData.score ?? respData.correct ?? respData.correct_count ?? respData.result;
+      const returnedSessionId = respData.session_id ?? respData.sessionId ?? respData.id ?? groupTest.session_id;
+
       setPhase(3);
       setScore({
-        correct: response.data.score,
+        correct: Number(returnedScore ?? 0),
         total: groupTest.question_count,
-        percentage: Math.round(
-          (response.data.score / groupTest.question_count) * 100
-        )
+        percentage: groupTest.question_count ? Math.round((Number(returnedScore ?? 0) / groupTest.question_count) * 100) : 0
       });
-      setSessionId(groupTest.session_id);
+
+      // prefer returned session id if provided, else the groupTest.session_id
+      setSessionId(returnedSessionId ?? groupTest.session_id ?? null);
+
       localStorage.removeItem(`testEndTime_${testId}`);
       localStorage.removeItem(`testAnswers_${testId}`);
     } catch (err) {
@@ -198,8 +210,10 @@ export default function GroupTestPage() {
       );
       setGroupTest((prev) => ({
         ...prev,
-        session_id: response.data.session_id
+        session_id: response.data.session_id ?? prev?.session_id
       }));
+      const newSessionId = response?.data?.session_id ?? response?.data?.sessionId ?? null;
+      if (newSessionId) setSessionId(newSessionId);
       fetchTest();
     } catch (err) {
       setError('Failed to restart test. Please try again.');
