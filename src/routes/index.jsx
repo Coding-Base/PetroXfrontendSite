@@ -25,7 +25,11 @@ const NotFounds = lazy(() => import('../pages/NotFound'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
-const Updates = lazy(() => import('../pages/UpdatesTab'))
+const Updates = lazy(() => import('../pages/UpdatesTab'));
+
+// New lazy import for Lecturer dashboard
+const LecturerDashboard = lazy(() => import('../pages/LecturerDashboard'));
+
 // New lazy imports for Special Courses feature
 const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
 const EnrolledCoursesPage = lazy(() => import('../pages/EnrolledCoursesPage'));
@@ -202,6 +206,16 @@ export default function AppRouter() {
         </>
       ),
       index: true
+    },
+    // Lecturer dashboard route (top-level). You may protect this route later with auth wrapper.
+    {
+      path: '/lecturer-dashboard',
+      element: (
+        <>
+          <TrackPageViews />
+          <LecturerDashboard />
+        </>
+      )
     },
     {
       path: '/404',
