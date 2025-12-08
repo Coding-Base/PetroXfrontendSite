@@ -4,178 +4,182 @@ import { registerUser } from '../api';
 import image from "../images/finallogo.png";
 import { Button } from '../components/ui/button';
 
+/**
+ * SignUp page
+ * - Role chooser modal (Student | Lecturer)
+ * - Student uses existing registerUser(username, email, password, registrationNumber, department)
+ * - Lecturer registers by calling the same helper (mapped fields). If your backend expects a different payload
+ *   for lecturers adjust your registerUser helper to accept role or a payload object.
+ */
+
 export default function SignUp() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next') || '/dashboard';
 
+  // Role selection modal
+  const [roleChoiceOpen, setRoleChoiceOpen] = useState(true);
+  const [role, setRole] = useState('student'); // 'student' | 'lecturer'
+
+  // Student fields
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [department, setDepartment] = useState('');
+
+  // Lecturer fields (simpler)
+  const [lecturerName, setLecturerName] = useState('');
+  const [lecturerDept, setLecturerDept] = useState('');
+  const [lecturerPhone, setLecturerPhone] = useState('');
+  const [lecturerEmail, setLecturerEmail] = useState('');
+  const [lecturerPassword, setLecturerPassword] = useState('');
+
   const [errors, setErrors] = useState({
-    username: '',
-    email: '',
-    password: '',
-    registrationNumber: '',
-    department: '',
+    username: '', email: '', password: '', registrationNumber: '', department: '',
+    lecturerName: '', lecturerDept: '', lecturerPhone: '', lecturerEmail: '', lecturerPassword: '',
     form: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
-
-  // small email hint message (format-only)
   const [emailVerifyMsg, setEmailVerifyMsg] = useState('');
-
-  // password visibility
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear tokens on mount
   useEffect(() => {
+    // clear tokens if present
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   }, []);
 
-  // -------------------------
-  // Password strength utils
-  // -------------------------
+  // Password strength helpers (shared)
+  const currentPassword = role === 'lecturer' ? lecturerPassword : password;
   const passwordCriteria = useMemo(() => ({
-    length: password.length >= 8,
-    lower: /[a-z]/.test(password),
-    upper: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password)
-  }), [password]);
+    length: currentPassword.length >= 8,
+    lower: /[a-z]/.test(currentPassword),
+    upper: /[A-Z]/.test(currentPassword),
+    number: /[0-9]/.test(currentPassword),
+    special: /[^A-Za-z0-9]/.test(currentPassword)
+  }), [currentPassword]);
 
-  const passwordScore = useMemo(() => {
-    return Object.values(passwordCriteria).reduce((s, v) => s + (v ? 1 : 0), 0);
-  }, [passwordCriteria]);
+  const passwordScore = useMemo(() => Object.values(passwordCriteria).reduce((s, v) => s + (v ? 1 : 0), 0), [passwordCriteria]);
 
   const strengthLabel = useMemo(() => {
-    if (!password) return { label: 'Empty', color: 'bg-gray-200', pct: 0 };
+    if (!currentPassword) return { label: 'Empty', color: 'bg-gray-200', pct: 0 };
     if (passwordScore <= 1) return { label: 'Very weak', color: 'bg-red-300', pct: 20 };
     if (passwordScore === 2) return { label: 'Weak', color: 'bg-red-400', pct: 40 };
     if (passwordScore === 3) return { label: 'Fair', color: 'bg-yellow-300', pct: 60 };
     if (passwordScore === 4) return { label: 'Good', color: 'bg-green-300', pct: 80 };
     return { label: 'Strong', color: 'bg-green-600', pct: 100 };
-  }, [passwordScore, password]);
+  }, [passwordScore, currentPassword]);
 
-  // Minimum policy: length >= 8 && at least 3 criteria total (length + 2 others)
   const meetsPasswordPolicy = useMemo(() => {
     const lengthOk = passwordCriteria.length;
     const otherCount = (passwordCriteria.lower ? 1 : 0) + (passwordCriteria.upper ? 1 : 0) + (passwordCriteria.number ? 1 : 0) + (passwordCriteria.special ? 1 : 0);
-    return lengthOk && otherCount >= 2; // length + at least two others = 3/5
+    return lengthOk && otherCount >= 2;
   }, [passwordCriteria]);
 
-  // -------------------------
-  // Email format check only
-  // -------------------------
   const emailFormatValid = (value) => {
     if (!value || !value.trim()) return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   };
 
-  const handleEmailBlur = () => {
+  const handleEmailBlur = (val, field = 'student') => {
     setEmailVerifyMsg('');
-    if (!email) {
-      setEmailVerifyMsg('');
-      return;
-    }
-    if (emailFormatValid(email)) {
+    if (!val) return;
+    if (emailFormatValid(val)) {
       setEmailVerifyMsg('Email format looks good');
       setErrors(prev => ({ ...prev, email: '' }));
+      if (field === 'lecturer') setErrors(prev => ({ ...prev, lecturerEmail: '' }));
     } else {
-      setEmailVerifyMsg('');
-      setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      if (field === 'lecturer') setErrors(prev => ({ ...prev, lecturerEmail: 'Please enter a valid email address' }));
+      else setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
     }
   };
 
-  // Convenience parse server errors
   const parseServerErrors = (data) => {
     if (!data) return 'Registration failed. Please try again.';
     const parts = [];
     if (data.detail) parts.push(String(data.detail));
-    if (data.username) parts.push(Array.isArray(data.username) ? data.username.join(' ') : String(data.username));
-    if (data.email) parts.push(Array.isArray(data.email) ? data.email.join(' ') : String(data.email));
-    if (data.password) parts.push(Array.isArray(data.password) ? data.password.join(' ') : String(data.password));
-    if (data.error) parts.push(String(data.error));
+    ['username','email','password','name','phone','department','registration_number','error'].forEach(k => {
+      if (data[k]) parts.push(Array.isArray(data[k]) ? data[k].join(' ') : String(data[k]));
+    });
     if (parts.length === 0 && typeof data === 'string') parts.push(data);
-    return parts.join(' ').trim() || 'Registration failed. Please try again.';
+    return parts.join(' ').trim();
   };
 
-  // Client-side validation (format & password policy)
-  const validateForm = () => {
+  // validation functions
+  const validateStudent = () => {
     const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
-    let isValid = true;
-
-    if (!username || !username.trim()) {
-      newErrors.username = 'Username is required';
-      isValid = false;
-    } else if (username.trim().length < 2) {
-      newErrors.username = 'Username must be at least 2 characters';
-      isValid = false;
-    }
-
-    if (!email || !email.trim()) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!emailFormatValid(email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-      isValid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    } else if (!meetsPasswordPolicy) {
-      newErrors.password = 'Password does not meet minimum strength requirements';
-      isValid = false;
-    }
-
-    if (registrationNumber && !registrationNumber.trim()) {
-      newErrors.registrationNumber = 'Registration number cannot be empty if provided';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
+    let ok = true;
+    if (!username || !username.trim()) { newErrors.username = 'Username is required'; ok = false; }
+    else if (username.trim().length < 2) { newErrors.username = 'Username must be at least 2 characters'; ok = false; }
+    if (!email || !email.trim()) { newErrors.email = 'Email is required'; ok = false; }
+    else if (!emailFormatValid(email.trim())) { newErrors.email = 'Enter a valid email'; ok = false; }
+    if (!password) { newErrors.password = 'Password is required'; ok = false; }
+    else if (!meetsPasswordPolicy) { newErrors.password = 'Password too weak (min 8 chars and mix)'; ok = false; }
+    if (registrationNumber && !registrationNumber.trim()) { newErrors.registrationNumber = 'Invalid registration number'; ok = false; }
+    setErrors(prev => ({ ...prev, ...newErrors }));
+    return ok;
   };
 
+  const validateLecturer = () => {
+    const newErrors = { lecturerName: '', lecturerDept: '', lecturerPhone: '', lecturerEmail: '', lecturerPassword: '', form: '' };
+    let ok = true;
+    if (!lecturerName || !lecturerName.trim()) { newErrors.lecturerName = 'Name is required'; ok = false; }
+    if (!lecturerDept || !lecturerDept.trim()) { newErrors.lecturerDept = 'Department is required'; ok = false; }
+    if (!lecturerPhone || !lecturerPhone.trim()) { newErrors.lecturerPhone = 'Phone is required'; ok = false; }
+    if (!lecturerEmail || !lecturerEmail.trim()) { newErrors.lecturerEmail = 'Email is required'; ok = false; }
+    else if (!emailFormatValid(lecturerEmail.trim())) { newErrors.lecturerEmail = 'Enter a valid email'; ok = false; }
+    if (!lecturerPassword) { newErrors.lecturerPassword = 'Password is required'; ok = false; }
+    else if (!meetsPasswordPolicy) { newErrors.lecturerPassword = 'Password too weak (min 8 chars and mix)'; ok = false; }
+    setErrors(prev => ({ ...prev, ...newErrors }));
+    return ok;
+  };
+
+  // submit (uses your registerUser helper)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrors({ username: '', email: '', password: '', registrationNumber: '', department: '', form: '' });
+    setErrors({
+      username: '', email: '', password: '', registrationNumber: '', department: '',
+      lecturerName: '', lecturerDept: '', lecturerPhone: '', lecturerEmail: '', lecturerPassword: '',
+      form: ''
+    });
     setEmailVerifyMsg('');
 
-    if (!validateForm()) return;
+    if (role === 'student' && !validateStudent()) return;
+    if (role === 'lecturer' && !validateLecturer()) return;
 
     setIsLoading(true);
     try {
-      await registerUser(
-        username.trim(),
-        email.trim(),
-        password,
-        registrationNumber.trim(),
-        department.trim()
-      );
-
-      navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(username.trim())}`);
+      if (role === 'student') {
+        // existing registerUser signature (username, email, password, registrationNumber, department)
+        await registerUser(
+          username.trim(),
+          email.trim(),
+          password,
+          registrationNumber.trim(),
+          department.trim()
+        );
+        // redirect to sign-in so they can login
+        navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(username.trim())}`, { replace: true });
+      } else {
+        // Lecturer: map fields to the same helper (if backend expects another payload you must update registerUser)
+        // We pass lecturerName as username, lecturerEmail as email, lecturerPassword as password
+        // registrationNumber is left blank and department set to lecturerDept
+        await registerUser(
+          lecturerName.trim(),
+          lecturerEmail.trim(),
+          lecturerPassword,
+          '',
+          lecturerDept.trim()
+        );
+        // after creating lecturer account, send them to sign-in and prefill lecturerEmail
+        navigate(`/login?next=${encodeURIComponent('/lecturer-dashboard')}&registered=1&username=${encodeURIComponent(lecturerEmail.trim())}`, { replace: true });
+      }
     } catch (err) {
-      console.error("Registration Error:", err);
+      console.error('Registration Error:', err);
       const serverData = err?.response?.data;
       if (serverData) {
-        const newErrors = { username: '', email: '', password: '', registrationNumber: '', department: '', form: '' };
-        if (serverData.username) newErrors.username = Array.isArray(serverData.username) ? serverData.username.join(' ') : String(serverData.username);
-        if (serverData.email) newErrors.email = Array.isArray(serverData.email) ? serverData.email.join(' ') : String(serverData.email);
-        if (serverData.password) newErrors.password = Array.isArray(serverData.password) ? serverData.password.join(' ') : String(serverData.password);
-        if (serverData.registration_number) newErrors.registrationNumber = Array.isArray(serverData.registration_number) ? serverData.registration_number.join(' ') : String(serverData.registration_number);
-        if (serverData.department) newErrors.department = Array.isArray(serverData.department) ? serverData.department.join(' ') : String(serverData.department);
-        if (serverData.detail) newErrors.form = String(serverData.detail);
-        else if (serverData.error) newErrors.form = String(serverData.error);
-        else {
-          const parsed = parseServerErrors(serverData);
-          if (!newErrors.username && !newErrors.email && !newErrors.password) newErrors.form = parsed;
-        }
-        setErrors(newErrors);
+        setErrors(prev => ({ ...prev, form: parseServerErrors(serverData) }));
       } else {
         setErrors(prev => ({ ...prev, form: err?.message || 'Unexpected error. Please try again.' }));
       }
@@ -184,22 +188,53 @@ export default function SignUp() {
     }
   };
 
+  const chooseRole = (r) => {
+    setRole(r);
+    setRoleChoiceOpen(false);
+    // clear errors and fields relevant to other role
+    setErrors({
+      username: '', email: '', password: '', registrationNumber: '', department: '',
+      lecturerName: '', lecturerDept: '', lecturerPhone: '', lecturerEmail: '', lecturerPassword: '',
+      form: ''
+    });
+    setEmailVerifyMsg('');
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+      {/* Role modal */}
+      {roleChoiceOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-2xl mx-4 rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold mb-3">Create account as</h3>
+            <p className="text-sm text-gray-600 mb-6">Choose whether you're registering as a Student or a Lecturer.</p>
+            <div className="flex gap-4">
+              <button onClick={() => chooseRole('student')} className="flex-1 rounded-lg border border-gray-200 p-6 hover:shadow-md">
+                <h4 className="font-semibold text-lg">Student</h4>
+                <p className="text-sm text-gray-500 mt-2">Take tests, view results and review answers.</p>
+              </button>
+              <button onClick={() => chooseRole('lecturer')} className="flex-1 rounded-lg border border-gray-200 p-6 hover:shadow-md">
+                <h4 className="font-semibold text-lg">Lecturer</h4>
+                <p className="text-sm text-gray-500 mt-2">Create special courses, add questions, export results.</p>
+              </button>
+            </div>
+            <div className="mt-4">
+              <button onClick={() => { setRoleChoiceOpen(false); setRole('student'); }} className="text-sm text-gray-500 underline">Prefer later — continue as Student</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-gray-100 transition-all duration-300 hover:shadow-2xl">
         <div className="mb-8 flex justify-center">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-1 rounded-full shadow-lg">
-            <img
-              src={image}
-              alt="Petrox logo"
-              className="h-20 w-20 rounded-full object-contain bg-white p-1"
-            />
+            <img src={image} alt="Petrox logo" className="h-20 w-20 rounded-full object-contain bg-white p-1" />
           </div>
         </div>
 
-        <h2 className="mb-4 text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
-          Create Your Account
-        </h2>
+        <h2 className="mb-2 text-center text-3xl font-bold">Create Your Account</h2>
+        <p className="text-center text-sm text-gray-500 mb-4">{role === 'lecturer' ? 'Lecturer registration' : 'Student registration'}</p>
 
         {errors.form && (
           <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700 border border-red-200">
@@ -208,230 +243,126 @@ export default function SignUp() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {/* Username */}
-          <div className="space-y-2">
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-              Username
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
+          {role === 'student' && (
+            <>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Username</label>
+                <input value={username} onChange={(e) => { setUsername(e.target.value); if (errors.username) setErrors(prev => ({ ...prev, username: '' })); }} placeholder="Choose a username" className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                {errors.username && <p className="mt-1 text-xs text-red-600">{errors.username}</p>}
               </div>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (errors.username) setErrors(prev => ({ ...prev, username: '' }));
-                }}
-                required
-                placeholder="Choose a username"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
-                  errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                }`}
-                aria-invalid={!!errors.username}
-                aria-describedby={errors.username ? 'username-error' : undefined}
-              />
-            </div>
-            {errors.username && <p id="username-error" className="mt-1 text-xs text-red-600">{errors.username}</p>}
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => ({ ...prev, email: '' })); setEmailVerifyMsg(''); }} onBlur={() => handleEmailBlur(email, 'student')} placeholder="your.email@example.com" className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                <div className="mt-1 text-xs text-gray-500">{errors.email ? <span className="text-red-600">{errors.email}</span> : emailVerifyMsg || 'We only validate format here.'}</div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({ ...prev, password: '' })); }} placeholder="At least 8 characters" className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                  <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 top-3 text-sm text-gray-600">{showPassword ? 'Hide' : 'Show'}</button>
+                </div>
+
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className={`h-2 ${strengthLabel.color}`} style={{ width: `${strengthLabel.pct}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs font-medium text-gray-700">{strengthLabel.label}</p>
+                    <p className="text-xs text-gray-500">{passwordScore}/5</p>
+                  </div>
+
+                  <ul className="mt-2 grid grid-cols-1 gap-1 text-xs">
+                    <li className={`${passwordCriteria.length ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.length ? '✓' : '○'} At least 8 characters</li>
+                    <li className={`${passwordCriteria.upper ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.upper ? '✓' : '○'} At least one uppercase letter</li>
+                    <li className={`${passwordCriteria.lower ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.lower ? '✓' : '○'} At least one lowercase letter</li>
+                    <li className={`${passwordCriteria.number ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.number ? '✓' : '○'} At least one number</li>
+                    <li className={`${passwordCriteria.special ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.special ? '✓' : '○'} At least one symbol</li>
+                  </ul>
+                  {errors.password && <p className="mt-2 text-xs text-red-600">{errors.password}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Registration Number (optional)</label>
+                  <input value={registrationNumber} onChange={(e) => { setRegistrationNumber(e.target.value); if (errors.registrationNumber) setErrors(prev => ({ ...prev, registrationNumber: '' })); }} placeholder="e.g., 001/2024/001" className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Department (optional)</label>
+                  <input value={department} onChange={(e) => { setDepartment(e.target.value); if (errors.department) setErrors(prev => ({ ...prev, department: '' })); }} placeholder="e.g., Computer Science" className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {role === 'lecturer' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Full name</label>
+                <input value={lecturerName} onChange={(e) => { setLecturerName(e.target.value); if (errors.lecturerName) setErrors(prev => ({ ...prev, lecturerName: '' })); }} className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                {errors.lecturerName && <p className="mt-1 text-xs text-red-600">{errors.lecturerName}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Department</label>
+                <input value={lecturerDept} onChange={(e) => { setLecturerDept(e.target.value); if (errors.lecturerDept) setErrors(prev => ({ ...prev, lecturerDept: '' })); }} className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                {errors.lecturerDept && <p className="mt-1 text-xs text-red-600">{errors.lecturerDept}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone number</label>
+                <input value={lecturerPhone} onChange={(e) => { setLecturerPhone(e.target.value); if (errors.lecturerPhone) setErrors(prev => ({ ...prev, lecturerPhone: '' })); }} className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                {errors.lecturerPhone && <p className="mt-1 text-xs text-red-600">{errors.lecturerPhone}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input value={lecturerEmail} onChange={(e) => { setLecturerEmail(e.target.value); if (errors.lecturerEmail) setErrors(prev => ({ ...prev, lecturerEmail: '' })); setEmailVerifyMsg(''); }} onBlur={() => handleEmailBlur(lecturerEmail, 'lecturer')} className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                <div className="mt-1 text-xs text-gray-500">{errors.lecturerEmail ? <span className="text-red-600">{errors.lecturerEmail}</span> : emailVerifyMsg || 'We only validate format here.'}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={lecturerPassword} onChange={(e) => { setLecturerPassword(e.target.value); if (errors.lecturerPassword) setErrors(prev => ({ ...prev, lecturerPassword: '' })); }} className="mt-1 block w-full rounded-lg border px-4 py-2 text-sm" />
+                  <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 top-3 text-sm text-gray-600">{showPassword ? 'Hide' : 'Show'}</button>
+                </div>
+
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className={`h-2 ${strengthLabel.color}`} style={{ width: `${strengthLabel.pct}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs font-medium text-gray-700">{strengthLabel.label}</p>
+                    <p className="text-xs text-gray-500">{passwordScore}/5</p>
+                  </div>
+                  <ul className="mt-2 grid grid-cols-1 gap-1 text-xs">
+                    <li className={`${passwordCriteria.length ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.length ? '✓' : '○'} At least 8 characters</li>
+                    <li className={`${passwordCriteria.upper ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.upper ? '✓' : '○'} At least one uppercase</li>
+                    <li className={`${passwordCriteria.lower ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.lower ? '✓' : '○'} At least one lowercase</li>
+                    <li className={`${passwordCriteria.number ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.number ? '✓' : '○'} At least one number</li>
+                    <li className={`${passwordCriteria.special ? 'text-green-700' : 'text-gray-500'}`}> {passwordCriteria.special ? '✓' : '○'} At least one symbol</li>
+                  </ul>
+                  {errors.lecturerPassword && <p className="mt-2 text-xs text-red-600">{errors.lecturerPassword}</p>}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? 'Creating account...' : `Sign up as ${role === 'lecturer' ? 'Lecturer' : 'Student'}`}
+            </Button>
           </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-              </div>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
-                  setEmailVerifyMsg('');
-                }}
-                onBlur={handleEmailBlur}
-                required
-                placeholder="your.email@example.com"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
-                  errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                }`}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? 'email-error' : 'email-hint'}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              {errors.email ? <p id="email-error" className="mt-1 text-xs text-red-600">{errors.email}</p>
-               : <p id="email-hint" className="mt-1 text-xs text-gray-500">{emailVerifyMsg || ''}</p>}
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
-                }}
-                required
-                placeholder="At least 8 characters"
-                className={`pl-10 mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
-                  errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                }`}
-                aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? 'password-error' : 'password-hint'}
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-
-            <div className="mt-2">
-              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className={`h-2 ${strengthLabel.color}`}
-                  style={{ width: `${strengthLabel.pct}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <p className="text-xs font-medium text-gray-700">{strengthLabel.label}</p>
-                <p className="text-xs text-gray-500">{passwordScore}/5</p>
-              </div>
-
-              <ul className="mt-2 grid grid-cols-1 gap-1 text-xs">
-                <li className={`flex items-center ${passwordCriteria.length ? 'text-green-700' : 'text-gray-500'}`}>
-                  <span className="mr-2">{passwordCriteria.length ? '✓' : '○'}</span>
-                  At least 8 characters
-                </li>
-                <li className={`flex items-center ${passwordCriteria.upper ? 'text-green-700' : 'text-gray-500'}`}>
-                  <span className="mr-2">{passwordCriteria.upper ? '✓' : '○'}</span>
-                  At least one uppercase letter
-                </li>
-                <li className={`flex items-center ${passwordCriteria.lower ? 'text-green-700' : 'text-gray-500'}`}>
-                  <span className="mr-2">{passwordCriteria.lower ? '✓' : '○'}</span>
-                  At least one lowercase letter
-                </li>
-                <li className={`flex items-center ${passwordCriteria.number ? 'text-green-700' : 'text-gray-500'}`}>
-                  <span className="mr-2">{passwordCriteria.number ? '✓' : '○'}</span>
-                  At least one number
-                </li>
-                <li className={`flex items-center ${passwordCriteria.special ? 'text-green-700' : 'text-gray-500'}`}>
-                  <span className="mr-2">{passwordCriteria.special ? '✓' : '○'}</span>
-                  At least one symbol (e.g. !@#$%)
-                </li>
-              </ul>
-
-              {errors.password && <p id="password-error" className="mt-2 text-xs text-red-600">{errors.password}</p>}
-            </div>
-          </div>
-
-          {/* Registration Number */}
-          <div className="space-y-2">
-            <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
-              Registration Number (Optional)
-            </label>
-            <input
-              id="registrationNumber"
-              name="registrationNumber"
-              type="text"
-              value={registrationNumber}
-              onChange={(e) => {
-                setRegistrationNumber(e.target.value);
-                if (errors.registrationNumber) setErrors(prev => ({ ...prev, registrationNumber: '' }));
-              }}
-              placeholder="e.g., 001/2024/001"
-              className={`mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
-                errors.registrationNumber ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-              }`}
-            />
-            {errors.registrationNumber && <p className="mt-1 text-xs text-red-600">{errors.registrationNumber}</p>}
-          </div>
-
-          {/* Department */}
-          <div className="space-y-2">
-            <label htmlFor="department" className="block text-sm font-medium text-gray-700">
-              Department (Optional)
-            </label>
-            <input
-              id="department"
-              name="department"
-              type="text"
-              value={department}
-              onChange={(e) => {
-                setDepartment(e.target.value);
-                if (errors.department) setErrors(prev => ({ ...prev, department: '' }));
-              }}
-              placeholder="e.g., Computer Science"
-              className={`mt-1 block w-full rounded-lg border px-4 py-2 transition duration-200 text-sm ${
-                errors.department ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-              }`}
-            />
-            {errors.department && <p className="mt-1 text-xs text-red-600">{errors.department}</p>}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform ${isLoading ? 'opacity-90 cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating Account...
-              </div>
-            ) : 'Sign Up'}
-          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link
-            to={`/login?next=${encodeURIComponent(next)}`}
-            className="font-medium text-blue-600 hover:text-indigo-700 transition-colors duration-200 hover:underline"
-          >
-            Sign In
-          </Link>
+          <Link to={`/login?next=${encodeURIComponent(next)}`} className="font-medium text-blue-600 hover:text-indigo-700">Sign In</Link>
         </p>
-
-     
       </div>
     </div>
   );
 }
-
-
