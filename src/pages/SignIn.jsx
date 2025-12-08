@@ -64,14 +64,51 @@ export default function SignIn() {
 
     setIsLoading(true);
     try {
-      // Important: we send username exactly as the user typed (preserve case & special chars)
-      const { data } = await loginUser(username.trim(), password);
-      // Successful login
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
-      const actualUsername = data.user?.username || username.trim();
-      localStorage.setItem('username', actualUsername);
-      navigate(nextUrl, { replace: true });
+      // Important: preserve the exact return shape from loginUser (it might return axios response or raw data)
+      const res = await loginUser(username.trim(), password);
+      const payload = res?.data ?? res; // support both shapes
+
+      // extract tokens from common shapes
+      const access = payload?.access ?? payload?.tokens?.access ?? payload?.token ?? payload?.access_token;
+      const refresh = payload?.refresh ?? payload?.tokens?.refresh ?? payload?.refresh_token;
+
+      if (access) localStorage.setItem('access_token', access);
+      if (refresh) localStorage.setItem('refresh_token', refresh);
+
+      // determine user object (many backends return user inside payload.data.user)
+      const user = payload?.user ?? payload?.user_info ?? payload?.profile ?? payload;
+
+      // store sensible user values if present
+      const actualUsername = user?.username ?? user?.email ?? username.trim();
+      if (actualUsername) localStorage.setItem('username', actualUsername);
+      if (user?.id) localStorage.setItem('user_id', user.id);
+
+      // Try to detect if the logged in user is a lecturer/staff so we can redirect to the right dashboard.
+      const isLecturer = (() => {
+        const u = user ?? payload;
+        if (!u) return false;
+        // common flags
+        if (u.is_staff || u.is_superuser) return true;
+        if (u.is_lecturer || u.role === 'lecturer') return true;
+        // nested profile checks
+        if (u.profile && (u.profile.is_lecturer || u.profile.role === 'lecturer')) return true;
+        // group shapes: array of strings or array of objects
+        if (Array.isArray(u.groups) && u.groups.length > 0) {
+          // groups might be ['Lecturer'] or [{id:1, name:'Lecturer'}]
+          if (u.groups.includes('Lecturer')) return true;
+          if (u.groups.some(g => (typeof g === 'string' ? g === 'Lecturer' : (g.name === 'Lecturer' || g === 'Lecturer')))) return true;
+        }
+        return false;
+      })();
+
+      localStorage.setItem('role', isLecturer ? 'lecturer' : 'student');
+
+      // Redirect based on role
+      if (isLecturer) {
+        navigate('/lecturer-dashboard', { replace: true });
+      } else {
+        navigate(nextUrl, { replace: true });
+      }
     } catch (err) {
       // show helpful server-provided messages when available
       const server = err?.response?.data;
