@@ -428,10 +428,9 @@ export default function SignUp() {
           </Link>
         </p>
 
-        <p className="mt-3 text-center text-xs text-gray-400">
-          We validate email format client-side only. If you want stronger verification (MX check, disposable blocking), we can add a server endpoint later.
-        </p>
+     
       </div>
     </div>
   );
 }
+
