@@ -8,6 +8,10 @@ const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
 const Settings = lazy(() => import('../pages/Settings'));
 const SignUp = lazy(() => import('../pages/Signup'));
+const SignUpRoleSelection = lazy(() => import('../pages/SignUpRoleSelection'));
+const StudentSignUp = lazy(() => import('../pages/StudentSignup'));
+const LecturerSignUp = lazy(() => import('../pages/LecturerSignup'));
+const LecturerDashboard = lazy(() => import('../pages/LecturerDashboard'));
 const DashboardPage = lazy(() => import('../Layouts/dashboard'));
 const Chat = lazy(() => import('../pages/chat'));
 const CreateGroupTest = lazy(() => import('../pages/CreateGroupTest'));
@@ -25,11 +29,7 @@ const NotFounds = lazy(() => import('../pages/NotFound'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
-const Updates = lazy(() => import('../pages/UpdatesTab'));
-
-// New lazy import for Lecturer dashboard
-const LecturerDashboard = lazy(() => import('../pages/LecturerDashboard'));
-
+const Updates = lazy(() => import('../pages/UpdatesTab'))
 // New lazy imports for Special Courses feature
 const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
 const EnrolledCoursesPage = lazy(() => import('../pages/EnrolledCoursesPage'));
@@ -202,20 +202,40 @@ export default function AppRouter() {
       element: (
         <>
           <TrackPageViews /> {/* Add tracker here */}
-          <SignUp />
+          <SignUpRoleSelection />
         </>
       ),
       index: true
     },
-    // Lecturer dashboard route (top-level). You may protect this route later with auth wrapper.
+    {
+      path: '/signup-student',
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here */}
+          <StudentSignUp />
+        </>
+      ),
+      index: true
+    },
+    {
+      path: '/signup-lecturer',
+      element: (
+        <>
+          <TrackPageViews /> {/* Add tracker here */}
+          <LecturerSignUp />
+        </>
+      ),
+      index: true
+    },
     {
       path: '/lecturer-dashboard',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <LecturerDashboard />
         </>
-      )
+      ),
+      index: true
     },
     {
       path: '/404',
