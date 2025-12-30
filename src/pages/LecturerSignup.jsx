@@ -156,7 +156,7 @@ export default function LecturerSignUp() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/users/lecturer-register/`, {
+      const response = await fetch(`https://petroxtestbackend.onrender.com/api/users/lecturer-register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -487,3 +487,4 @@ export default function LecturerSignUp() {
     </div>
   );
 }
+
