@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base URL for backend API - ensure no trailing slash
-const rawBaseURL = import.meta.env.VITE_SERVER_URL || '';
+const rawBaseURL = import.meta.env.VITE_SERVER_URL || 'https://petroxtestbackend.onrender.com/api';
 const baseURL = rawBaseURL.endsWith('/') ? rawBaseURL.slice(0, -1) : rawBaseURL;
 
 // Create an Axios instance
@@ -101,8 +101,22 @@ export const refreshToken = refresh =>
   api.post('/api/token/refresh/', { refresh });
 
 // Fetch current user's profile to get their role
-export const fetchUserProfile = () =>
-  api.get('/api/auth/me/');
+// Tries the new endpoint first, falls back to checking if they have a lecturer profile
+export const fetchUserProfile = async () => {
+  try {
+    // Try new endpoint first (once deployed)
+    return await api.get('/api/auth/me/');
+  } catch (error) {
+    // Fallback: try to fetch lecturer profile - if it succeeds they're a lecturer
+    try {
+      const lecturerProfile = await api.get('/api/lecturer/profile/');
+      return { data: { ...lecturerProfile.data, role: 'lecturer' } };
+    } catch (err) {
+      // If both fail, default to student
+      return Promise.resolve({ data: { role: 'student' } });
+    }
+  }
+};
 
 export const registerUser = (username, email, password, registration_number = '', department = '') =>
   api.post('/users/', { username, email, password, registration_number, department });
