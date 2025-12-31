@@ -110,10 +110,15 @@ export const fetchUserProfile = async () => {
     // Fallback: try to fetch lecturer profile - if it succeeds they're a lecturer
     try {
       const lecturerProfile = await api.get('/api/lecturer/profile/');
-      return { data: { ...lecturerProfile.data, role: 'lecturer' } };
+      return { data: { role: 'lecturer', ...lecturerProfile.data } };
     } catch (err) {
       // If both fail, default to student
-      return Promise.resolve({ data: { role: 'student' } });
+      return { 
+        data: { 
+          role: 'student',
+          username: localStorage.getItem('username') || 'user'
+        } 
+      };
     }
   }
 };
