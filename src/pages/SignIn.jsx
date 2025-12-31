@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { loginUser } from '../api/index';
+import { loginUser, fetchUserProfile } from '../api/index';
 import image from '../images/finallogo.png';
 import { Button } from '../components/ui/button';
 
@@ -46,35 +46,6 @@ export default function SignIn() {
     return parts.join(' ').trim() || 'Invalid credentials. Please try again.';
   };
 
-  // Robust role detection: supports many response shapes
-  const detectLecturer = (payload) => {
-    if (!payload) return false;
-    const user = payload.user ?? payload.user_info ?? payload.profile ?? payload;
-
-    if (!user) return false;
-
-    // Direct flags
-    if (user.is_staff === true || user.is_superuser === true) return true;
-    if (user.is_lecturer === true || user.role === 'lecturer' || user.role === 'teacher') return true;
-
-    // Profile nested flags
-    if (user.profile && (user.profile.is_lecturer === true || user.profile.role === 'lecturer' || user.profile.role === 'teacher')) return true;
-
-    // Groups: array of strings or objects
-    if (Array.isArray(user.groups) && user.groups.length > 0) {
-      if (user.groups.includes('Lecturer') || user.groups.includes('lecturer') || user.groups.includes('Teacher')) return true;
-      if (user.groups.some(g => typeof g === 'object' && (g.name === 'Lecturer' || g.name === 'lecturer' || g.name === 'Teacher'))) return true;
-    }
-
-    // roles field (array)
-    if (Array.isArray(user.roles) && user.roles.some(r => String(r).toLowerCase().includes('lect'))) return true;
-
-    // fallback: email domain heuristic (optional)
-    // if (typeof user.email === 'string' && user.email.endsWith('@faculty.example.com')) return true;
-
-    return false;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGlobalError('');
@@ -93,32 +64,31 @@ export default function SignIn() {
 
     setIsLoading(true);
     try {
-      // loginUser can return axios response or raw payload; support both.
-      const res = await loginUser(username.trim(), password);
-      const payload = res?.data ?? res;
+      // Important: we send username exactly as the user typed (preserve case & special chars)
+      const { data } = await loginUser(username.trim(), password);
+      // Successful login
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      const actualUsername = data.user?.username || username.trim();
+      localStorage.setItem('username', actualUsername);
 
-      // Extract tokens from common shapes
-      const access = payload?.access ?? payload?.token ?? payload?.access_token ?? payload?.tokens?.access;
-      const refresh = payload?.refresh ?? payload?.refresh_token ?? payload?.tokens?.refresh;
+      // Fetch user profile to determine their role and navigate to appropriate dashboard
+      try {
+        const profileResponse = await fetchUserProfile();
+        const userRole = profileResponse.data?.role || 'student';
+        localStorage.setItem('userRole', userRole);
 
-      if (access) localStorage.setItem('access_token', access);
-      if (refresh) localStorage.setItem('refresh_token', refresh);
-
-      // Store some user info if present
-      const user = payload?.user ?? payload?.user_info ?? payload?.profile ?? payload;
-      const actualUsername = user?.username ?? user?.email ?? username.trim();
-      if (actualUsername) localStorage.setItem('username', actualUsername);
-      if (user?.id) localStorage.setItem('user_id', user.id);
-
-      // Detect lecturer and redirect accordingly
-      const isLecturer = detectLecturer(payload);
-      localStorage.setItem('role', isLecturer ? 'lecturer' : 'student');
-
-      if (isLecturer) {
-        // Always send lecturers to their dashboard
-        navigate('/lecturer-dashboard', { replace: true });
-      } else {
-        // Normal users go to nextUrl (defaults to /dashboard)
+        // Navigate to appropriate dashboard based on role
+        let dashboardUrl = nextUrl;
+        if (userRole === 'lecturer') {
+          dashboardUrl = '/lecturer-dashboard';
+        } else if (userRole === 'student') {
+          dashboardUrl = '/dashboard';
+        }
+        navigate(dashboardUrl, { replace: true });
+      } catch (profileError) {
+        // If profile fetch fails, default to student dashboard
+        localStorage.setItem('userRole', 'student');
         navigate(nextUrl, { replace: true });
       }
     } catch (err) {
