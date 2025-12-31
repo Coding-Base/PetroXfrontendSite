@@ -100,6 +100,10 @@ export const loginUser = (username, password) =>
 export const refreshToken = refresh =>
   api.post('/api/token/refresh/', { refresh });
 
+// Fetch current user's profile to get their role
+export const fetchUserProfile = () =>
+  api.get('/api/auth/me/');
+
 export const registerUser = (username, email, password, registration_number = '', department = '') =>
   api.post('/users/', { username, email, password, registration_number, department });
 
