@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import image from "../images/finallogo.png";
 import { Button } from '../components/ui/button';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://petroxtestbackend.onrender.com/api';
 
 export default function LecturerSignUp() {
   const navigate = useNavigate();
@@ -487,3 +487,4 @@ export default function LecturerSignUp() {
     </div>
   );
 }
+
