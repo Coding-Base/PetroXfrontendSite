@@ -156,7 +156,7 @@ export default function LecturerSignUp() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/lecturer-register/`, {
+      const response = await fetch(`${API_BASE_URL}/api/lecturer/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
