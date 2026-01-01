@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import image from "../images/finallogo.png";
 import { Button } from '../components/ui/button';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://petroxtestbackend.onrender.com/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://petroxtestbackend.onrender.com';
 
 export default function LecturerSignUp() {
   const navigate = useNavigate();
@@ -156,7 +156,7 @@ export default function LecturerSignUp() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/lecturer/register/`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/lecturer-register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -487,4 +487,3 @@ export default function LecturerSignUp() {
     </div>
   );
 }
-
