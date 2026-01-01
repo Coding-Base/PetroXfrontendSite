@@ -156,7 +156,7 @@ export default function LecturerSignUp() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/lecturer/register/`, {
+      const response = await fetch(`${API_BASE_URL}/lecturer/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -487,5 +487,3 @@ export default function LecturerSignUp() {
     </div>
   );
 }
-
-
