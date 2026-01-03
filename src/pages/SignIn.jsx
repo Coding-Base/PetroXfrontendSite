@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { loginUser } from '../api/index'; // Removed fetchUserProfile, we don't need it anymore!
+import { loginUser } from '../api/index'; 
 import image from '../images/finallogo.png';
 import { Button } from '../components/ui/button';
 
@@ -28,10 +28,10 @@ export default function SignIn() {
   }, [registered, searchParams]);
 
   // Map server validation payloads to a clean string
-  const parseServerErrors = (data: any) => {
+  const parseServerErrors = (data) => {
     if (!data) return 'Login failed. Please try again.';
     // common DRF style: { "non_field_errors": [...], "username": [...], "password": [...] }
-    const parts: string[] = [];
+    const parts = [];
     if (data.detail) parts.push(String(data.detail));
     if (data.non_field_errors) parts.push((data.non_field_errors && Array.isArray(data.non_field_errors) ? data.non_field_errors.join(' ') : '') || '');
     // Extract field errors
@@ -46,7 +46,7 @@ export default function SignIn() {
     return parts.join(' ').trim() || 'Invalid credentials. Please try again.';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setGlobalError('');
     setGlobalMessage('');
@@ -76,7 +76,7 @@ export default function SignIn() {
       localStorage.setItem('username', actualUsername);
 
       // 3. DETERMINE ROLE DIRECTLY FROM LOGIN RESPONSE
-      // This is the fix. We trust the backend's explicit 'role' field.
+      // We trust the backend's explicit 'role' field.
       const userRole = data.role ? data.role.toLowerCase() : 'student';
       localStorage.setItem('userRole', userRole);
 
@@ -88,7 +88,7 @@ export default function SignIn() {
         navigate('/dashboard', { replace: true });
       }
 
-    } catch (err: any) {
+    } catch (err) {
       // show helpful server-provided messages when available
       const server = err?.response?.data;
       if (server) {
