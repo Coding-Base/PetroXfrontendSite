@@ -21,7 +21,7 @@ export default function LecturerSignUp() {
     phone: ''
   });
 
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [emailVerifyMsg, setEmailVerifyMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -61,7 +61,7 @@ export default function LecturerSignUp() {
     return lengthOk && otherCount >= 2;
   }, [passwordCriteria]);
 
-  const emailFormatValid = (value: string) => {
+  const emailFormatValid = (value) => {
     if (!value || !value.trim()) return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   };
@@ -73,22 +73,22 @@ export default function LecturerSignUp() {
     }
     if (emailFormatValid(formData.email)) {
       setEmailVerifyMsg('Email format looks good');
-      setErrors((prev: any) => ({ ...prev, email: '' }));
+      setErrors(prev => ({ ...prev, email: '' }));
     } else {
-      setErrors((prev: any) => ({ ...prev, email: 'Please enter a valid email address' }));
+      setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors = {};
     let isValid = true;
 
     if (!formData.username || !formData.username.trim()) {
@@ -147,7 +147,7 @@ export default function LecturerSignUp() {
     return isValid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
     setEmailVerifyMsg('');
@@ -175,7 +175,7 @@ export default function LecturerSignUp() {
       const data = await response.json();
 
       if (!response.ok) {
-        const newErrors: any = {};
+        const newErrors = {};
         if (data.username) newErrors.username = Array.isArray(data.username) ? data.username.join(' ') : String(data.username);
         if (data.email) newErrors.email = Array.isArray(data.email) ? data.email.join(' ') : String(data.email);
         if (data.password) newErrors.password = Array.isArray(data.password) ? data.password.join(' ') : String(data.password);
@@ -191,7 +191,7 @@ export default function LecturerSignUp() {
         // Success
         navigate(`/login?next=${encodeURIComponent(next)}&registered=1&username=${encodeURIComponent(formData.username.trim())}`);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Registration Error:", err);
       setErrors({
         form: err?.message || 'Network error. Please try again.'
