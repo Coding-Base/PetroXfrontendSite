@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import image from '../images/finallogo.png'; // Assuming you have this from signin
+import image from '../images/finallogo.png';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://petroxtestbackend.onrender.com/api';
 
-// --- ICONS (Inline SVGs to avoid dependency issues) ---
+// --- ICONS ---
 const Icons = {
   Book: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
   Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -14,7 +14,9 @@ const Icons = {
   Calendar: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
   Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
   Download: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-  Chart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+  Chart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+  Trash: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
 };
 
 export default function LecturerDashboard() {
@@ -26,7 +28,7 @@ export default function LecturerDashboard() {
   const [loading, setLoading] = useState(true);
   const [lecturerProfile, setLecturerProfile] = useState(null);
 
-  // --- FORM STATE ---
+  // --- COURSE FORM STATE ---
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
@@ -35,6 +37,21 @@ export default function LecturerDashboard() {
     duration_minutes: 60
   });
   const [creating, setCreating] = useState(false);
+
+  // --- QUESTION FORM STATE ---
+  const [questionsList, setQuestionsList] = useState([]);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [questionForm, setQuestionForm] = useState({
+    text: '',
+    mark: 1,
+    choices: [
+      { text: '', is_correct: false },
+      { text: '', is_correct: false },
+      { text: '', is_correct: false },
+      { text: '', is_correct: false }
+    ]
+  });
+  const [submittingQuestion, setSubmittingQuestion] = useState(false);
 
   // Fetch lecturer profile
   useEffect(() => {
@@ -82,12 +99,14 @@ export default function LecturerDashboard() {
     fetchCourses();
   }, []);
 
-  // Fetch statistics when course is selected
+  // Fetch statistics and Questions when course is selected
   useEffect(() => {
     if (selectedCourse && activeTab !== 'create-course') {
+      const token = localStorage.getItem('access_token');
+
+      // Fetch Stats
       const fetchStats = async () => {
         try {
-          const token = localStorage.getItem('access_token');
           const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/statistics/`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -98,7 +117,31 @@ export default function LecturerDashboard() {
           console.error('Failed to fetch statistics:', err);
         }
       };
+
+      // Fetch Questions
+      const fetchQuestions = async () => {
+        try {
+          // Note: Assuming your backend allows filtering by course or we are hitting an endpoint that lists them
+          // Since the ViewSet returns all questions for the lecturer, you might need to filter manually or update backend to support ?course=ID
+          // For now, we fetch all lecturer questions and filter client side, or assume the backend is optimized.
+          const response = await fetch(`${API_BASE_URL}/lecturer/questions/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const allQuestions = await response.json();
+            // Client side filter if backend returns all questions
+            const courseQuestions = allQuestions.results 
+                ? allQuestions.results.filter(q => q.course === selectedCourse.id || q.course?.id === selectedCourse.id)
+                : allQuestions.filter(q => q.course === selectedCourse.id || q.course?.id === selectedCourse.id);
+            setQuestionsList(courseQuestions);
+          }
+        } catch (err) {
+          console.error('Failed to fetch questions:', err);
+        }
+      };
+
       fetchStats();
+      if(activeTab === 'questions') fetchQuestions();
     }
   }, [selectedCourse, activeTab]);
 
@@ -124,9 +167,7 @@ export default function LecturerDashboard() {
 
         const response = await fetch(`${API_BASE_URL}/lecturer/courses/`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
 
@@ -144,6 +185,99 @@ export default function LecturerDashboard() {
         alert('Network error');
     } finally {
         setCreating(false);
+    }
+  };
+
+  // --- CREATE QUESTION HANDLERS ---
+  const handleOptionChange = (index, value) => {
+    const updatedChoices = [...questionForm.choices];
+    updatedChoices[index].text = value;
+    setQuestionForm({ ...questionForm, choices: updatedChoices });
+  };
+
+  const handleCorrectOptionChange = (index) => {
+    const updatedChoices = questionForm.choices.map((choice, i) => ({
+      ...choice,
+      is_correct: i === index
+    }));
+    setQuestionForm({ ...questionForm, choices: updatedChoices });
+  };
+
+  const handleAddChoice = () => {
+    setQuestionForm({
+      ...questionForm,
+      choices: [...questionForm.choices, { text: '', is_correct: false }]
+    });
+  };
+
+  const handleRemoveChoice = (index) => {
+    if (questionForm.choices.length <= 2) {
+      alert("A question must have at least 2 options.");
+      return;
+    }
+    const updatedChoices = questionForm.choices.filter((_, i) => i !== index);
+    setQuestionForm({ ...questionForm, choices: updatedChoices });
+  };
+
+  const handleQuestionSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedCourse) return;
+    
+    // validation
+    if (!questionForm.choices.some(c => c.is_correct)) {
+        alert("Please mark one option as correct.");
+        return;
+    }
+
+    setSubmittingQuestion(true);
+    try {
+        const token = localStorage.getItem('access_token');
+        
+        // Use bulk_create endpoint as defined in your backend
+        const payload = {
+            course_id: selectedCourse.id,
+            questions: [
+                {
+                    text: questionForm.text,
+                    mark: questionForm.mark,
+                    choices: questionForm.choices
+                }
+            ]
+        };
+
+        const response = await fetch(`${API_BASE_URL}/lecturer/questions/bulk_create/`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            alert("Question added successfully!");
+            setShowQuestionForm(false);
+            setQuestionForm({
+                text: '',
+                mark: 1,
+                choices: [
+                  { text: '', is_correct: false },
+                  { text: '', is_correct: false },
+                  { text: '', is_correct: false },
+                  { text: '', is_correct: false }
+                ]
+            });
+            // Refresh questions list logic here (re-fetch)
+            setActiveTab('questions'); // Trigger useEffect to re-fetch
+        } else {
+            const err = await response.json();
+            alert("Error adding question: " + JSON.stringify(err));
+        }
+    } catch (error) {
+        console.error("Add question error:", error);
+        alert("Network error");
+    } finally {
+        setSubmittingQuestion(false);
     }
   };
 
@@ -466,28 +600,147 @@ export default function LecturerDashboard() {
                     {/* TAB: QUESTIONS */}
                     {activeTab === 'questions' && selectedCourse && (
                         <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-slate-800">Course Questions</h3>
-                                    <p className="text-slate-500 text-sm mt-1">Manage the questions for this examination.</p>
-                                </div>
-                                <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5">
-                                    <Icons.Plus /> Add Question
-                                </button>
-                            </div>
+                            {showQuestionForm ? (
+                                /* --- ADD QUESTION FORM --- */
+                                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 animate-fadeIn">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold text-slate-800">Add New Question</h3>
+                                        <button onClick={() => setShowQuestionForm(false)} className="text-sm text-slate-500 hover:text-slate-800">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    
+                                    <form onSubmit={handleQuestionSubmit} className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Question Text</label>
+                                            <textarea 
+                                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+                                                rows="3"
+                                                placeholder="Enter your question here..."
+                                                required
+                                                value={questionForm.text}
+                                                onChange={e => setQuestionForm({...questionForm, text: e.target.value})}
+                                            />
+                                        </div>
 
-                            <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center">
-                                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-500">
-                                    <Icons.Book />
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Marks</label>
+                                            <input 
+                                                type="number"
+                                                className="w-24 px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+                                                min="1"
+                                                value={questionForm.mark}
+                                                onChange={e => setQuestionForm({...questionForm, mark: parseInt(e.target.value) || 1})}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Options</label>
+                                            <div className="space-y-3">
+                                                {questionForm.choices.map((choice, index) => (
+                                                    <div key={index} className="flex items-center gap-3">
+                                                        <input 
+                                                            type="radio" 
+                                                            name="correct_option" 
+                                                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                                                            checked={choice.is_correct}
+                                                            onChange={() => handleCorrectOptionChange(index)}
+                                                        />
+                                                        <input 
+                                                            type="text" 
+                                                            className={`flex-1 px-4 py-2 rounded-lg border ${choice.is_correct ? 'border-blue-500 ring-2 ring-blue-500/10' : 'border-slate-300'} focus:border-blue-500 outline-none`}
+                                                            placeholder={`Option ${index + 1}`}
+                                                            required
+                                                            value={choice.text}
+                                                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleRemoveChoice(index)}
+                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                        >
+                                                            <Icons.Trash />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleAddChoice}
+                                                className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            >
+                                                <Icons.Plus /> Add another option
+                                            </button>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-200 flex justify-end">
+                                            <button 
+                                                type="submit" 
+                                                disabled={submittingQuestion}
+                                                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                                            >
+                                                {submittingQuestion ? 'Saving...' : 'Save Question'}
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <h4 className="text-lg font-bold text-slate-700">No Questions Added Yet</h4>
-                                <p className="text-slate-500 max-w-sm mt-2 mb-6">
-                                    Start building your course by adding multiple choice or theory questions.
-                                </p>
-                                <button className="text-blue-600 font-semibold hover:text-blue-800 hover:underline">
-                                    Open Question Editor &rarr;
-                                </button>
-                            </div>
+                            ) : (
+                                /* --- QUESTIONS LIST VIEW --- */
+                                <div>
+                                    <div className="flex justify-between items-center mb-8">
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-slate-800">Course Questions</h3>
+                                            <p className="text-slate-500 text-sm mt-1">Manage the questions for this examination.</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => setShowQuestionForm(true)}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                                        >
+                                            <Icons.Plus /> Add Question
+                                        </button>
+                                    </div>
+
+                                    {questionsList.length === 0 ? (
+                                        <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center">
+                                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-500">
+                                                <Icons.Book />
+                                            </div>
+                                            <h4 className="text-lg font-bold text-slate-700">No Questions Added Yet</h4>
+                                            <p className="text-slate-500 max-w-sm mt-2 mb-6">
+                                                Start building your course by adding multiple choice or theory questions.
+                                            </p>
+                                            <button 
+                                                onClick={() => setShowQuestionForm(true)}
+                                                className="text-blue-600 font-semibold hover:text-blue-800 hover:underline"
+                                            >
+                                                Open Question Editor &rarr;
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {questionsList.map((q, i) => (
+                                                <div key={q.id || i} className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h4 className="font-semibold text-slate-800">Q{i+1}. {q.text}</h4>
+                                                        <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-full font-medium">{q.mark} pts</span>
+                                                    </div>
+                                                    {/* If choices are available in the fetch response, map them here */}
+                                                    {q.choices && (
+                                                        <ul className="space-y-1 pl-4 mt-2">
+                                                            {q.choices.map((c, idx) => (
+                                                                <li key={idx} className={`text-sm flex items-center gap-2 ${c.is_correct ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                                                                    {c.is_correct && <Icons.Check />}
+                                                                    {c.text}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
