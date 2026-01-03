@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { loginUser, fetchUserProfile } from '../api/index';
+import { loginUser } from '../api/index'; // Removed fetchUserProfile, we don't need it anymore!
 import image from '../images/finallogo.png';
 import { Button } from '../components/ui/button';
 
@@ -28,12 +28,12 @@ export default function SignIn() {
   }, [registered, searchParams]);
 
   // Map server validation payloads to a clean string
-  const parseServerErrors = (data) => {
+  const parseServerErrors = (data: any) => {
     if (!data) return 'Login failed. Please try again.';
     // common DRF style: { "non_field_errors": [...], "username": [...], "password": [...] }
-    const parts = [];
+    const parts: string[] = [];
     if (data.detail) parts.push(String(data.detail));
-    if (data.non_field_errors) parts.push((data.non_field_errors && data.non_field_errors.join(' ')) || '');
+    if (data.non_field_errors) parts.push((data.non_field_errors && Array.isArray(data.non_field_errors) ? data.non_field_errors.join(' ') : '') || '');
     // Extract field errors
     ['username', 'password', 'email'].forEach((f) => {
       if (data[f]) {
@@ -46,7 +46,7 @@ export default function SignIn() {
     return parts.join(' ').trim() || 'Invalid credentials. Please try again.';
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGlobalError('');
     setGlobalMessage('');
@@ -66,32 +66,29 @@ export default function SignIn() {
     try {
       // Important: we send username exactly as the user typed (preserve case & special chars)
       const { data } = await loginUser(username.trim(), password);
-      // Successful login
+      
+      // 1. Store Tokens
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
-      const actualUsername = data.user?.username || username.trim();
+      
+      // 2. Store Basic Info
+      const actualUsername = data.username || username.trim();
       localStorage.setItem('username', actualUsername);
 
-      // Fetch user profile to determine their role and navigate to appropriate dashboard
-      try {
-        const profileResponse = await fetchUserProfile();
-        const userRole = profileResponse.data?.role || 'student';
-        localStorage.setItem('userRole', userRole);
+      // 3. DETERMINE ROLE DIRECTLY FROM LOGIN RESPONSE
+      // This is the fix. We trust the backend's explicit 'role' field.
+      const userRole = data.role ? data.role.toLowerCase() : 'student';
+      localStorage.setItem('userRole', userRole);
 
-        // Navigate to appropriate dashboard based on role
-        let dashboardUrl = nextUrl;
-        if (userRole === 'lecturer') {
-          dashboardUrl = '/lecturer-dashboard';
-        } else if (userRole === 'student') {
-          dashboardUrl = '/dashboard';
-        }
-        navigate(dashboardUrl, { replace: true });
-      } catch (profileError) {
-        // If profile fetch fails, default to student dashboard
-        localStorage.setItem('userRole', 'student');
-        navigate(nextUrl, { replace: true });
+      // 4. Navigate based on Role
+      if (userRole === 'lecturer') {
+        navigate('/lecturer-dashboard', { replace: true });
+      } else {
+        // Default to student dashboard
+        navigate('/dashboard', { replace: true });
       }
-    } catch (err) {
+
+    } catch (err: any) {
       // show helpful server-provided messages when available
       const server = err?.response?.data;
       if (server) {
@@ -100,8 +97,16 @@ export default function SignIn() {
         const newFieldErr = { username: '', password: '' };
         if (server.username) newFieldErr.username = Array.isArray(server.username) ? server.username.join(' ') : String(server.username);
         if (server.password) newFieldErr.password = Array.isArray(server.password) ? server.password.join(' ') : String(server.password);
-        setFieldErrors(newFieldErr);
-        setGlobalError(parsed);
+        
+        // If the error is generic (like "No active account found"), show global error
+        if (!newFieldErr.username && !newFieldErr.password) {
+            setGlobalError(parsed);
+        } else {
+            setFieldErrors(newFieldErr);
+            if (parsed !== newFieldErr.username && parsed !== newFieldErr.password) {
+                 setGlobalError(parsed);
+            }
+        }
       } else {
         setGlobalError(err?.message || 'Unable to sign in. Please check your connection and try again.');
       }
