@@ -30,6 +30,7 @@ export default function LecturerDashboard() {
   // Data Lists
   const [questionsList, setQuestionsList] = useState([]);
   const [enrollmentList, setEnrollmentList] = useState([]);
+  const [courseTotalMarks, setCourseTotalMarks] = useState(0); // Added for score calculation
 
   // Forms
   const [createForm, setCreateForm] = useState({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
@@ -124,6 +125,8 @@ export default function LecturerDashboard() {
             if (response.ok) {
                 const data = await response.json();
                 setEnrollmentList(data.enrollments || []);
+                // Set total marks if available in response, otherwise 0
+                setCourseTotalMarks(data.total_marks || 0); 
             }
         } catch (err) { console.error(err); }
     };
@@ -215,6 +218,7 @@ export default function LecturerDashboard() {
   const handleExportResults = async () => {
     const token = localStorage.getItem('access_token');
     try {
+      // Direct call since the backend now returns a CSV stream properly
       const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/export_results/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -399,12 +403,12 @@ export default function LecturerDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Success Rate Bar (No Recharts) */}
+                                {/* Success Rate Bar */}
                                 {statistics && (
                                     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
                                         <h4 className="font-bold text-slate-700 mb-4">Class Performance</h4>
                                         <div className="flex items-center justify-between text-sm mb-2">
-                                            {/* FIX: Escaped the '>' character */}
+                                            {/* Fixed syntax error below */}
                                             <span className="text-slate-600">Success Rate (Pass &gt; 50%)</span>
                                             <span className="font-bold text-slate-800">{statistics.success_rate}%</span>
                                         </div>
@@ -497,7 +501,7 @@ export default function LecturerDashboard() {
                             </div>
                         )}
 
-                        {/* RESULTS TAB - UPDATED WITH NEW COLUMNS */}
+                        {/* RESULTS TAB */}
                         {activeTab === 'results' && (
                             <div>
                                 <div className="flex justify-between items-center mb-6">
@@ -522,23 +526,34 @@ export default function LecturerDashboard() {
                                                 <tr><td colSpan="5" className="p-8 text-center text-slate-500">No enrollments found for this course.</td></tr>
                                             ) : (
                                                 enrollmentList.map((e, idx) => {
-                                                    // Safely access profile data if available
                                                     const profile = e.user?.profile || {};
                                                     const regNumber = profile.registration_number || 'N/A';
                                                     const department = profile.department || 'N/A';
+                                                    // Logic to prefer Real Name > Username
                                                     const displayName = (e.user?.first_name && e.user?.last_name) 
                                                         ? `${e.user.first_name} ${e.user.last_name}` 
                                                         : (e.user?.username || 'Unknown');
+                                                    
+                                                    // Calculate RAW score: (percentage / 100) * total_marks
+                                                    const rawScore = courseTotalMarks > 0 
+                                                        ? Math.round((e.score / 100) * courseTotalMarks) 
+                                                        : 0;
+                                                    
+                                                    const scoreDisplay = e.submitted 
+                                                        ? (courseTotalMarks > 0 ? `${rawScore} / ${courseTotalMarks}` : `${e.score}%`) 
+                                                        : '-';
 
                                                     return (
                                                         <tr key={e.id || idx} className="hover:bg-slate-50 transition-colors">
                                                             <td className="p-4">
                                                                 <div className="font-medium text-slate-800">{displayName}</div>
-                                                                <div className="text-xs text-slate-500">{e.user?.email}</div>
+                                                                <div className="text-xs text-slate-500">{e.user?.email || '-'}</div>
                                                             </td>
                                                             <td className="p-4 text-slate-600 font-mono text-xs">{regNumber}</td>
                                                             <td className="p-4 text-slate-600">{department}</td>
-                                                            <td className="p-4 text-center font-bold text-slate-800">{e.submitted ? `${e.score}%` : '-'}</td>
+                                                            <td className="p-4 text-center font-bold text-slate-800">
+                                                                {scoreDisplay}
+                                                            </td>
                                                             <td className="p-4 text-center">
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${e.submitted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                                                     {e.submitted ? 'Submitted' : 'Pending'}
