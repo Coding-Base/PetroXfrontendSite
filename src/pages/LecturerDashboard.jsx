@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import image from '../images/finallogo.png';
@@ -16,7 +16,8 @@ const Icons = {
   Download: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
   Chart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
   Trash: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-  Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+  Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
+  Edit: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
 };
 
 export default function LecturerDashboard() {
@@ -37,6 +38,7 @@ export default function LecturerDashboard() {
     duration_minutes: 60
   });
   const [creating, setCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // New State for Editing
 
   // --- QUESTION FORM STATE ---
   const [questionsList, setQuestionsList] = useState([]);
@@ -72,7 +74,7 @@ export default function LecturerDashboard() {
   }, []);
 
   // Fetch courses function
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
@@ -92,12 +94,39 @@ export default function LecturerDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Remove dependency on selectedCourse to avoid loops
 
   // Initial Fetch
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  // Define fetchQuestions outside useEffect so we can call it manually
+  const fetchQuestions = useCallback(async () => {
+    if (!selectedCourse) return;
+    try {
+      const token = localStorage.getItem('access_token');
+      // Fetch all lecturer questions
+      const response = await fetch(`${API_BASE_URL}/lecturer/questions/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const allQuestions = await response.json();
+        const rawResults = allQuestions.results || allQuestions;
+        
+        // Filter specifically for the CURRENT selected course
+        // Using String() comparison to ensure "1" == 1 works
+        const courseQuestions = rawResults.filter(q => {
+            const qCourseId = typeof q.course === 'object' ? q.course.id : q.course;
+            return String(qCourseId) === String(selectedCourse.id);
+        });
+        
+        setQuestionsList(courseQuestions);
+      }
+    } catch (err) {
+      console.error('Failed to fetch questions:', err);
+    }
+  }, [selectedCourse]);
 
   // Fetch statistics and Questions when course is selected
   useEffect(() => {
@@ -118,32 +147,11 @@ export default function LecturerDashboard() {
         }
       };
 
-      // Fetch Questions
-      const fetchQuestions = async () => {
-        try {
-          // Note: Assuming your backend allows filtering by course or we are hitting an endpoint that lists them
-          // Since the ViewSet returns all questions for the lecturer, you might need to filter manually or update backend to support ?course=ID
-          // For now, we fetch all lecturer questions and filter client side, or assume the backend is optimized.
-          const response = await fetch(`${API_BASE_URL}/lecturer/questions/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const allQuestions = await response.json();
-            // Client side filter if backend returns all questions
-            const courseQuestions = allQuestions.results 
-                ? allQuestions.results.filter(q => q.course === selectedCourse.id || q.course?.id === selectedCourse.id)
-                : allQuestions.filter(q => q.course === selectedCourse.id || q.course?.id === selectedCourse.id);
-            setQuestionsList(courseQuestions);
-          }
-        } catch (err) {
-          console.error('Failed to fetch questions:', err);
-        }
-      };
-
       fetchStats();
-      if(activeTab === 'questions') fetchQuestions();
+      // Always fetch questions when course changes, regardless of tab, so the data is ready
+      fetchQuestions(); 
     }
-  }, [selectedCourse, activeTab]);
+  }, [selectedCourse, activeTab, fetchQuestions]);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -152,8 +160,30 @@ export default function LecturerDashboard() {
     navigate('/login');
   };
 
-  // --- CREATE COURSE HANDLER ---
-  const handleCreateCourse = async (e) => {
+  // --- PREPARE EDIT FORM ---
+  const handleEditCourse = () => {
+    if (!selectedCourse) return;
+    
+    // Format dates for input[type="datetime-local"] (YYYY-MM-DDThh:mm)
+    const formatForInput = (isoString) => {
+        const date = new Date(isoString);
+        return date.toISOString().slice(0, 16); // Remove seconds/ms/Z
+    };
+
+    setCreateForm({
+        title: selectedCourse.title,
+        description: selectedCourse.description,
+        start_time: formatForInput(selectedCourse.start_time),
+        end_time: formatForInput(selectedCourse.end_time),
+        duration_minutes: selectedCourse.duration_minutes
+    });
+    
+    setIsEditing(true);
+    setActiveTab('create-course');
+  };
+
+  // --- CREATE OR UPDATE COURSE HANDLER ---
+  const handleCreateOrUpdateCourse = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
@@ -161,27 +191,48 @@ export default function LecturerDashboard() {
         const formData = new FormData();
         formData.append('title', createForm.title);
         formData.append('description', createForm.description);
-        formData.append('start_time', createForm.start_time);
-        formData.append('end_time', createForm.end_time);
+        
+        // Timezone Fix
+        const startDate = new Date(createForm.start_time);
+        const endDate = new Date(createForm.end_time);
+        formData.append('start_time', startDate.toISOString());
+        formData.append('end_time', endDate.toISOString());
         formData.append('duration_minutes', createForm.duration_minutes);
 
-        const response = await fetch(`${API_BASE_URL}/lecturer/courses/`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
+        // Determine URL and Method based on Editing state
+        const url = isEditing 
+            ? `${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/` 
+            : `${API_BASE_URL}/lecturer/courses/`;
+            
+        const method = isEditing ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
 
         if (response.ok) {
-            alert('Course created successfully!');
-            await fetchCourses(); 
+            alert(isEditing ? 'Course updated successfully!' : 'Course created successfully!');
+            await fetchCourses(); // Refresh sidebar list
+            
+            // If editing, keep the current course selected but refresh its data
+            if (isEditing) {
+                const updatedCourse = await response.json();
+                setSelectedCourse(updatedCourse);
+            }
+            
             setActiveTab('overview');
             setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
+            setIsEditing(false);
         } else {
             const errorData = await response.json();
-            alert('Error creating course: ' + JSON.stringify(errorData));
+            alert('Error: ' + JSON.stringify(errorData));
         }
     } catch (error) {
-        console.error("Create error", error);
+        console.error("Save error", error);
         alert('Network error');
     } finally {
         setCreating(false);
@@ -233,7 +284,6 @@ export default function LecturerDashboard() {
     try {
         const token = localStorage.getItem('access_token');
         
-        // Use bulk_create endpoint as defined in your backend
         const payload = {
             course_id: selectedCourse.id,
             questions: [
@@ -267,8 +317,8 @@ export default function LecturerDashboard() {
                   { text: '', is_correct: false }
                 ]
             });
-            // Refresh questions list logic here (re-fetch)
-            setActiveTab('questions'); // Trigger useEffect to re-fetch
+            // Force refresh of questions list immediately
+            await fetchQuestions(); 
         } else {
             const err = await response.json();
             alert("Error adding question: " + JSON.stringify(err));
@@ -401,6 +451,8 @@ export default function LecturerDashboard() {
                     <button
                         onClick={() => {
                             setSelectedCourse(null);
+                            setIsEditing(false); // Reset editing mode
+                            setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
                             setActiveTab('create-course');
                         }}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-800 shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5"
@@ -414,17 +466,20 @@ export default function LecturerDashboard() {
           {/* --- MAIN CONTENT AREA --- */}
           <div className="lg:col-span-9">
             
-            {/* VIEW 1: CREATE COURSE FORM */}
+            {/* VIEW 1: CREATE / EDIT COURSE FORM */}
             {activeTab === 'create-course' ? (
                 <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-6 text-white">
                         <h2 className="text-2xl font-bold flex items-center gap-3">
-                            <Icons.Plus /> Create New Course
+                            {isEditing ? <Icons.Edit /> : <Icons.Plus />} 
+                            {isEditing ? 'Edit Course' : 'Create New Course'}
                         </h2>
-                        <p className="text-blue-100 mt-1 text-sm">Set up a new examination or study material for your students.</p>
+                        <p className="text-blue-100 mt-1 text-sm">
+                            {isEditing ? 'Update the details for this examination.' : 'Set up a new examination or study material for your students.'}
+                        </p>
                     </div>
 
-                    <form onSubmit={handleCreateCourse} className="p-8 space-y-6">
+                    <form onSubmit={handleCreateOrUpdateCourse} className="p-8 space-y-6">
                         <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Course Title</label>
@@ -493,10 +548,13 @@ export default function LecturerDashboard() {
                             <button 
                                 type="button"
                                 onClick={() => {
-                                    if (courses.length > 0) {
-                                        setSelectedCourse(courses[0]);
+                                    if (courses.length > 0 && selectedCourse) {
                                         setActiveTab('overview');
+                                    } else {
+                                        // If no courses exist, maybe just clear form
+                                        setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
                                     }
+                                    setIsEditing(false);
                                 }}
                                 className="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
                             >
@@ -510,9 +568,9 @@ export default function LecturerDashboard() {
                                 {creating ? (
                                     <div className="flex items-center gap-2">
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        Creating...
+                                        {isEditing ? 'Updating...' : 'Creating...'}
                                     </div>
-                                ) : 'Create Course'}
+                                ) : (isEditing ? 'Update Course' : 'Create Course')}
                             </button>
                         </div>
                     </form>
@@ -543,10 +601,18 @@ export default function LecturerDashboard() {
                     {/* TAB: OVERVIEW */}
                     {activeTab === 'overview' && selectedCourse && (
                         <div className="p-8">
-                            <div className="mb-8">
-                                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full mb-3">Course Overview</span>
-                                <h2 className="text-3xl font-bold text-slate-800 mb-4">{selectedCourse.title}</h2>
-                                <p className="text-slate-600 leading-relaxed text-lg">{selectedCourse.description}</p>
+                            <div className="mb-8 flex justify-between items-start">
+                                <div>
+                                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full mb-3">Course Overview</span>
+                                    <h2 className="text-3xl font-bold text-slate-800 mb-4">{selectedCourse.title}</h2>
+                                    <p className="text-slate-600 leading-relaxed text-lg">{selectedCourse.description}</p>
+                                </div>
+                                <button 
+                                    onClick={handleEditCourse}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
+                                >
+                                    <Icons.Edit /> Edit Course
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -724,7 +790,6 @@ export default function LecturerDashboard() {
                                                         <h4 className="font-semibold text-slate-800">Q{i+1}. {q.text}</h4>
                                                         <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-full font-medium">{q.mark} pts</span>
                                                     </div>
-                                                    {/* If choices are available in the fetch response, map them here */}
                                                     {q.choices && (
                                                         <ul className="space-y-1 pl-4 mt-2">
                                                             {q.choices.map((c, idx) => (
@@ -771,7 +836,6 @@ export default function LecturerDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {/* Mock Data Loop - replace with real data */}
                                         <tr>
                                             <td className="px-8 py-12 text-center text-slate-500" colSpan="4">
                                                 No results found for this course yet.
