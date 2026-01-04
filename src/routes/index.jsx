@@ -1,8 +1,7 @@
-// routes/index.jsx
 import NotFound from '../pages/NotFound';
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Outlet, useRoutes, useLocation } from 'react-router-dom';
-import { logPageView } from '../utils/analytics'; // Import logPageView
+import { logPageView } from '../utils/analytics'; 
 
 const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
@@ -19,7 +18,6 @@ const GroupTestPage = lazy(() => import('../pages/GroupTestPage'));
 const CampusNavigator = lazy(() => import('../pages/CampusCompass'));
 const MyTest = lazy(() => import('../pages/MyTests'));
 const Test = lazy(() => import('../pages/Test'));
-const GroupTest = lazy(() => import('../pages/GroupTestPage'));
 const PastQuestions = lazy(() => import('../pages/PastQuestions'));
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PetroMarkAI = lazy(() => import('../pages/Petromark'));
@@ -30,7 +28,8 @@ const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 const Updates = lazy(() => import('../pages/UpdatesTab'))
-// New lazy imports for Special Courses feature
+
+// Special Courses Imports
 const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
 const EnrolledCoursesPage = lazy(() => import('../pages/EnrolledCoursesPage'));
 const CourseWaitingPage = lazy(() => import('../pages/CourseWaitingPage'));
@@ -41,7 +40,6 @@ const TestCompletionPage = lazy(() => import('../pages/TestCompletionPage'));
 
 // ----------------------------------------------------------------------
 
-// Create a component to track page views
 function TrackPageViews() {
   const location = useLocation();
 
@@ -49,7 +47,7 @@ function TrackPageViews() {
     logPageView();
   }, [location]);
 
-  return null; // This component doesn't render anything
+  return null; 
 }
 
 export default function AppRouter() {
@@ -59,7 +57,7 @@ export default function AppRouter() {
       element: (
         <NewDashboardLayout>
           <Suspense fallback={<div className="h-full flex items-center justify-center">Loading...</div>}>
-            <TrackPageViews /> {/* Add tracker here */}
+            <TrackPageViews /> 
             <Outlet />
           </Suspense>
         </NewDashboardLayout>
@@ -122,12 +120,11 @@ export default function AppRouter() {
           path: 'settings',
           element: <Settings />
         },
-        // ENROLL COURSE route (dashboard nested)
+        // --- SPECIAL COURSES ROUTES ---
         {
           path: 'enroll-course',
           element: (<><EnrollCoursePage /> <TrackPageViews /></>)
         },
-        // Special Courses Routes
         {
           path: 'enrolled-courses',
           element: (<><EnrolledCoursesPage /> <TrackPageViews /></>)
@@ -141,7 +138,8 @@ export default function AppRouter() {
           element: (<><TestInstructionsPage /> <TrackPageViews /></>)
         },
         {
-          path: 'course/:enrollmentId/take-test',
+          // FIX: Changed 'take-test' to 'test' to match CourseWaitingPage navigation
+          path: 'course/:enrollmentId/test', 
           element: (<><TestInterfacePage /> <TrackPageViews /></>)
         },
         {
@@ -161,7 +159,7 @@ export default function AppRouter() {
       path: '/',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here too */}
+          <TrackPageViews />
           <LandingPage />
         </>
       ),
@@ -171,7 +169,7 @@ export default function AppRouter() {
       path: '/about',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here too */}
+          <TrackPageViews />
           <AboutPage />
         </>
       ),
@@ -181,7 +179,7 @@ export default function AppRouter() {
       path: '/policies',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here too */}
+          <TrackPageViews />
           <PoliciesPage />
         </>
       ),
@@ -191,7 +189,7 @@ export default function AppRouter() {
       path: '/login',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews />
           <SignIn />
         </>
       ),
@@ -201,7 +199,7 @@ export default function AppRouter() {
       path: '/signup',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews />
           <SignUpRoleSelection />
         </>
       ),
@@ -211,7 +209,7 @@ export default function AppRouter() {
       path: '/signup-student',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews />
           <StudentSignUp />
         </>
       ),
@@ -221,7 +219,7 @@ export default function AppRouter() {
       path: '/signup-lecturer',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews />
           <LecturerSignUp />
         </>
       ),
@@ -231,7 +229,7 @@ export default function AppRouter() {
       path: '/lecturer-dashboard',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews />
           <LecturerDashboard />
         </>
       ),
@@ -245,11 +243,12 @@ export default function AppRouter() {
       path: '*',
       element: <Navigate to="/404" replace />
     },
+    // Redundant group-test route (already in dashboard), but kept for backward compat if needed
     {
       path: '/group-test/:testId',
       element: (
         <>
-          <TrackPageViews /> {/* Add tracker here */}
+          <TrackPageViews /> 
           <GroupTestPage />
         </>
       )
