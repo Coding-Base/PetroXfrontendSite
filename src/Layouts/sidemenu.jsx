@@ -58,10 +58,11 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
     localStorage.clear();
     trackLogout();  // Track logout event
     navigate('/login');
-          const shouldBlock = protectedTab && (loading ? true : (monetizationInfo?.is_enabled && !isUnlocked && !safeExclusions.some((p) => item.href === p)));
+  };
 
   return (
-    <div className="hidden flex-col bg-blue-800 p-6 text-white md:flex md:w-64 sidebar-menu">
+    // Added 'h-screen' to ensure sidebar takes full height of the PC screen
+    <div className="hidden flex-col bg-blue-800 p-6 text-white md:flex md:w-64 h-screen sidebar-menu sticky top-0 overflow-y-auto">
       <div className="mb-8 flex justify-center">
         <img src={logo} alt="Petrox logo" className="h-24 object-contain" />
       </div>
@@ -234,5 +235,5 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
     </div>
   );
 }
-}
+
 export default SideMenu;
