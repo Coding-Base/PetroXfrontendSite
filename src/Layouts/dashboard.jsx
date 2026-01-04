@@ -121,13 +121,6 @@ const getIsNewUserInfo = (historyData, userRank, approvedUploads, averageScore) 
    CustomTour (anchored + hole in overlay)
    ------------------------- */
 
-/**
- * CustomTour supports:
- *  - steps: array of { title, content, position?: {top,left}, selector?: string }
- *  - If selector is present the tooltip anchors to it and the overlay cuts a circular hole so target is visible.
- *  - Tooltip draws a small arrow pointing at the element and calls el.scrollIntoView when selector is present.
- *  - Overlay opacity has been reduced so the dashboard remains visible while touring.
- */
 const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onComplete }) => {
   const [pos, setPos] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
   const [arrow, setArrow] = useState({ left: '50%', direction: 'down', visible: false });
@@ -351,9 +344,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // DEV: sanity-check imported components that are critical for rendering.
-  // Missing imports (undefined) can cause React "element type is invalid" errors
-  // that are hard to debug in production builds. Log them and show a helpful UI
-  // instead of letting React crash.
   const _missing = [];
   try {
     if (typeof Doughnut === 'undefined') _missing.push('Doughnut');
@@ -369,7 +359,6 @@ export default function Dashboard() {
   } catch (e) {}
 
   if (_missing.length > 0) {
-    // Log full diagnostic to console for easier debugging
     // eslint-disable-next-line no-console
     console.error('Dashboard: missing imports detected:', _missing);
     return (
@@ -646,11 +635,12 @@ export default function Dashboard() {
   };
 
   /* -------------------------
-     Render
-     ------------------------- */
+      Render
+      ------------------------- */
 
   return (
-    <div className="flex flex-col h-screen">
+    // Changed h-screen to h-full w-full to prevent fixed viewport height issues
+    <div className="flex flex-col h-full w-full bg-gray-50">
       {/* Tutorial Modal - manual */}
       {showTutorial && (
         <TutorialModal
