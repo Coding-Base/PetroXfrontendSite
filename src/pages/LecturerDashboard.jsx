@@ -29,55 +29,51 @@ export default function LecturerDashboard() {
   const [loading, setLoading] = useState(true);
   const [lecturerProfile, setLecturerProfile] = useState(null);
 
-  // --- COURSE FORM STATE ---
-  const [createForm, setCreateForm] = useState({
-    title: '',
-    description: '',
-    start_time: '',
-    end_time: '',
-    duration_minutes: 60
-  });
-  const [creating, setCreating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // New State for Editing
-
-  // --- QUESTION FORM STATE ---
+  // Data for tabs
   const [questionsList, setQuestionsList] = useState([]);
+  const [enrollmentList, setEnrollmentList] = useState([]); // NEW: For Results Table
+
+  // Form States
+  const [createForm, setCreateForm] = useState({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
+  const [creating, setCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
-  const [questionForm, setQuestionForm] = useState({
-    text: '',
-    mark: 1,
-    choices: [
-      { text: '', is_correct: false },
-      { text: '', is_correct: false },
-      { text: '', is_correct: false },
-      { text: '', is_correct: false }
-    ]
-  });
+  const [questionForm, setQuestionForm] = useState({ text: '', mark: 1, choices: [{ text: '', is_correct: false }, { text: '', is_correct: false }] });
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
 
-  // Fetch lecturer profile
+  // Helper: Handle 401 Logout
+  const handleAuthError = (status) => {
+    if (status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('userRole');
+      navigate('/login');
+    }
+  };
+
+  // 1. Fetch Profile
   useEffect(() => {
     const fetchProfile = async () => {
+      const token = localStorage.getItem('access_token');
       try {
-        const token = localStorage.getItem('access_token');
         const response = await fetch(`${API_BASE_URL}/lecturer/profile/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
           setLecturerProfile(await response.json());
+        } else {
+          handleAuthError(response.status);
         }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-      }
+      } catch (err) { console.error(err); }
     };
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
-  // Fetch courses function
+  // 2. Fetch Courses
   const fetchCourses = useCallback(async () => {
+    setLoading(true);
+    const token = localStorage.getItem('access_token');
     try {
-      setLoading(true);
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE_URL}/lecturer/courses/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -85,256 +81,151 @@ export default function LecturerDashboard() {
         const data = await response.json();
         const results = data.results || data;
         setCourses(results);
+        // Only set default if nothing selected yet
         if (results.length > 0 && !selectedCourse) {
           setSelectedCourse(results[0]);
         }
+      } else {
+        handleAuthError(response.status);
       }
-    } catch (err) {
-      console.error('Failed to fetch courses:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Remove dependency on selectedCourse to avoid loops
-
-  // Initial Fetch
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  // Define fetchQuestions outside useEffect so we can call it manually
-  const fetchQuestions = useCallback(async () => {
-    if (!selectedCourse) return;
-    try {
-      const token = localStorage.getItem('access_token');
-      // Fetch all lecturer questions
-      const response = await fetch(`${API_BASE_URL}/lecturer/questions/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const allQuestions = await response.json();
-        const rawResults = allQuestions.results || allQuestions;
-        
-        // Filter specifically for the CURRENT selected course
-        // Using String() comparison to ensure "1" == 1 works
-        const courseQuestions = rawResults.filter(q => {
-            const qCourseId = typeof q.course === 'object' ? q.course.id : q.course;
-            return String(qCourseId) === String(selectedCourse.id);
-        });
-        
-        setQuestionsList(courseQuestions);
-      }
-    } catch (err) {
-      console.error('Failed to fetch questions:', err);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   }, [selectedCourse]);
 
-  // Fetch statistics and Questions when course is selected
+  useEffect(() => { fetchCourses(); }, []);
+
+  // 3. Fetch Details based on Tab
   useEffect(() => {
-    if (selectedCourse && activeTab !== 'create-course') {
-      const token = localStorage.getItem('access_token');
+    if (!selectedCourse || activeTab === 'create-course') return;
+    const token = localStorage.getItem('access_token');
 
-      // Fetch Stats
-      const fetchStats = async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/statistics/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            setStatistics(await response.json());
-          }
-        } catch (err) {
-          console.error('Failed to fetch statistics:', err);
-        }
-      };
-
-      fetchStats();
-      // Always fetch questions when course changes, regardless of tab, so the data is ready
-      fetchQuestions(); 
-    }
-  }, [selectedCourse, activeTab, fetchQuestions]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('userRole');
-    navigate('/login');
-  };
-
-  // --- PREPARE EDIT FORM ---
-  const handleEditCourse = () => {
-    if (!selectedCourse) return;
-    
-    // Format dates for input[type="datetime-local"] (YYYY-MM-DDThh:mm)
-    const formatForInput = (isoString) => {
-        const date = new Date(isoString);
-        return date.toISOString().slice(0, 16); // Remove seconds/ms/Z
+    // Stats (Always fetch for overview/analytics)
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/statistics/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) setStatistics(await response.json());
+        else handleAuthError(response.status);
+      } catch (err) { console.error(err); }
     };
 
-    setCreateForm({
-        title: selectedCourse.title,
-        description: selectedCourse.description,
-        start_time: formatForInput(selectedCourse.start_time),
-        end_time: formatForInput(selectedCourse.end_time),
-        duration_minutes: selectedCourse.duration_minutes
-    });
-    
-    setIsEditing(true);
-    setActiveTab('create-course');
-  };
+    // Questions (Only if questions tab)
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/lecturer/questions/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const allData = await response.json();
+          const results = allData.results || allData;
+          // Filter questions for THIS course
+          const filtered = results.filter(q => String(q.course) === String(selectedCourse.id));
+          setQuestionsList(filtered);
+        }
+      } catch (err) { console.error(err); }
+    };
 
-  // --- CREATE OR UPDATE COURSE HANDLER ---
+    // Results (Only if results tab)
+    const fetchEnrollments = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/lecturer/enrollments/course_enrollments/?course_id=${selectedCourse.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setEnrollmentList(data.enrollments || []);
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    fetchStats();
+    if (activeTab === 'questions') fetchQuestions();
+    if (activeTab === 'results') fetchEnrollments();
+
+  }, [selectedCourse, activeTab]);
+
   const handleCreateOrUpdateCourse = async (e) => {
     e.preventDefault();
     setCreating(true);
+    const token = localStorage.getItem('access_token');
+    
+    // Timezone Handling: Convert Local Input -> UTC ISO String
+    const formData = new FormData();
+    formData.append('title', createForm.title);
+    formData.append('description', createForm.description);
+    formData.append('start_time', new Date(createForm.start_time).toISOString());
+    formData.append('end_time', new Date(createForm.end_time).toISOString());
+    formData.append('duration_minutes', createForm.duration_minutes);
+
+    const url = isEditing 
+        ? `${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/` 
+        : `${API_BASE_URL}/lecturer/courses/`;
+    
     try {
-        const token = localStorage.getItem('access_token');
-        const formData = new FormData();
-        formData.append('title', createForm.title);
-        formData.append('description', createForm.description);
-        
-        // Timezone Fix
-        const startDate = new Date(createForm.start_time);
-        const endDate = new Date(createForm.end_time);
-        formData.append('start_time', startDate.toISOString());
-        formData.append('end_time', endDate.toISOString());
-        formData.append('duration_minutes', createForm.duration_minutes);
-
-        // Determine URL and Method based on Editing state
-        const url = isEditing 
-            ? `${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/` 
-            : `${API_BASE_URL}/lecturer/courses/`;
-            
-        const method = isEditing ? 'PUT' : 'POST';
-
         const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            method: isEditing ? 'PUT' : 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
 
         if (response.ok) {
-            alert(isEditing ? 'Course updated successfully!' : 'Course created successfully!');
-            await fetchCourses(); // Refresh sidebar list
-            
-            // If editing, keep the current course selected but refresh its data
-            if (isEditing) {
-                const updatedCourse = await response.json();
-                setSelectedCourse(updatedCourse);
-            }
-            
+            alert(`Course ${isEditing ? 'updated' : 'created'} successfully!`);
+            await fetchCourses();
             setActiveTab('overview');
-            setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
             setIsEditing(false);
+            setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
         } else {
-            const errorData = await response.json();
-            alert('Error: ' + JSON.stringify(errorData));
+            handleAuthError(response.status);
+            const err = await response.json();
+            alert('Error: ' + JSON.stringify(err));
         }
-    } catch (error) {
-        console.error("Save error", error);
-        alert('Network error');
-    } finally {
-        setCreating(false);
-    }
-  };
-
-  // --- CREATE QUESTION HANDLERS ---
-  const handleOptionChange = (index, value) => {
-    const updatedChoices = [...questionForm.choices];
-    updatedChoices[index].text = value;
-    setQuestionForm({ ...questionForm, choices: updatedChoices });
-  };
-
-  const handleCorrectOptionChange = (index) => {
-    const updatedChoices = questionForm.choices.map((choice, i) => ({
-      ...choice,
-      is_correct: i === index
-    }));
-    setQuestionForm({ ...questionForm, choices: updatedChoices });
-  };
-
-  const handleAddChoice = () => {
-    setQuestionForm({
-      ...questionForm,
-      choices: [...questionForm.choices, { text: '', is_correct: false }]
-    });
-  };
-
-  const handleRemoveChoice = (index) => {
-    if (questionForm.choices.length <= 2) {
-      alert("A question must have at least 2 options.");
-      return;
-    }
-    const updatedChoices = questionForm.choices.filter((_, i) => i !== index);
-    setQuestionForm({ ...questionForm, choices: updatedChoices });
+    } catch (err) { alert('Network error'); } 
+    finally { setCreating(false); }
   };
 
   const handleQuestionSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedCourse) return;
-    
-    // validation
     if (!questionForm.choices.some(c => c.is_correct)) {
-        alert("Please mark one option as correct.");
+        alert("Mark one option as correct.");
         return;
     }
-
     setSubmittingQuestion(true);
+    const token = localStorage.getItem('access_token');
+    
     try {
-        const token = localStorage.getItem('access_token');
-        
         const payload = {
             course_id: selectedCourse.id,
-            questions: [
-                {
-                    text: questionForm.text,
-                    mark: questionForm.mark,
-                    choices: questionForm.choices
-                }
-            ]
+            questions: [{ text: questionForm.text, mark: questionForm.mark, choices: questionForm.choices }]
         };
 
         const response = await fetch(`${API_BASE_URL}/lecturer/questions/bulk_create/`, {
             method: 'POST',
             headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${token}`, 
+                'Content-Type': 'application/json' 
             },
             body: JSON.stringify(payload)
         });
 
         if (response.ok) {
-            alert("Question added successfully!");
+            alert("Question added!");
             setShowQuestionForm(false);
-            setQuestionForm({
-                text: '',
-                mark: 1,
-                choices: [
-                  { text: '', is_correct: false },
-                  { text: '', is_correct: false },
-                  { text: '', is_correct: false },
-                  { text: '', is_correct: false }
-                ]
-            });
-            // Force refresh of questions list immediately
-            await fetchQuestions(); 
+            setQuestionForm({ text: '', mark: 1, choices: [{ text: '', is_correct: false }, { text: '', is_correct: false }] });
+            // Force re-fetch questions
+            setActiveTab('overview'); 
+            setTimeout(() => setActiveTab('questions'), 50);
         } else {
             const err = await response.json();
-            alert("Error adding question: " + JSON.stringify(err));
+            alert("Error: " + JSON.stringify(err));
         }
-    } catch (error) {
-        console.error("Add question error:", error);
-        alert("Network error");
-    } finally {
-        setSubmittingQuestion(false);
-    }
+    } catch (err) { alert("Network error"); } 
+    finally { setSubmittingQuestion(false); }
   };
 
   const handleExportResults = async () => {
-    if (!selectedCourse) return;
+    const token = localStorage.getItem('access_token');
     try {
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/export_results/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -343,597 +234,220 @@ export default function LecturerDashboard() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `course_${selectedCourse.id}_results.csv`;
+        a.download = `course_${selectedCourse.id}_results.xlsx`; // Changed to xlsx
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+      } else {
+        alert("Failed to export. Ensure pandas/openpyxl is installed on server.");
       }
-    } catch (err) {
-      console.error('Export failed:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  if (loading && courses.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-slate-600 font-medium">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Handlers for Form UI
+  const handleAddChoice = () => setQuestionForm({...questionForm, choices: [...questionForm.choices, { text: '', is_correct: false }]});
+  const handleRemoveChoice = (i) => setQuestionForm({...questionForm, choices: questionForm.choices.filter((_, idx) => idx !== i)});
+  const handleOptionChange = (i, val) => {
+      const newChoices = [...questionForm.choices];
+      newChoices[i].text = val;
+      setQuestionForm({...questionForm, choices: newChoices});
+  };
+  const handleCorrectOptionChange = (i) => {
+      const newChoices = questionForm.choices.map((c, idx) => ({ ...c, is_correct: idx === i }));
+      setQuestionForm({...questionForm, choices: newChoices});
+  };
+  
+  const handleEditCourse = () => {
+      setIsEditing(true);
+      // Format dates for input field (local time)
+      const format = (iso) => new Date(iso).toISOString().slice(0, 16);
+      setCreateForm({
+          title: selectedCourse.title,
+          description: selectedCourse.description,
+          start_time: format(selectedCourse.start_time),
+          end_time: format(selectedCourse.end_time),
+          duration_minutes: selectedCourse.duration_minutes
+      });
+      setActiveTab('create-course');
+  };
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-      {/* --- HEADER --- */}
+      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-1.5 rounded-lg shadow-md mr-3">
-                    <img src={image} alt="Logo" className="h-8 w-8 object-contain bg-white rounded-md" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
-                        Lecturer Portal
-                    </h1>
-                    {lecturerProfile && (
-                        <p className="text-xs text-slate-500 font-medium">Dr. {lecturerProfile.name}</p>
-                    )}
-                </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+            <div className="flex items-center gap-3">
+                <img src={image} alt="Logo" className="h-8 w-8" />
+                <h1 className="text-xl font-bold text-blue-700">Lecturer Portal</h1>
             </div>
-            
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors duration-200"
-            >
-              <Icons.Logout />
-              Logout
+            <button onClick={() => handleAuthError(401)} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-3 py-2 rounded">
+                <Icons.Logout /> Logout
             </button>
-          </div>
         </div>
       </header>
 
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
-          
-          {/* --- SIDEBAR (Course List) --- */}
-          <div className="lg:col-span-3 flex flex-col gap-6">
-            <div className="bg-white rounded-xl shadow-lg shadow-slate-200/60 border border-slate-100 overflow-hidden flex flex-col h-[calc(100vh-8rem)] sticky top-24">
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Icons.Book /> My Courses
-                    </h2>
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Sidebar */}
+        <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden sticky top-24">
+                <div className="p-4 border-b bg-slate-50 font-bold flex gap-2"><Icons.Book /> My Courses</div>
+                <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+                    {courses.map(c => (
+                        <button key={c.id} onClick={() => { setSelectedCourse(c); if(activeTab === 'create-course') setActiveTab('overview'); }}
+                            className={`w-full text-left p-3 rounded transition-all ${selectedCourse?.id === c.id && activeTab !== 'create-course' ? 'bg-blue-50 border-l-4 border-blue-600 text-blue-700' : 'hover:bg-slate-50'}`}>
+                            <p className="font-semibold text-sm truncate">{c.title}</p>
+                            <p className="text-xs text-slate-500">{new Date(c.start_time).toLocaleDateString()}</p>
+                        </button>
+                    ))}
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                    {courses.length === 0 ? (
-                        <div className="text-center py-10 px-4">
-                            <div className="bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Icons.Book />
-                            </div>
-                            <p className="text-slate-500 text-sm">No courses created yet.</p>
-                        </div>
-                    ) : (
-                        courses.map(course => (
-                            <button
-                                key={course.id}
-                                onClick={() => {
-                                    setSelectedCourse(course);
-                                    if(activeTab === 'create-course') setActiveTab('overview');
-                                }}
-                                className={`w-full text-left p-3 rounded-lg transition-all duration-200 group border ${
-                                    selectedCourse?.id === course.id && activeTab !== 'create-course'
-                                    ? 'bg-blue-50 border-blue-200 shadow-sm'
-                                    : 'border-transparent hover:bg-slate-50'
-                                }`}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <p className={`font-semibold text-sm line-clamp-1 ${selectedCourse?.id === course.id && activeTab !== 'create-course' ? 'text-blue-700' : 'text-slate-700'}`}>
-                                        {course.title}
-                                    </p>
-                                    {selectedCourse?.id === course.id && activeTab !== 'create-course' && (
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 mt-1 text-xs text-slate-400 group-hover:text-slate-500">
-                                    <Icons.Calendar />
-                                    {new Date(course.start_time).toLocaleDateString()}
-                                </div>
-                            </button>
-                        ))
-                    )}
-                </div>
-
-                <div className="p-4 border-t border-slate-100 bg-white">
-                    <button
-                        onClick={() => {
-                            setSelectedCourse(null);
-                            setIsEditing(false); // Reset editing mode
-                            setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
-                            setActiveTab('create-course');
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-800 shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5"
-                    >
+                <div className="p-3 border-t">
+                    <button onClick={() => { setIsEditing(false); setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 }); setActiveTab('create-course'); }} 
+                        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex justify-center gap-2">
                         <Icons.Plus /> New Course
                     </button>
                 </div>
             </div>
-          </div>
+        </div>
 
-          {/* --- MAIN CONTENT AREA --- */}
-          <div className="lg:col-span-9">
-            
-            {/* VIEW 1: CREATE / EDIT COURSE FORM */}
+        {/* Main Content */}
+        <div className="lg:col-span-9">
             {activeTab === 'create-course' ? (
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-6 text-white">
-                        <h2 className="text-2xl font-bold flex items-center gap-3">
-                            {isEditing ? <Icons.Edit /> : <Icons.Plus />} 
-                            {isEditing ? 'Edit Course' : 'Create New Course'}
-                        </h2>
-                        <p className="text-blue-100 mt-1 text-sm">
-                            {isEditing ? 'Update the details for this examination.' : 'Set up a new examination or study material for your students.'}
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleCreateOrUpdateCourse} className="p-8 space-y-6">
-                        <div className="grid grid-cols-1 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Course Title</label>
-                                <input 
-                                    type="text"
-                                    required
-                                    placeholder="e.g. Introduction to Computer Science 101"
-                                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
-                                    value={createForm.title}
-                                    onChange={e => setCreateForm({...createForm, title: e.target.value})}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
-                                <textarea 
-                                    required
-                                    rows="4"
-                                    placeholder="Provide details about the course content..."
-                                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none resize-none"
-                                    value={createForm.description}
-                                    onChange={e => setCreateForm({...createForm, description: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date & Time</label>
-                                    <input 
-                                        type="datetime-local"
-                                        required
-                                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-600"
-                                        value={createForm.start_time}
-                                        onChange={e => setCreateForm({...createForm, start_time: e.target.value})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">End Date & Time</label>
-                                    <input 
-                                        type="datetime-local"
-                                        required
-                                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-600"
-                                        value={createForm.end_time}
-                                        onChange={e => setCreateForm({...createForm, end_time: e.target.value})}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Duration (Minutes)</label>
-                                <div className="relative">
-                                    <input 
-                                        type="number"
-                                        required
-                                        min="1"
-                                        className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
-                                        value={createForm.duration_minutes}
-                                        onChange={e => setCreateForm({...createForm, duration_minutes: e.target.value})}
-                                    />
-                                    <span className="absolute right-4 top-3.5 text-slate-400 text-sm font-medium">min</span>
-                                </div>
-                            </div>
+                /* CREATE/EDIT FORM */
+                <div className="bg-white rounded-xl shadow p-6">
+                    <h2 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Course' : 'Create New Course'}</h2>
+                    <form onSubmit={handleCreateOrUpdateCourse} className="space-y-4">
+                        <input type="text" placeholder="Title" required className="w-full border p-2 rounded" value={createForm.title} onChange={e => setCreateForm({...createForm, title: e.target.value})} />
+                        <textarea placeholder="Description" required className="w-full border p-2 rounded" value={createForm.description} onChange={e => setCreateForm({...createForm, description: e.target.value})} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label>Start</label><input type="datetime-local" required className="w-full border p-2 rounded" value={createForm.start_time} onChange={e => setCreateForm({...createForm, start_time: e.target.value})} /></div>
+                            <div><label>End</label><input type="datetime-local" required className="w-full border p-2 rounded" value={createForm.end_time} onChange={e => setCreateForm({...createForm, end_time: e.target.value})} /></div>
                         </div>
-
-                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
-                            <button 
-                                type="button"
-                                onClick={() => {
-                                    if (courses.length > 0 && selectedCourse) {
-                                        setActiveTab('overview');
-                                    } else {
-                                        // If no courses exist, maybe just clear form
-                                        setCreateForm({ title: '', description: '', start_time: '', end_time: '', duration_minutes: 60 });
-                                    }
-                                    setIsEditing(false);
-                                }}
-                                className="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={creating}
-                                className={`px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all ${creating ? 'opacity-70 cursor-wait' : ''}`}
-                            >
-                                {creating ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        {isEditing ? 'Updating...' : 'Creating...'}
-                                    </div>
-                                ) : (isEditing ? 'Update Course' : 'Create Course')}
-                            </button>
+                        <input type="number" placeholder="Duration (min)" required className="w-full border p-2 rounded" value={createForm.duration_minutes} onChange={e => setCreateForm({...createForm, duration_minutes: e.target.value})} />
+                        <div className="flex justify-end gap-2">
+                            <button type="button" onClick={() => setActiveTab('overview')} className="px-4 py-2 border rounded">Cancel</button>
+                            <button type="submit" disabled={creating} className="px-4 py-2 bg-blue-600 text-white rounded">{creating ? 'Saving...' : 'Save'}</button>
                         </div>
                     </form>
                 </div>
             ) : (
-            
-            /* VIEW 2: COURSE DASHBOARD */
-            <div className="flex flex-col gap-6">
-                {/* Tabs Navigation */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1.5 flex gap-1">
-                    {['overview', 'questions', 'results', 'analytics'].map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                                activeTab === tab
-                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                            }`}
-                        >
-                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </button>
-                    ))}
-                </div>
+                /* TABS VIEW */
+                <div className="flex flex-col gap-4">
+                    <div className="flex bg-white rounded-lg shadow p-1">
+                        {['overview', 'questions', 'results'].map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 rounded capitalize ${activeTab === tab ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-600'}`}>{tab}</button>
+                        ))}
+                    </div>
 
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 min-h-[500px]">
-                    
-                    {/* TAB: OVERVIEW */}
-                    {activeTab === 'overview' && selectedCourse && (
-                        <div className="p-8">
-                            <div className="mb-8 flex justify-between items-start">
-                                <div>
-                                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full mb-3">Course Overview</span>
-                                    <h2 className="text-3xl font-bold text-slate-800 mb-4">{selectedCourse.title}</h2>
-                                    <p className="text-slate-600 leading-relaxed text-lg">{selectedCourse.description}</p>
+                    <div className="bg-white rounded-xl shadow min-h-[400px]">
+                        {/* OVERVIEW */}
+                        {activeTab === 'overview' && selectedCourse && (
+                            <div className="p-6">
+                                <div className="flex justify-between">
+                                    <h2 className="text-2xl font-bold">{selectedCourse.title}</h2>
+                                    <button onClick={handleEditCourse} className="text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-50">Edit</button>
                                 </div>
-                                <button 
-                                    onClick={handleEditCourse}
-                                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
-                                >
-                                    <Icons.Edit /> Edit Course
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200/60">
-                                    <div className="flex items-center gap-2 text-blue-600 mb-2">
-                                        <Icons.Calendar />
-                                        <span className="text-xs font-bold uppercase">Start Time</span>
-                                    </div>
-                                    <p className="font-semibold text-slate-800">
-                                        {new Date(selectedCourse.start_time).toLocaleDateString()}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {new Date(selectedCourse.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                    </p>
-                                </div>
-                                
-                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200/60">
-                                    <div className="flex items-center gap-2 text-indigo-600 mb-2">
-                                        <Icons.Clock />
-                                        <span className="text-xs font-bold uppercase">End Time</span>
-                                    </div>
-                                    <p className="font-semibold text-slate-800">
-                                        {new Date(selectedCourse.end_time).toLocaleDateString()}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {new Date(selectedCourse.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                    </p>
-                                </div>
-
-                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200/60">
-                                    <div className="flex items-center gap-2 text-purple-600 mb-2">
-                                        <Icons.Clock />
-                                        <span className="text-xs font-bold uppercase">Duration</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-slate-800">{selectedCourse.duration_minutes}</p>
-                                    <p className="text-xs text-slate-500">Minutes allowed</p>
-                                </div>
-
-                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200/60">
-                                    <div className="flex items-center gap-2 text-orange-600 mb-2">
-                                        <Icons.Users />
-                                        <span className="text-xs font-bold uppercase">Students</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-slate-800">{statistics?.total_students || 0}</p>
-                                    <p className="text-xs text-slate-500">Total enrolled</p>
+                                <p className="text-slate-600 mt-2">{selectedCourse.description}</p>
+                                <div className="grid grid-cols-4 gap-4 mt-6">
+                                    <div className="bg-slate-50 p-4 rounded border"><strong>Students:</strong> {statistics?.total_students || 0}</div>
+                                    <div className="bg-slate-50 p-4 rounded border"><strong>Duration:</strong> {selectedCourse.duration_minutes}m</div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* TAB: QUESTIONS */}
-                    {activeTab === 'questions' && selectedCourse && (
-                        <div className="p-8">
-                            {showQuestionForm ? (
-                                /* --- ADD QUESTION FORM --- */
-                                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 animate-fadeIn">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-bold text-slate-800">Add New Question</h3>
-                                        <button onClick={() => setShowQuestionForm(false)} className="text-sm text-slate-500 hover:text-slate-800">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                    
-                                    <form onSubmit={handleQuestionSubmit} className="space-y-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Question Text</label>
-                                            <textarea 
-                                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
-                                                rows="3"
-                                                placeholder="Enter your question here..."
-                                                required
-                                                value={questionForm.text}
-                                                onChange={e => setQuestionForm({...questionForm, text: e.target.value})}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Marks</label>
-                                            <input 
-                                                type="number"
-                                                className="w-24 px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
-                                                min="1"
-                                                value={questionForm.mark}
-                                                onChange={e => setQuestionForm({...questionForm, mark: parseInt(e.target.value) || 1})}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Options</label>
-                                            <div className="space-y-3">
-                                                {questionForm.choices.map((choice, index) => (
-                                                    <div key={index} className="flex items-center gap-3">
-                                                        <input 
-                                                            type="radio" 
-                                                            name="correct_option" 
-                                                            className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                                                            checked={choice.is_correct}
-                                                            onChange={() => handleCorrectOptionChange(index)}
-                                                        />
-                                                        <input 
-                                                            type="text" 
-                                                            className={`flex-1 px-4 py-2 rounded-lg border ${choice.is_correct ? 'border-blue-500 ring-2 ring-blue-500/10' : 'border-slate-300'} focus:border-blue-500 outline-none`}
-                                                            placeholder={`Option ${index + 1}`}
-                                                            required
-                                                            value={choice.text}
-                                                            onChange={(e) => handleOptionChange(index, e.target.value)}
-                                                        />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleRemoveChoice(index)}
-                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                                        >
-                                                            <Icons.Trash />
-                                                        </button>
-                                                    </div>
-                                                ))}
+                        {/* QUESTIONS */}
+                        {activeTab === 'questions' && (
+                            <div className="p-6">
+                                {showQuestionForm ? (
+                                    <form onSubmit={handleQuestionSubmit} className="space-y-4 border p-4 rounded">
+                                        <h3 className="font-bold">Add Question</h3>
+                                        <textarea placeholder="Question Text" required className="w-full border p-2 rounded" value={questionForm.text} onChange={e => setQuestionForm({...questionForm, text: e.target.value})} />
+                                        <input type="number" placeholder="Marks" className="w-20 border p-2 rounded" value={questionForm.mark} onChange={e => setQuestionForm({...questionForm, mark: e.target.value})} />
+                                        {questionForm.choices.map((c, i) => (
+                                            <div key={i} className="flex gap-2 items-center">
+                                                <input type="radio" name="correct" checked={c.is_correct} onChange={() => handleCorrectOptionChange(i)} />
+                                                <input type="text" placeholder={`Option ${i+1}`} required className="flex-1 border p-2 rounded" value={c.text} onChange={e => handleOptionChange(i, e.target.value)} />
+                                                <button type="button" onClick={() => handleRemoveChoice(i)} className="text-red-500"><Icons.Trash /></button>
                                             </div>
-                                            <button 
-                                                type="button" 
-                                                onClick={handleAddChoice}
-                                                className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                            >
-                                                <Icons.Plus /> Add another option
-                                            </button>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-slate-200 flex justify-end">
-                                            <button 
-                                                type="submit" 
-                                                disabled={submittingQuestion}
-                                                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
-                                            >
-                                                {submittingQuestion ? 'Saving...' : 'Save Question'}
-                                            </button>
+                                        ))}
+                                        <button type="button" onClick={handleAddChoice} className="text-blue-600 text-sm">+ Option</button>
+                                        <div className="flex justify-end gap-2">
+                                            <button type="button" onClick={() => setShowQuestionForm(false)} className="px-3 py-1 border rounded">Cancel</button>
+                                            <button type="submit" disabled={submittingQuestion} className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>
                                         </div>
                                     </form>
-                                </div>
-                            ) : (
-                                /* --- QUESTIONS LIST VIEW --- */
-                                <div>
-                                    <div className="flex justify-between items-center mb-8">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-slate-800">Course Questions</h3>
-                                            <p className="text-slate-500 text-sm mt-1">Manage the questions for this examination.</p>
+                                ) : (
+                                    <>
+                                        <div className="flex justify-between mb-4">
+                                            <h3 className="font-bold text-lg">Questions ({questionsList.length})</h3>
+                                            <button onClick={() => setShowQuestionForm(true)} className="bg-blue-600 text-white px-3 py-1 rounded">+ Add Question</button>
                                         </div>
-                                        <button 
-                                            onClick={() => setShowQuestionForm(true)}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                                        >
-                                            <Icons.Plus /> Add Question
-                                        </button>
-                                    </div>
-
-                                    {questionsList.length === 0 ? (
-                                        <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center">
-                                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-500">
-                                                <Icons.Book />
-                                            </div>
-                                            <h4 className="text-lg font-bold text-slate-700">No Questions Added Yet</h4>
-                                            <p className="text-slate-500 max-w-sm mt-2 mb-6">
-                                                Start building your course by adding multiple choice or theory questions.
-                                            </p>
-                                            <button 
-                                                onClick={() => setShowQuestionForm(true)}
-                                                className="text-blue-600 font-semibold hover:text-blue-800 hover:underline"
-                                            >
-                                                Open Question Editor &rarr;
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {questionsList.map((q, i) => (
-                                                <div key={q.id || i} className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h4 className="font-semibold text-slate-800">Q{i+1}. {q.text}</h4>
-                                                        <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-full font-medium">{q.mark} pts</span>
-                                                    </div>
-                                                    {q.choices && (
-                                                        <ul className="space-y-1 pl-4 mt-2">
-                                                            {q.choices.map((c, idx) => (
-                                                                <li key={idx} className={`text-sm flex items-center gap-2 ${c.is_correct ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                                                                    {c.is_correct && <Icons.Check />}
-                                                                    {c.text}
+                                        {questionsList.length === 0 ? <p className="text-center text-gray-500">No questions yet.</p> : (
+                                            <div className="space-y-2">
+                                                {questionsList.map((q, i) => (
+                                                    <div key={i} className="border p-3 rounded hover:shadow-sm">
+                                                        <p className="font-semibold">{i+1}. {q.text} <span className="text-xs bg-slate-200 px-2 rounded">{q.mark} pts</span></p>
+                                                        <ul className="pl-4 mt-1 text-sm">
+                                                            {q.choices?.map((c, idx) => (
+                                                                <li key={idx} className={c.is_correct ? 'text-green-600 font-bold' : 'text-slate-600'}>
+                                                                    - {c.text} {c.is_correct && '✓'}
                                                                 </li>
                                                             ))}
                                                         </ul>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* TAB: RESULTS */}
-                    {activeTab === 'results' && selectedCourse && (
-                        <div className="p-0">
-                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-slate-800">Student Results</h3>
-                                    <p className="text-slate-500 text-sm">View and export student performance.</p>
-                                </div>
-                                <button 
-                                    onClick={handleExportResults}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg shadow-green-500/20 transition-all hover:-translate-y-0.5"
-                                >
-                                    <Icons.Download /> Export Excel
-                                </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
+                        )}
 
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-200">
-                                            <th className="px-8 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Student Name</th>
-                                            <th className="px-8 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Email</th>
-                                            <th className="px-8 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider text-center">Score</th>
-                                            <th className="px-8 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider text-center">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        <tr>
-                                            <td className="px-8 py-12 text-center text-slate-500" colSpan="4">
-                                                No results found for this course yet.
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: ANALYTICS */}
-                    {activeTab === 'analytics' && statistics && (
-                        <div className="p-8">
-                            <h3 className="text-2xl font-bold text-slate-800 mb-6">Performance Analytics</h3>
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                                <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30">
-                                    <p className="text-blue-100 text-sm font-medium uppercase">Total Enrolled</p>
-                                    <p className="text-4xl font-bold mt-2">{statistics.total_students}</p>
+                        {/* RESULTS */}
+                        {activeTab === 'results' && (
+                            <div className="p-6">
+                                <div className="flex justify-between mb-4">
+                                    <h3 className="font-bold text-lg">Student Results</h3>
+                                    <button onClick={handleExportResults} className="bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2"><Icons.Download /> Export Excel</button>
                                 </div>
-                                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                    <p className="text-slate-500 text-sm font-medium uppercase">Submitted</p>
-                                    <p className="text-4xl font-bold mt-2 text-slate-800">{statistics.submitted}</p>
-                                </div>
-                                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                    <p className="text-slate-500 text-sm font-medium uppercase">Avg Score</p>
-                                    <p className="text-4xl font-bold mt-2 text-indigo-600">{statistics.average_score}%</p>
-                                </div>
-                                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                    <p className="text-slate-500 text-sm font-medium uppercase">Pass Rate</p>
-                                    <p className="text-4xl font-bold mt-2 text-green-600">{statistics.success_rate}%</p>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-slate-100">
+                                            <tr>
+                                                <th className="p-3 border-b">Student</th>
+                                                <th className="p-3 border-b">Email</th>
+                                                <th className="p-3 border-b text-center">Score</th>
+                                                <th className="p-3 border-b text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {enrollmentList.length === 0 ? (
+                                                <tr><td colSpan="4" className="p-4 text-center text-slate-500">No enrollments yet.</td></tr>
+                                            ) : (
+                                                enrollmentList.map(e => (
+                                                    <tr key={e.id} className="border-b hover:bg-slate-50">
+                                                        <td className="p-3">{e.user?.username || 'Unknown'}</td>
+                                                        <td className="p-3">{e.user?.email || '-'}</td>
+                                                        <td className="p-3 text-center font-bold">{e.submitted ? `${e.score}%` : '-'}</td>
+                                                        <td className="p-3 text-center">
+                                                            <span className={`px-2 py-1 rounded text-xs ${e.submitted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                {e.submitted ? 'Submitted' : 'Pending'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                                    <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <Icons.Chart /> Pass vs Fail
-                                    </h4>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={[
-                                                        { name: 'Passed', value: statistics.passed },
-                                                        { name: 'Failed', value: statistics.failed }
-                                                    ]}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                >
-                                                    <Cell fill="#10b981" />
-                                                    <Cell fill="#ef4444" />
-                                                </Pie>
-                                                <Tooltip 
-                                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                                />
-                                                <Legend verticalAlign="bottom" height={36}/>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 flex flex-col justify-center">
-                                    <div className="space-y-6">
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm font-semibold text-slate-700">Success Rate</span>
-                                                <span className="text-sm font-bold text-green-600">{statistics.success_rate}%</span>
-                                            </div>
-                                            <div className="w-full bg-slate-200 rounded-full h-2.5">
-                                                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${statistics.success_rate}%` }}></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-sm font-semibold text-slate-700">Completion Rate</span>
-                                                <span className="text-sm font-bold text-blue-600">
-                                                    {statistics.total_students > 0 ? ((statistics.submitted / statistics.total_students) * 100).toFixed(1) : 0}%
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-slate-200 rounded-full h-2.5">
-                                                <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${statistics.total_students > 0 ? (statistics.submitted / statistics.total_students) * 100 : 0}%` }}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
             )}
-          </div>
         </div>
       </div>
     </div>
