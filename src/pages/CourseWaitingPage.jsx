@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEnrollmentDetail } from '@/hooks/useCourses';
-import { useTestTimer } from '@/hooks/useTestTimer';
 import { startExam } from '@/api';
 import { toast } from 'sonner';
 
@@ -10,11 +9,49 @@ export default function CourseWaitingPage() {
   const navigate = useNavigate();
   const { enrollment, loading } = useEnrollmentDetail(enrollmentId);
   const [startingExam, setStartingExam] = useState(false);
+  
+  // Timer State
+  const [timeRemaining, setTimeRemaining] = useState('');
+  const [isTimeUp, setIsTimeUp] = useState(false);
 
-  // Calculate countdown to start time
-  const { timeRemaining, isTimeUp, formattedTime } = useTestTimer(
-    enrollment?.course?.start_time
-  );
+  // Timer Logic
+  useEffect(() => {
+    if (!enrollment?.course?.start_time) return;
+
+    const calculateTime = () => {
+      const now = new Date().getTime();
+      const startTime = new Date(enrollment.course.start_time).getTime();
+      const distance = startTime - now;
+
+      if (distance <= 0) {
+        setIsTimeUp(true);
+        setTimeRemaining('00:00:00');
+        return;
+      }
+
+      setIsTimeUp(false);
+      
+      // Formatting time (Days, Hours, Minutes, Seconds)
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      const parts = [];
+      if (days > 0) parts.push(`${days}d`);
+      parts.push(`${hours.toString().padStart(2, '0')}h`);
+      parts.push(`${minutes.toString().padStart(2, '0')}m`);
+      parts.push(`${seconds.toString().padStart(2, '0')}s`);
+      
+      setTimeRemaining(parts.join(' '));
+    };
+
+    // Run immediately and then every second
+    calculateTime();
+    const timerId = setInterval(calculateTime, 1000);
+
+    return () => clearInterval(timerId);
+  }, [enrollment]);
 
   const handleStartTest = async () => {
     if (!isTimeUp) {
@@ -24,11 +61,21 @@ export default function CourseWaitingPage() {
 
     try {
       setStartingExam(true);
+      // 1. Call API to mark exam as started on backend
       await startExam(enrollmentId);
-      // Navigate to instructions/onboarding page
-      navigate(`/dashboard/course/${enrollmentId}/instructions`);
+      
+      // 2. Navigate to the test interface (NOT instructions page, go straight to test if ready)
+      // Note: If you have an instructions page, change this URL to that route.
+      navigate(`/dashboard/course/${enrollmentId}/test`); 
+      
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to start exam');
+      console.error(err);
+      // If error says "Exam already started", just navigate anyway
+      if (err?.response?.data?.detail?.includes('started') || err?.response?.status === 400) {
+         navigate(`/dashboard/course/${enrollmentId}/test`);
+      } else {
+         toast.error(err?.response?.data?.detail || 'Failed to start exam');
+      }
     } finally {
       setStartingExam(false);
     }
@@ -36,7 +83,7 @@ export default function CourseWaitingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -44,14 +91,15 @@ export default function CourseWaitingPage() {
 
   if (!enrollment) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800">Course not found</h1>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Course not found</h1>
+          <p className="text-gray-500 mb-6">We couldn't find the enrollment details you requested.</p>
           <button
             onClick={() => navigate('/dashboard/enrolled-courses')}
-            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Go back to courses
+            Back to Courses
           </button>
         </div>
       </div>
@@ -61,128 +109,112 @@ export default function CourseWaitingPage() {
   const course = enrollment.course;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-      <div className="max-w-2xl w-full max-h-[calc(100vh-4rem)] overflow-auto mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
-          {/* Logo/Icon */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
+      <div className="max-w-3xl w-full">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+          
+          {/* Header Banner */}
+          <div className="bg-blue-600 px-8 py-6 text-white text-center">
+            <h1 className="text-2xl md:text-3xl font-bold">
               {isTimeUp ? 'Ready to Begin?' : 'Exam Starting Soon'}
             </h1>
+            <p className="text-blue-100 mt-2">Please ensure you have a stable internet connection.</p>
           </div>
 
-          {/* Course Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{course.title}</h2>
-            <p className="text-gray-600">{course.description}</p>
-          </div>
+          <div className="p-8 md:p-12">
+            {/* Course Title Card */}
+            <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-gray-800 mb-3">{course.title}</h2>
+                <p className="text-gray-600 max-w-lg mx-auto leading-relaxed">{course.description}</p>
+            </div>
 
-          {/* Countdown Timer */}
-          {!isTimeUp ? (
-            <div className="text-center mb-8">
-              <p className="text-gray-600 mb-4">Test starts at:</p>
-              <p className="text-sm text-gray-500 mb-4">
-                {new Date(course.start_time).toLocaleString()}
-              </p>
-              <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg p-8 mb-6">
-                <p className="text-gray-600 text-sm mb-2">Time remaining</p>
-                <div className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 font-mono">
-                  {formattedTime}
+            {/* Countdown / Status Section */}
+            <div className="flex justify-center mb-10">
+                {!isTimeUp ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center w-full max-w-md">
+                        <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-2">Time Remaining</p>
+                        <div className="text-5xl font-mono font-bold text-blue-600 tracking-tight">
+                            {timeRemaining}
+                        </div>
+                        <p className="text-gray-400 text-sm mt-4">
+                            Starts: {new Date(course.start_time).toLocaleString()}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center w-full max-w-md animate-pulse-slow">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-green-800 mb-1">Exam is Live!</h3>
+                        <p className="text-green-600">You may now enter the examination room.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Information Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Start Time</p>
+                    <p className="font-semibold text-gray-800 text-lg">
+                        {new Date(course.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
                 </div>
-              </div>
-              <p className="text-gray-600">
-                The test will automatically open when the countdown reaches zero. Please be ready!
-              </p>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Duration</p>
+                    <p className="font-semibold text-gray-800 text-lg">
+                        {course.duration_minutes} Mins
+                    </p>
+                </div>
             </div>
-          ) : (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-center">
-              <svg className="h-12 w-12 text-green-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="text-xl font-bold text-green-800 mb-2">Test Ready!</h3>
-              <p className="text-green-700">
-                The test is now available. Click the button below to begin.
-              </p>
-            </div>
-          )}
 
-          {/* Exam Details */}
-          <div className="grid grid-cols-2 gap-4 mb-8 bg-gray-50 rounded-lg p-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Start Time</p>
-              <p className="text-lg font-semibold text-gray-800">
-                {new Date(course.start_time).toLocaleTimeString()}
-              </p>
+            {/* Instructions */}
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-6 mb-8">
+              <h3 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                Important Instructions
+              </h3>
+              <ul className="space-y-2 text-amber-900 text-sm list-disc pl-5">
+                <li>Ensure you have a stable internet connection before starting.</li>
+                <li>Do not refresh or close the browser window during the test.</li>
+                <li>The system will automatically submit your answers when the time is up.</li>
+                <li>Any attempt to open other tabs may be flagged as malpractice.</li>
+              </ul>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">End Time</p>
-              <p className="text-lg font-semibold text-gray-800">
-                {new Date(course.end_time).toLocaleTimeString()}
-              </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleStartTest}
+                  disabled={!isTimeUp || startingExam}
+                  className={`w-full py-4 px-6 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 ${
+                    isTimeUp
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                  }`}
+                >
+                  {startingExam ? (
+                      <span className="flex items-center justify-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Entering Exam Room...
+                      </span>
+                  ) : isTimeUp ? (
+                      'Start Test Now'
+                  ) : (
+                      'Waiting for start time...'
+                  )}
+                </button>
+
+                <button
+                  onClick={() => navigate('/dashboard/enrolled-courses')}
+                  className="w-full py-3 px-6 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel and Go Back
+                </button>
             </div>
-            {course.duration_minutes > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-600">Duration</p>
-                <p className="text-lg font-semibold text-gray-800">
-                  {course.duration_minutes} minutes
-                </p>
-              </div>
-            )}
+
           </div>
-
-          {/* Instructions */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-            <h3 className="font-semibold text-yellow-800 mb-3 flex items-center">
-              <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              Important Instructions
-            </h3>
-            <ul className="space-y-2 text-yellow-900 text-sm">
-              <li className="flex">
-                <span className="font-bold mr-3">1.</span>
-                <span>Examination malpractice is a punishable offense</span>
-              </li>
-              <li className="flex">
-                <span className="font-bold mr-3">2.</span>
-                <span>Do not move your head or behave suspiciously while taking the test</span>
-              </li>
-              <li className="flex">
-                <span className="font-bold mr-3">3.</span>
-                <span>Do not minimize your screen or leave this tab</span>
-              </li>
-              <li className="flex">
-                <span className="font-bold mr-3">4.</span>
-                <span>It is advisable to finish before the system automatically submits for you</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Action Button */}
-          <button
-            onClick={handleStartTest}
-            disabled={!isTimeUp || startingExam}
-            className={`w-full py-3 px-6 rounded-lg font-semibold text-white text-lg transition-all ${
-              isTimeUp
-                ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 cursor-pointer'
-                : 'bg-gray-400 cursor-not-allowed'
-            } ${startingExam ? 'opacity-70' : ''}`}
-          >
-            {startingExam ? 'Starting Exam...' : isTimeUp ? 'Start Test Now' : 'Waiting for test to start...'}
-          </button>
-
-          {/* Back Button */}
-          <button
-            onClick={() => navigate('/dashboard/enrolled-courses')}
-            className="w-full mt-4 py-2 px-6 rounded-lg font-medium text-gray-600 border border-gray-300 hover:bg-gray-50 transition-all"
-          >
-            Back to Courses
-          </button>
         </div>
       </div>
     </div>
