@@ -220,7 +220,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     else onNext();
   };
 
-  // overlay style - reduced opacity so dashboard remains visible
+  // overlay style
   const overlayBase = {
     position: 'fixed',
     inset: 0,
@@ -228,23 +228,22 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
     zIndex: 49
   };
 
-  // IMPORTANT: reduced opacities here (user requested lighter overlay)
   const overlayStyle = hole.visible
     ? {
         ...overlayBase,
-        backgroundColor: 'rgba(0,0,0,0.18)', // lighter when hole is present
+        backgroundColor: 'rgba(0,0,0,0.18)', 
         WebkitClipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`,
         clipPath: `circle(${hole.r}px at ${Math.round(hole.cx)}px ${Math.round(hole.cy)}px)`
       }
     : {
         ...overlayBase,
-        backgroundColor: 'rgba(0,0,0,0.14)', // default lighter overlay
+        backgroundColor: 'rgba(0,0,0,0.14)',
         clipPath: 'none'
       };
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none" aria-hidden={!isActive}>
-      {/* overlay with optional hole so the target is visible */}
+      {/* overlay */}
       <div style={overlayStyle} className="pointer-events-auto" />
 
       {/* tooltip */}
@@ -260,7 +259,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
         role="dialog"
         aria-modal="true"
       >
-        {/* arrow - show only when anchored */}
+        {/* arrow */}
         {arrow.visible && (
           <div
             aria-hidden
@@ -343,7 +342,7 @@ const CustomTour = ({ steps, currentStep, onClose, onNext, onPrev, isActive, onC
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // DEV: sanity-check imported components that are critical for rendering.
+  // DEV: sanity-check imported components
   const _missing = [];
   try {
     if (typeof Doughnut === 'undefined') _missing.push('Doughnut');
@@ -450,7 +449,7 @@ export default function Dashboard() {
     return { testsTaken, averageScore, currentRank };
   };
 
-  // fetch dashboard on mount (only once)
+  // fetch dashboard on mount
   useEffect(() => {
     if (mountedRef.current) return;
     mountedRef.current = true;
@@ -464,51 +463,38 @@ export default function Dashboard() {
       try {
         setIsLoading(prev => ({ ...prev, all: true }));
 
-        setDebugInfo(prev => prev + '\n🔍 Fetching user history...');
         const historyRes = await fetchUserHistory();
         const historyData = extractResults(historyRes) || [];
         setTestHistory(historyData);
         setIsLoading(prev => ({ ...prev, history: false }));
-        setDebugInfo(prev => prev + `\n🔍 Fetched history length: ${historyData.length}`);
 
-        setDebugInfo(prev => prev + '\n🔍 Fetching user rank...');
         const rankRes = await fetchUserRank();
         const rankData = extractResults(rankRes);
         const userRankValue = rankData?.rank || rankRes?.data?.rank || rankData?.[0]?.rank || null;
         setUserRank(userRankValue);
         setIsLoading(prev => ({ ...prev, rank: false }));
-        setDebugInfo(prev => prev + `\n🔍 Extracted rank: ${userRankValue}`);
 
-        setDebugInfo(prev => prev + '\n🔍 Fetching upload stats...');
         const uploadRes = await fetchUserUploadStats();
         const uploadData = extractResults(uploadRes);
         const approvedUploads = uploadData[0]?.approved_uploads || uploadData?.approved_uploads || uploadRes?.data?.approved_uploads || 0;
         setUploadStats({ approvedUploads, rankInfo: calculateRank(approvedUploads) });
         setIsLoading(prev => ({ ...prev, uploadStats: false }));
-        setDebugInfo(prev => prev + `\n🔍 Approved uploads: ${approvedUploads}`);
 
         // compute stats
         const computedStats = calculateStatsFromArray(historyData, userRankValue);
-        setDebugInfo(prev => prev + `\n🔍 Computed stats from history: ${JSON.stringify(computedStats)}`);
 
         // new user decision
-        const { isNew, conditions } = getIsNewUserInfo(historyData, userRankValue, approvedUploads, computedStats.averageScore);
-        setDebugInfo(prev => prev + `\n🔍 New user conditions: ${JSON.stringify(conditions)} -> isNew=${isNew}`);
+        const { isNew } = getIsNewUserInfo(historyData, userRankValue, approvedUploads, computedStats.averageScore);
 
         // tour flags
         const completed = userHasCompletedTour(storedName);
         const sessionShown = sessionTourShownRef.current;
-        setDebugInfo(prev => prev + `\n🔍 Tour flags: completed=${completed}, sessionShown=${sessionShown}`);
 
         if (isNew && !completed && !sessionShown) {
-          setDebugInfo(prev => prev + '\n🎯 Showing tutorial (conditions met)');
           setTimeout(() => {
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
             sessionTourShownRef.current = true;
-            setDebugInfo(prev => prev + '\n🎯 Tutorial started and session flag set');
           }, 600);
-        } else {
-          setDebugInfo(prev => prev + `\n❌ Not showing tutorial (isNew=${isNew}, completed=${completed}, sessionShown=${sessionShown})`);
         }
 
         // test rank & total score
@@ -536,7 +522,6 @@ export default function Dashboard() {
           setTimeout(() => {
             setTourState(prev => ({ ...prev, isActive: true, currentStep: 0 }));
             sessionTourShownRef.current = true;
-            setDebugInfo(prev => prev + '\n🎯 Fallback started tutorial due to API failure');
           }, 700);
         }
       }
@@ -594,7 +579,7 @@ export default function Dashboard() {
     setDebugInfo(prev => prev + '\n🔁 Reset tutorial for ALL users');
   };
 
-  // UI stats derived from testHistory state
+  // UI stats
   const stats = calculateStatsFromArray(testHistory, userRank);
 
   const getPerformanceData = () => {
@@ -639,7 +624,7 @@ export default function Dashboard() {
       ------------------------- */
 
   return (
-    // Changed h-screen to h-full w-full to prevent fixed viewport height issues
+    // FIX: Changed h-screen to h-full w-full to prevent layout overflow issues
     <div className="flex flex-col h-full w-full bg-gray-50">
       {/* Tutorial Modal - manual */}
       {showTutorial && (
