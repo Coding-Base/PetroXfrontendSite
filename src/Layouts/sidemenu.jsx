@@ -61,8 +61,8 @@ function SideMenu({ activeTab, setActiveTab, setShowTestForm, setShowMobileMenu 
   };
 
   return (
-    // Added 'h-screen' to ensure sidebar takes full height of the PC screen
-    <div className="hidden flex-col bg-blue-800 p-6 text-white md:flex md:w-64 h-screen sidebar-menu sticky top-0 overflow-y-auto">
+    // FIX: Changed h-screen to h-full and added flex-shrink-0 to prevent resizing issues
+    <div className="hidden flex-col bg-blue-800 p-6 text-white md:flex md:w-64 h-full sidebar-menu overflow-y-auto flex-shrink-0">
       <div className="mb-8 flex justify-center">
         <img src={logo} alt="Petrox logo" className="h-24 object-contain" />
       </div>
