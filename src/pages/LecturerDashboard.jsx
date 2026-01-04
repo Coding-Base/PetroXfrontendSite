@@ -406,7 +406,8 @@ export default function LecturerDashboard() {
                                     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
                                         <h4 className="font-bold text-slate-700 mb-4">Class Performance</h4>
                                         <div className="flex items-center justify-between text-sm mb-2">
-                                            <span className="text-slate-600">Success Rate (Pass > 50%)</span>
+                                            {/* FIX: Escaped the '>' character */}
+                                            <span className="text-slate-600">Success Rate (Pass &gt; 50%)</span>
                                             <span className="font-bold text-slate-800">{statistics.success_rate}%</span>
                                         </div>
                                         <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
