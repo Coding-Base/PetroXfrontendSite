@@ -107,7 +107,6 @@ export default function LecturerDashboard() {
         if (response.ok) {
           const allData = await response.json();
           const results = allData.results || allData;
-          // Filter logic for string/int mismatch safety
           const filtered = results.filter(q => {
              const qCourseId = typeof q.course === 'object' ? q.course.id : q.course;
              return String(qCourseId) === String(selectedCourse.id);
@@ -216,7 +215,6 @@ export default function LecturerDashboard() {
   const handleExportResults = async () => {
     const token = localStorage.getItem('access_token');
     try {
-      // Direct call since the backend now returns a CSV stream properly
       const response = await fetch(`${API_BASE_URL}/lecturer/courses/${selectedCourse.id}/export_results/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -499,7 +497,7 @@ export default function LecturerDashboard() {
                             </div>
                         )}
 
-                        {/* RESULTS TAB */}
+                        {/* RESULTS TAB - UPDATED WITH NEW COLUMNS */}
                         {activeTab === 'results' && (
                             <div>
                                 <div className="flex justify-between items-center mb-6">
@@ -513,27 +511,42 @@ export default function LecturerDashboard() {
                                         <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                                             <tr>
                                                 <th className="p-4 font-bold">Student Name</th>
-                                                <th className="p-4 font-bold">Email</th>
+                                                <th className="p-4 font-bold">Reg Number</th>
+                                                <th className="p-4 font-bold">Department</th>
                                                 <th className="p-4 font-bold text-center">Score</th>
                                                 <th className="p-4 font-bold text-center">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {enrollmentList.length === 0 ? (
-                                                <tr><td colSpan="4" className="p-8 text-center text-slate-500">No enrollments found for this course.</td></tr>
+                                                <tr><td colSpan="5" className="p-8 text-center text-slate-500">No enrollments found for this course.</td></tr>
                                             ) : (
-                                                enrollmentList.map((e, idx) => (
-                                                    <tr key={e.id || idx} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="p-4 font-medium text-slate-800">{e.user?.username || 'Unknown'}</td>
-                                                        <td className="p-4 text-slate-600">{e.user?.email || '-'}</td>
-                                                        <td className="p-4 text-center font-bold text-slate-800">{e.submitted ? `${e.score}%` : '-'}</td>
-                                                        <td className="p-4 text-center">
-                                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${e.submitted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                                {e.submitted ? 'Submitted' : 'Pending'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))
+                                                enrollmentList.map((e, idx) => {
+                                                    // Safely access profile data if available
+                                                    const profile = e.user?.profile || {};
+                                                    const regNumber = profile.registration_number || 'N/A';
+                                                    const department = profile.department || 'N/A';
+                                                    const displayName = (e.user?.first_name && e.user?.last_name) 
+                                                        ? `${e.user.first_name} ${e.user.last_name}` 
+                                                        : (e.user?.username || 'Unknown');
+
+                                                    return (
+                                                        <tr key={e.id || idx} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="p-4">
+                                                                <div className="font-medium text-slate-800">{displayName}</div>
+                                                                <div className="text-xs text-slate-500">{e.user?.email}</div>
+                                                            </td>
+                                                            <td className="p-4 text-slate-600 font-mono text-xs">{regNumber}</td>
+                                                            <td className="p-4 text-slate-600">{department}</td>
+                                                            <td className="p-4 text-center font-bold text-slate-800">{e.submitted ? `${e.score}%` : '-'}</td>
+                                                            <td className="p-4 text-center">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${e.submitted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                                    {e.submitted ? 'Submitted' : 'Pending'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
                                             )}
                                         </tbody>
                                     </table>
