@@ -15,18 +15,22 @@ export default function Sidebar({ className }) {
     toggle();
     setTimeout(() => setStatus(false), 500);
   };
+
   return (
     <nav
       className={cn(
-        `relative z-10 hidden h-screen flex-none bg-blue-800 px-3 md:block`,
+        // FIX: Changed 'h-screen' to 'h-full'.
+        // FIX: Changed 'md:block' to 'md:flex flex-col' to enable internal scrolling.
+        `relative z-10 hidden h-full flex-none flex-col bg-blue-800 px-3 md:flex`,
         status && 'duration-500',
         !isMinimized ? 'w-56' : 'w-[80px]',
         className
       )}
     >
+      {/* Header (Logo & Toggle) - Stays fixed at top */}
       <div
         className={cn(
-          'flex items-center px-0 py-5 md:px-2',
+          'flex items-center px-0 py-5 md:px-2 flex-shrink-0',
           isMinimized ? 'justify-center' : 'justify-between'
         )}
       >
@@ -47,7 +51,10 @@ export default function Sidebar({ className }) {
           <ChevronsLeft className="h-5 w-5" />
         </button>
       </div>
-      <div className="space-y-4 py-4">
+
+      {/* Nav Items - Scrollable Area */}
+      {/* FIX: Added 'flex-1 overflow-y-auto' so this section scrolls if screen is too small */}
+      <div className="space-y-4 py-4 flex-1 overflow-y-auto no-scrollbar">
         <div className="px-2 py-2">
           <div className="mt-3 space-y-1">
             <DashboardNav items={navItems} />
