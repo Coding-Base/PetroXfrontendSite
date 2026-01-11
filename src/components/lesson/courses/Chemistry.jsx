@@ -2,12 +2,9 @@ import React from "react";
 import LessonPlayer from "../shared/LessonPlayer";
 
 /**
- * Chemistry.jsx (Expanded - tutor-friendly)
- *
- * - Matches Physics.jsx structure: courseContent array with Sessions
- * - "Professor's Narrative" style: Why are we learning this? How do you avoid traps?
- * - Includes  tags for diagram generation.
- * - Uses string concatenation instead of backticks to prevent potential build issues with large text blocks.
+ * Chemistry.jsx (Fixed)
+ * - Switched to backticks (`) for explanations to fix "Unterminated string literal" errors.
+ * - Matches Physics.jsx structure.
  */
 
 const ChemistryContent = [
@@ -26,18 +23,20 @@ const ChemistryContent = [
     Content: [
       // 1. Matter & Measurement
       {
-        explanation:
-"Chemistry is an exact science. A number without a unit is meaningless, and a number with too many decimal places is a lie. We start with Significant Figures (Sig Figs), which tell us the precision of our measurement.\n\n" +
-"
+        explanation: `Chemistry is an exact science. A number without a unit is meaningless, and a number with too many decimal places is a lie. We start with Significant Figures (Sig Figs), which tell us the precision of our measurement.
+
+
 
 [Image of accuracy vs precision targets]
-\n\n" +
-"**The Golden Rules:**\n" +
-"1. Non-zero digits are always significant.\n" +
-"2. Zeros between non-zeros are significant (Sandwich rule).\n" +
-"3. Leading zeros are NEVER significant (they are just placeholders).\n" +
-"4. Trailing zeros are significant ONLY if there is a decimal point.\n\n" +
-"**Dimensional Analysis:** Never just multiply numbers. Multiply units. If you are converting km/h to m/s, set up the fractions so 'km' cancels 'km' and 'h' cancels 'h'. If the units don't cancel to give the answer you want, the math is wrong, guaranteed.",
+
+
+**The Golden Rules:**
+1. Non-zero digits are always significant.
+2. Zeros between non-zeros are significant (Sandwich rule).
+3. Leading zeros are NEVER significant (they are just placeholders).
+4. Trailing zeros are significant ONLY if there is a decimal point.
+
+**Dimensional Analysis:** Never just multiply numbers. Multiply units. If you are converting km/h to m/s, set up the fractions so 'km' cancels 'km' and 'h' cancels 'h'. If the units don't cancel to give the answer you want, the math is wrong, guaranteed.`,
         examples: [
           {
             title: "Example — Unit Conversion",
@@ -81,13 +80,14 @@ const ChemistryContent = [
 
       // 2. Atomic Structure
       {
-        explanation:
-"An atom is mostly empty space. The nucleus (protons + neutrons) is tiny but heavy; the electrons are vast but light. \n\n" +
-"\n\n" +
-"We identify atoms using:\n" +
-"* **Z (Atomic Number):** Number of protons. This defines the element.\n" +
-"* **A (Mass Number):** Protons + Neutrons.\n" +
-"**Isotopes** are siblings: same Z, different A (different neutrons). They behave chemically the same but weigh different amounts. To find the Average Atomic Mass (the number on the Periodic Table), we take a weighted average of all natural isotopes.",
+        explanation: `An atom is mostly empty space. The nucleus (protons + neutrons) is tiny but heavy; the electrons are vast but light. 
+
+
+
+We identify atoms using:
+* **Z (Atomic Number):** Number of protons. This defines the element.
+* **A (Mass Number):** Protons + Neutrons.
+**Isotopes** are siblings: same Z, different A (different neutrons). They behave chemically the same but weigh different amounts. To find the Average Atomic Mass (the number on the Periodic Table), we take a weighted average of all natural isotopes.`,
         examples: [
           {
             title: "Example — Subatomic Particles",
@@ -127,17 +127,20 @@ const ChemistryContent = [
 
       // 3. Electron Config
       {
-        explanation:
-"Electrons don't orbit like planets; they exist in probability clouds called orbitals (s, p, d, f). We fill them from lowest energy up (Aufbau Principle). \n\n" +
-"
+        explanation: `Electrons don't orbit like planets; they exist in probability clouds called orbitals (s, p, d, f). We fill them from lowest energy up (Aufbau Principle). 
+
+
 
 [Image of orbital filling diagram]
-\n\n" +
-"The Periodic Table is a map of these orbitals. \n" +
-"* **Atomic Radius:** Decreases Left-to-Right (more suction from protons), Increases Down (more shells).\n" +
-"* **Ionization Energy:** Opposite of radius. Harder to remove electrons from small, tight atoms.\n\n" +
-"\n\n" +
-"**Teacher Tip:** Transition metals lose 's' electrons BEFORE 'd' electrons when forming ions. Fe is [Ar] 4s2 3d6, but Fe2+ is [Ar] 3d6.",
+
+
+The Periodic Table is a map of these orbitals. 
+* **Atomic Radius:** Decreases Left-to-Right (more suction from protons), Increases Down (more shells).
+* **Ionization Energy:** Opposite of radius. Harder to remove electrons from small, tight atoms.
+
+
+
+**Teacher Tip:** Transition metals lose 's' electrons BEFORE 'd' electrons when forming ions. Fe is [Ar] 4s2 3d6, but Fe2+ is [Ar] 3d6.`,
         examples: [
           {
             title: "Example — Configuration",
@@ -178,13 +181,15 @@ const ChemistryContent = [
 
       // 4. Bonding
       {
-        explanation:
-"Atoms bond to lower their energy, usually seeking 8 valence electrons (The Octet Rule). \n\n" +
-"\n\n" +
-"* **Ionic:** Transfer of electrons. Metal + Nonmetal. Held together by charge attraction (Lattice Energy).\n" +
-"* **Covalent:** Sharing of electrons. Nonmetal + Nonmetal. \n" +
-"* **Polar Covalent:** Unequal sharing. The greedy atom (higher electronegativity) pulls the electrons closer, creating a dipole.\n\n" +
-"**Check:** If ΔEN > 1.7, it's Ionic. Between 0.4 and 1.7, Polar Covalent. < 0.4, Nonpolar.",
+        explanation: `Atoms bond to lower their energy, usually seeking 8 valence electrons (The Octet Rule). 
+
+
+
+* **Ionic:** Transfer of electrons. Metal + Nonmetal. Held together by charge attraction (Lattice Energy).
+* **Covalent:** Sharing of electrons. Nonmetal + Nonmetal. 
+* **Polar Covalent:** Unequal sharing. The greedy atom (higher electronegativity) pulls the electrons closer, creating a dipole.
+
+**Check:** If ΔEN > 1.7, it's Ionic. Between 0.4 and 1.7, Polar Covalent. < 0.4, Nonpolar.`,
         examples: [
           {
             title: "Example — Bond Type",
@@ -226,19 +231,20 @@ const ChemistryContent = [
 
       // 5. VSEPR
       {
-        explanation:
-"Lewis structures show connectivity; VSEPR shows 3D shape. Electrons define the shape because they repel each other.\n\n" +
-"
+        explanation: `Lewis structures show connectivity; VSEPR shows 3D shape. Electrons define the shape because they repel each other.
+
+
 
 [Image of VSEPR molecular geometries chart]
-\n\n" +
-"1. Draw Lewis Structure.\n" +
-"2. Count 'Domains' around center (Bonds + Lone Pairs).\n" +
-"3. Arrange domains to maximize space.\n" +
-"   - 2 Domains: Linear (180°)\n" +
-"   - 3 Domains: Trigonal Planar (120°)\n" +
-"   - 4 Domains: Tetrahedral (109.5°)\n" +
-"**Crucial:** Lone pairs are 'fat'. They push bond angles down. (e.g., Water is Tetrahedral geometry but 'Bent' shape because of 2 lone pairs).",
+
+
+1. Draw Lewis Structure.
+2. Count 'Domains' around center (Bonds + Lone Pairs).
+3. Arrange domains to maximize space.
+   - 2 Domains: Linear (180°)
+   - 3 Domains: Trigonal Planar (120°)
+   - 4 Domains: Tetrahedral (109.5°)
+**Crucial:** Lone pairs are 'fat'. They push bond angles down. (e.g., Water is Tetrahedral geometry but 'Bent' shape because of 2 lone pairs).`,
         examples: [
           {
             title: "Example — Methane (CH4)",
@@ -279,12 +285,14 @@ const ChemistryContent = [
 
       // 6. Stoichiometry
       {
-        explanation:
-"Stoichiometry is the recipe of chemistry. The coefficients in a balanced equation are the MOLE RATIOS. Not gram ratios. \n\n" +
-"\n\n" +
-"**The Process:**\n" +
-"Grams A -> Moles A -> Moles B -> Grams B.\n\n" +
-"**Limiting Reagent:** If you have 2 slices of bread and 100 slices of cheese, you can only make 1 sandwich. The bread limits you. To find the limiting reagent, calculate how much product EACH reactant can make. The smallest answer is the truth.",
+        explanation: `Stoichiometry is the recipe of chemistry. The coefficients in a balanced equation are the MOLE RATIOS. Not gram ratios. 
+
+
+
+**The Process:**
+Grams A -> Moles A -> Moles B -> Grams B.
+
+**Limiting Reagent:** If you have 2 slices of bread and 100 slices of cheese, you can only make 1 sandwich. The bread limits you. To find the limiting reagent, calculate how much product EACH reactant can make. The smallest answer is the truth.`,
         examples: [
           {
             title: "Example — Grams to Grams",
@@ -324,15 +332,15 @@ const ChemistryContent = [
 
       // 7. Gas Laws
       {
-        explanation:
-"Gases are wild particles flying around. We describe them with PV=nRT (Ideal Gas Law).\n\n" +
-"\n\n" +
-"**Teacher Tip:** \n" +
-"1. Temperature must ALWAYS be in Kelvin (C + 273).\n" +
-"2. Pressure and Volume units must match your R constant (usually atm and L for R=0.0821).\n" +
-"**Relationships:**\n" +
-"* Boyle's Law: P and V are inverse (Squish balloon -> Pressure up).\n" +
-"* Charles's Law: V and T are direct (Heat balloon -> Volume expands).",
+        explanation: `Gases are wild particles flying around. We describe them with PV=nRT (Ideal Gas Law).
+
+
+
+**Teacher Tip:** 1. Temperature must ALWAYS be in Kelvin (C + 273).
+2. Pressure and Volume units must match your R constant (usually atm and L for R=0.0821).
+**Relationships:**
+* Boyle's Law: P and V are inverse (Squish balloon -> Pressure up).
+* Charles's Law: V and T are direct (Heat balloon -> Volume expands).`,
         examples: [
           {
             title: "Example — Ideal Gas Law",
@@ -373,16 +381,17 @@ const ChemistryContent = [
 
       // 8. Acids & Bases
       {
-        explanation:
-"Acids donate H+ (protons). Bases accept H+ (or donate OH-). \n" +
-"The pH scale is logarithmic. A change of 1 pH unit is a 10x change in concentration.\n\n" +
-"
+        explanation: `Acids donate H+ (protons). Bases accept H+ (or donate OH-). 
+The pH scale is logarithmic. A change of 1 pH unit is a 10x change in concentration.
+
+
 
 [Image of pH scale examples]
-\n\n" +
-"* **Strong Acids** (HCl, HNO3, H2SO4) split 100%. [H+] = [Acid].\n" +
-"* **Weak Acids** (HF, Vinegar) split barely. You must use an ICE table and Ka.\n" +
-"* **Titration:** Neutralizing an acid with a base. At the equivalence point, moles Acid = moles Base. M1V1 = M2V2 (for 1:1 ratios).",
+
+
+* **Strong Acids** (HCl, HNO3, H2SO4) split 100%. [H+] = [Acid].
+* **Weak Acids** (HF, Vinegar) split barely. You must use an ICE table and Ka.
+* **Titration:** Neutralizing an acid with a base. At the equivalence point, moles Acid = moles Base. M1V1 = M2V2 (for 1:1 ratios).`,
         examples: [
           {
             title: "Example — pH Calculation",
@@ -440,15 +449,16 @@ const ChemistryContent = [
     Content: [
       // 1. Thermochemistry
       {
-        explanation:
-"Energy is neither created nor destroyed. In chemistry, we track Heat (q) and Enthalpy (ΔH).\n\n" +
-"
+        explanation: `Energy is neither created nor destroyed. In chemistry, we track Heat (q) and Enthalpy (ΔH).
+
+
 
 [Image of exothermic and endothermic reaction profile diagrams]
-\n\n" +
-"* **Exothermic (-ΔH):** Heat released. System gets cooler, surroundings get hotter. (Diagram goes DOWN).\n" +
-"* **Endothermic (+ΔH):** Heat absorbed. (Diagram goes UP).\n" +
-"We calculate heat using q = mcΔT (for temp changes) or Hess's Law (adding reaction steps together).",
+
+
+* **Exothermic (-ΔH):** Heat released. System gets cooler, surroundings get hotter. (Diagram goes DOWN).
+* **Endothermic (+ΔH):** Heat absorbed. (Diagram goes UP).
+We calculate heat using q = mcΔT (for temp changes) or Hess's Law (adding reaction steps together).`,
         examples: [
           {
             title: "Example — Calorimetry",
@@ -487,17 +497,18 @@ const ChemistryContent = [
 
       // 2. Kinetics
       {
-        explanation:
-"Thermodynamics tells us IF a reaction happens; Kinetics tells us HOW FAST. \n" +
-"Rate depends on:\n" +
-"1. Concentration (Collision Theory)\n" +
-"2. Temperature (More energy to break bonds)\n" +
-"3. Activation Energy (Ea)\n\n" +
-"
+        explanation: `Thermodynamics tells us IF a reaction happens; Kinetics tells us HOW FAST. 
+Rate depends on:
+1. Concentration (Collision Theory)
+2. Temperature (More energy to break bonds)
+3. Activation Energy (Ea)
+
+
 
 [Image of reaction coordinate diagram with catalyst]
-\n\n" +
-"**Catalysts** speed up reactions by lowering Ea. They provide a tunnel through the energy mountain. They do NOT change the start or end energy (ΔH).",
+
+
+**Catalysts** speed up reactions by lowering Ea. They provide a tunnel through the energy mountain. They do NOT change the start or end energy (ΔH).`,
         examples: [
           {
             title: "Example — Rate Law",
@@ -534,15 +545,16 @@ const ChemistryContent = [
 
       // 3. Equilibrium
       {
-        explanation:
-"Most reactions don't go 100% to completion. They hit a balance point where Rate_forward = Rate_reverse. This is Equilibrium (K).\n" +
-"K = [Products] / [Reactants].\n" +
-"* K > 1: Products favored.\n" +
-"* K < 1: Reactants favored.\n\n" +
-"\n\n" +
-"**Le Chatelier's Principle:** If you stress a system, it fights back.\n" +
-"- Add product? System shifts Left.\n" +
-"- Increase Pressure? System shifts to side with FEWER gas moles.",
+        explanation: `Most reactions don't go 100% to completion. They hit a balance point where Rate_forward = Rate_reverse. This is Equilibrium (K).
+K = [Products] / [Reactants].
+* K > 1: Products favored.
+* K < 1: Reactants favored.
+
+
+
+**Le Chatelier's Principle:** If you stress a system, it fights back.
+- Add product? System shifts Left.
+- Increase Pressure? System shifts to side with FEWER gas moles.`,
         examples: [
           {
             title: "Example — Writing K",
@@ -581,16 +593,17 @@ const ChemistryContent = [
 
       // 4. Electrochemistry
       {
-        explanation:
-"Redox = Electron Transfer. LEO says GER (Lose Electrons Oxidation, Gain Electrons Reduction).\n" +
-"We separate these into two half-cells to make a battery (Galvanic Cell).\n\n" +
-"
+        explanation: `Redox = Electron Transfer. LEO says GER (Lose Electrons Oxidation, Gain Electrons Reduction).
+We separate these into two half-cells to make a battery (Galvanic Cell).
+
+
 
 [Image of galvanic cell diagram Zn Cu]
-\n\n" +
-"**Anode:** Oxidation happens here. (An Ox).\n" +
-"**Cathode:** Reduction happens here. (Red Cat).\n" +
-"**E_cell = E_cathode - E_anode.** Positive E means spontaneous battery.",
+
+
+**Anode:** Oxidation happens here. (An Ox).
+**Cathode:** Reduction happens here. (Red Cat).
+**E_cell = E_cathode - E_anode.** Positive E means spontaneous battery.`,
         examples: [
           {
             title: "Example — Oxidation State",
@@ -628,18 +641,19 @@ const ChemistryContent = [
 
       // 5. Organic
       {
-        explanation:
-"Carbon is the backbone of life. It forms 4 bonds. We categorize organic molecules by **Functional Groups**.\n\n" +
-"
+        explanation: `Carbon is the backbone of life. It forms 4 bonds. We categorize organic molecules by **Functional Groups**.
+
+
 
 [Image of organic functional groups list]
-\n\n" +
-"* **Alkane:** Single bonds (C-C). Boring.\n" +
-"* **Alkene:** Double bonds (C=C). Reactive.\n" +
-"* **Alcohol:** -OH group.\n" +
-"* **Carboxylic Acid:** -COOH (Acidic).\n" +
-"* **Amine:** -NH2 (Basic, smells like fish).\n" +
-"Naming follows IUPAC rules: Prefix (Meth, Eth, Prop) + Suffix (-ane, -ene, -ol).",
+
+
+* **Alkane:** Single bonds (C-C). Boring.
+* **Alkene:** Double bonds (C=C). Reactive.
+* **Alcohol:** -OH group.
+* **Carboxylic Acid:** -COOH (Acidic).
+* **Amine:** -NH2 (Basic, smells like fish).
+Naming follows IUPAC rules: Prefix (Meth, Eth, Prop) + Suffix (-ane, -ene, -ol).`,
         examples: [
           {
             title: "Example — Naming",
@@ -678,11 +692,12 @@ const ChemistryContent = [
 
       // 6. Coordination
       {
-        explanation:
-"Transition metals are colorful because they have d-orbitals. \n" +
-"A **Complex** is a metal ion surrounded by Ligands (molecules donating electron pairs).\n\n" +
-"\n\n" +
-"The ligands split the d-orbital energies. When electrons jump between these split levels, they absorb light. The color you see is the complement of the color absorbed.",
+        explanation: `Transition metals are colorful because they have d-orbitals. 
+A **Complex** is a metal ion surrounded by Ligands (molecules donating electron pairs).
+
+
+
+The ligands split the d-orbital energies. When electrons jump between these split levels, they absorb light. The color you see is the complement of the color absorbed.`,
         examples: [
           {
             title: "Example — Ligands",
@@ -712,12 +727,13 @@ const ChemistryContent = [
 
       // 7. Nuclear
       {
-        explanation:
-"Chemical reactions rearrange electrons. Nuclear reactions rearrange the nucleus (Protons/Neutrons). Massive energy change.\n\n" +
-"\n\n" +
-"* **Alpha Decay:** Loses Helium nucleus (2p, 2n). Mass drops by 4.\n" +
-"* **Beta Decay:** Neutron turns into Proton + Electron. Atomic number goes UP by 1.\n" +
-"* **Half-Life:** Time for 50% of stuff to disappear.",
+        explanation: `Chemical reactions rearrange electrons. Nuclear reactions rearrange the nucleus (Protons/Neutrons). Massive energy change.
+
+
+
+* **Alpha Decay:** Loses Helium nucleus (2p, 2n). Mass drops by 4.
+* **Beta Decay:** Neutron turns into Proton + Electron. Atomic number goes UP by 1.
+* **Half-Life:** Time for 50% of stuff to disappear.`,
         examples: [
           {
             title: "Example — Alpha Decay",
@@ -747,13 +763,14 @@ const ChemistryContent = [
 
       // 8. Environmental
       {
-        explanation:
-"Chemistry happens in the wild too. \n" +
-"* **Acid Rain:** SO2 and NOx from cars/factories mix with rain to make H2SO4 and HNO3.\n\n" +
-"\n\n" +
-"* **Ozone Layer:** O3 in stratosphere protects us from UV. CFCs destroy it.\n" +
-"* **Greenhouse Effect:** CO2 and Methane trap heat like a blanket.\n" +
-"Green Chemistry aims to reduce waste (Atom Economy) and avoid toxic solvents.",
+        explanation: `Chemistry happens in the wild too. 
+* **Acid Rain:** SO2 and NOx from cars/factories mix with rain to make H2SO4 and HNO3.
+
+
+
+* **Ozone Layer:** O3 in stratosphere protects us from UV. CFCs destroy it.
+* **Greenhouse Effect:** CO2 and Methane trap heat like a blanket.
+Green Chemistry aims to reduce waste (Atom Economy) and avoid toxic solvents.`,
         examples: [
           {
             title: "Example — pH of Rain",
