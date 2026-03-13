@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 export const useTestTimer = (endTime) => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     if (!endTime) return;
@@ -23,7 +24,21 @@ export const useTestTimer = (endTime) => {
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+
+    // Handle visibility change - when tab comes back into focus, force update
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateTimer();
+        setForceUpdate(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [endTime]);
 
   const formatTime = (seconds) => {
