@@ -131,12 +131,42 @@ const UploadPassQuestions = () => {
 
         // safe access to questions array
         const remoteQuestions = response?.data?.questions ?? [];
-        const questionsWithIds = remoteQuestions.map(q => ({
-          ...q,
-          id: Math.random().toString(36).substr(2, 9)
-        }));
+        
+        // Log the raw response for debugging
+        console.log('Raw parsed questions from backend:', remoteQuestions);
+        
+        // Normalize field names: backend uses optionA/optionB/optionC/optionD/correct_answer
+        // but form uses A/B/C/D/answer
+        const normalizedQuestions = remoteQuestions.map(q => {
+          console.log('Normalizing question:', q);
+          return {
+            ...q,
+            // Ensure we have the right field names for the form
+            A: q.optionA || q.A || '',
+            B: q.optionB || q.B || '',
+            C: q.optionC || q.C || '',
+            D: q.optionD || q.D || '',
+            answer: q.correct_answer || q.answer || '',
+            text: q.text || '',
+            id: Math.random().toString(36).substr(2, 9)
+          };
+        });
 
-        setParsedQuestions(questionsWithIds);
+        console.log('Normalized questions for form:', normalizedQuestions);
+        
+        if (normalizedQuestions.length === 0) {
+          setMessage({
+            text: 'No questions were extracted from the file. Please check the PDF format.',
+            type: 'warning'
+          });
+        } else {
+          setMessage({
+            text: `Successfully extracted ${normalizedQuestions.length} questions. Please review and edit as needed.`,
+            type: 'success'
+          });
+        }
+        
+        setParsedQuestions(normalizedQuestions);
         setStep(2);
       } catch (error) {
         console.error('Preview parse error:', error?.response?.data ?? error);
@@ -152,18 +182,38 @@ const UploadPassQuestions = () => {
       setMessage({ text: '', type: '' });
 
       try {
-        // Validate all questions are filled
-        const hasEmptyQuestions = parsedQuestions.some(q => {
-          if (!q.text) return true;
+        // Validate all questions are filled with more detailed feedback
+        const incompleteQuestions = [];
+        
+        parsedQuestions.forEach((q, idx) => {
+          const issues = [];
+          if (!q.text) issues.push('no question text');
           if (questionType === 'multichoice') {
-            return !q.A || !q.B || !q.C || !q.D || !q.answer;
+            if (!q.A) issues.push('missing Option A');
+            if (!q.B) issues.push('missing Option B');
+            if (!q.C) issues.push('missing Option C');
+            if (!q.D) issues.push('missing Option D');
+            if (!q.answer) issues.push('no correct answer');
           }
-          return false;
+          if (issues.length > 0) {
+            incompleteQuestions.push({
+              number: idx + 1,
+              issues: issues.join(', ')
+            });
+          }
         });
 
-        if (hasEmptyQuestions) {
+        if (incompleteQuestions.length > 0) {
+          const errorDetails = incompleteQuestions
+            .slice(0, 5)
+            .map(q => `Question ${q.number}: ${q.issues}`)
+            .join('\n');
+          const moreInfo = incompleteQuestions.length > 5 
+            ? `\n... and ${incompleteQuestions.length - 5} more questions` 
+            : '';
+          
           setMessage({
-            text: 'Please fill all question fields and ensure answers are selected',
+            text: `Please complete all fields. Incomplete questions:\n${errorDetails}${moreInfo}`,
             type: 'error'
           });
           setIsLoading(false);
@@ -251,120 +301,175 @@ const UploadPassQuestions = () => {
     }
   };
 
-  const renderQuestionEditor = () => (
-    <div className="mt-6">
-      <h2 className="text-lg sm:text-xl font-semibold mb-4">Review and Edit Questions</h2>
-      <p className="text-xs sm:text-sm text-gray-600 mb-4">
-        Please review the parsed questions and make any necessary corrections before submitting.
-      </p>
-      <div className="max-h-[400px] overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-[600px] w-full bg-white text-xs sm:text-sm">
-          <thead className="sticky top-0 bg-gray-50 z-10">
-            <tr>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Question</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
-              <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {parsedQuestions.map((q, index) => (
-              <tr key={q.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <textarea
-                    value={q.text}
-                    onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm h-20 sm:h-24"
-                    placeholder="Question text"
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.A}
-                    onChange={(e) => handleQuestionChange(index, 'A', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option A"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.B}
-                    onChange={(e) => handleQuestionChange(index, 'B', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option B"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.C}
-                    onChange={(e) => handleQuestionChange(index, 'C', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option C"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <input
-                    type="text"
-                    value={q.D}
-                    onChange={(e) => handleQuestionChange(index, 'D', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    placeholder="Option D"
-                    disabled={questionType === 'theory'}
-                  />
-                </td>
-                <td className="py-2 px-2 sm:py-3 sm:px-4">
-                  <select
-                    value={q.answer}
-                    onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
-                    className="w-full p-2 border rounded text-xs sm:text-sm"
-                    disabled={questionType === 'theory'}
-                  >
-                    <option value="">Select</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                  </select>
-                </td>
+  const renderQuestionEditor = () => {
+    // Calculate form completion stats
+    const stats = parsedQuestions.reduce((acc, q) => {
+      if (!q.text) acc.missingText++;
+      if (!q.A) acc.missingA++;
+      if (!q.B) acc.missingB++;
+      if (!q.C) acc.missingC++;
+      if (!q.D) acc.missingD++;
+      if (!q.answer) acc.missingAnswer++;
+      return acc;
+    }, { missingText: 0, missingA: 0, missingB: 0, missingC: 0, missingD: 0, missingAnswer: 0 });
+
+    const totalFields = parsedQuestions.length * 6;
+    const filledFields = totalFields - Object.values(stats).reduce((a, b) => a + b, 0);
+    const completionPercentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
+
+    return (
+      <div className="mt-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-2">Review and Edit Questions</h2>
+        
+        {/* Completion Stats */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-blue-900">Form Completion: {completionPercentage}%</span>
+            <span className="text-xs text-blue-700">{filledFields} of {totalFields} fields filled</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all" 
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+          
+          {/* Missing Fields Summary */}
+          {(stats.missingText > 0 || stats.missingA > 0 || stats.missingB > 0 || 
+            stats.missingC > 0 || stats.missingD > 0 || stats.missingAnswer > 0) && (
+            <div className="mt-2 text-xs text-blue-700">
+              <p className="font-medium mb-1">Missing fields:</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.missingText > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Questions: {stats.missingText}</span>}
+                {stats.missingA > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Option A: {stats.missingA}</span>}
+                {stats.missingB > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Option B: {stats.missingB}</span>}
+                {stats.missingC > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Option C: {stats.missingC}</span>}
+                {stats.missingD > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Option D: {stats.missingD}</span>}
+                {stats.missingAnswer > 0 && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">Answers: {stats.missingAnswer}</span>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs sm:text-sm text-gray-600 mb-4">
+          Please review the parsed questions and make any necessary corrections before submitting.
+        </p>
+        <div className="max-h-[400px] overflow-x-auto border border-gray-200 rounded-lg">
+          <table className="min-w-[600px] w-full bg-white text-xs sm:text-sm">
+            <thead className="sticky top-0 bg-gray-50 z-10">
+              <tr>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">#</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option A</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option B</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option C</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Option D</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left font-medium text-gray-500 uppercase tracking-wider">Answer</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {parsedQuestions.map((q, index) => {
+                const isComplete = q.text && q.A && q.B && q.C && q.D && q.answer;
+                return (
+                  <tr key={q.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${!isComplete ? 'border-l-4 border-l-yellow-400' : ''}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-gray-600" title="Question number">
+                      {index + 1}
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <textarea
+                        value={q.text}
+                        onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm h-20 sm:h-24 ${!q.text ? 'border-red-300 bg-red-50' : ''}`}
+                        placeholder="Question text"
+                      />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <input
+                        type="text"
+                        value={q.A}
+                        onChange={(e) => handleQuestionChange(index, 'A', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm ${!q.A ? 'border-red-300 bg-red-50' : ''}`}
+                        placeholder="Option A"
+                        disabled={questionType === 'theory'}
+                      />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <input
+                        type="text"
+                        value={q.B}
+                        onChange={(e) => handleQuestionChange(index, 'B', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm ${!q.B ? 'border-red-300 bg-red-50' : ''}`}
+                        placeholder="Option B"
+                        disabled={questionType === 'theory'}
+                      />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <input
+                        type="text"
+                        value={q.C}
+                        onChange={(e) => handleQuestionChange(index, 'C', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm ${!q.C ? 'border-red-300 bg-red-50' : ''}`}
+                        placeholder="Option C"
+                        disabled={questionType === 'theory'}
+                      />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <input
+                        type="text"
+                        value={q.D}
+                        onChange={(e) => handleQuestionChange(index, 'D', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm ${!q.D ? 'border-red-300 bg-red-50' : ''}`}
+                        placeholder="Option D"
+                        disabled={questionType === 'theory'}
+                      />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <select
+                        value={q.answer}
+                        onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
+                        className={`w-full p-2 border rounded text-xs sm:text-sm ${!q.answer ? 'border-red-300 bg-red-50' : ''}`}
+                        disabled={questionType === 'theory'}
+                      >
+                        <option value="">Select</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {/* Button group: sticky on mobile */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between
+          fixed bottom-0 left-0 right-0 bg-white p-2 border-t border-gray-200 z-20 sm:static sm:bg-transparent sm:border-0 sm:p-0">
+          <Button
+            type="button"
+            onClick={() => setStep(1)}
+            className="w-full sm:w-auto px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+          >
+            Back to Upload
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium text-white transition ${
+              isLoading
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {isLoading ? 'Submitting...' : 'Submit Questions'}
+          </Button>
+        </div>
+        {/* Add padding to bottom so content is not hidden behind sticky buttons */}
+        <div className="h-20 sm:hidden" />
       </div>
-      {/* Button group: sticky on mobile */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between
-        fixed bottom-0 left-0 right-0 bg-white p-2 border-t border-gray-200 z-20 sm:static sm:bg-transparent sm:border-0 sm:p-0">
-        <Button
-          type="button"
-          onClick={() => setStep(1)}
-          className="w-full sm:w-auto px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
-        >
-          Back to Upload
-        </Button>
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium text-white transition ${
-            isLoading
-              ? 'bg-blue-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
-          {isLoading ? 'Submitting...' : 'Submit Questions'}
-        </Button>
-      </div>
-      {/* Add padding to bottom so content is not hidden behind sticky buttons */}
-      <div className="h-20 sm:hidden" />
-    </div>
-  );
+    );
+  };
 
   // Loading / error states for course list
   if (isLoadingCourses) {
