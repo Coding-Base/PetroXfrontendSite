@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { fetchUserProfile, updateUserProfile, uploadProfileImage } from '@/api';
+import { fetchUserProfile } from '@/api';
+import api from '@/api';
 import { toast } from 'sonner';
 
 export default function Profile() {
@@ -58,14 +59,14 @@ export default function Profile() {
         first_name: profile?.first_name,
         last_name: profile?.last_name,
       };
-      await updateUserProfile(patchData);
+      await api.patch('/api/auth/me/', patchData);
 
-      // 2) If image selected, upload as multipart (backend must support)
+      // 2) If image selected, upload as multipart (backend supports PATCH /api/auth/me/ with file)
       if (imageFile) {
         const fd = new FormData();
         fd.append('avatar', imageFile);
-        await uploadProfileImage(fd, (e) => {
-          // optional progress handling
+        await api.patch('/api/auth/me/', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
 
