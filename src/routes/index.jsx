@@ -1,7 +1,8 @@
+// routes/index.jsx
 import NotFound from '../pages/NotFound';
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Outlet, useRoutes, useLocation } from 'react-router-dom';
-import { logPageView } from '../utils/analytics'; 
+import { logPageView } from '../utils/analytics'; // Import logPageView
 
 const NewDashboardLayout = lazy(() => import('../Layouts/dashboardlayout'));
 const SignIn = lazy(() => import('../pages/SignIn'));
@@ -18,6 +19,7 @@ const GroupTestPage = lazy(() => import('../pages/GroupTestPage'));
 const CampusNavigator = lazy(() => import('../pages/CampusCompass'));
 const MyTest = lazy(() => import('../pages/MyTests'));
 const Test = lazy(() => import('../pages/Test'));
+const GroupTest = lazy(() => import('../pages/GroupTestPage'));
 const PastQuestions = lazy(() => import('../pages/PastQuestions'));
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PetroMarkAI = lazy(() => import('../pages/Petromark'));
@@ -28,8 +30,7 @@ const AboutPage = lazy(() => import('../pages/AboutPage'));
 const PoliciesPage = lazy(() => import('../pages/PoliciesPage'));
 const LearningSystem = lazy(() => import('../components/lesson/LessonPath'))
 const Updates = lazy(() => import('../pages/UpdatesTab'))
-
-// Special Courses Imports
+// New lazy imports for Special Courses feature
 const EnrollCoursePage = lazy(() => import('../pages/EnrollCoursePage'));
 const EnrolledCoursesPage = lazy(() => import('../pages/EnrolledCoursesPage'));
 const CourseWaitingPage = lazy(() => import('../pages/CourseWaitingPage'));
@@ -37,9 +38,11 @@ const TestInstructionsPage = lazy(() => import('../pages/TestInstructionsPage'))
 const TestInterfacePage = lazy(() => import('../pages/TestInterfacePage'));
 const TestSubmissionSuccessPage = lazy(() => import('../pages/TestSubmissionSuccessPage'));
 const TestCompletionPage = lazy(() => import('../pages/TestCompletionPage'));
+const Profile = lazy(() => import('../pages/Profile'));
 
 // ----------------------------------------------------------------------
 
+// Create a component to track page views
 function TrackPageViews() {
   const location = useLocation();
 
@@ -47,7 +50,7 @@ function TrackPageViews() {
     logPageView();
   }, [location]);
 
-  return null; 
+  return null; // This component doesn't render anything
 }
 
 export default function AppRouter() {
@@ -57,7 +60,7 @@ export default function AppRouter() {
       element: (
         <NewDashboardLayout>
           <Suspense fallback={<div className="h-full flex items-center justify-center">Loading...</div>}>
-            <TrackPageViews /> 
+            <TrackPageViews /> {/* Add tracker here */}
             <Outlet />
           </Suspense>
         </NewDashboardLayout>
@@ -120,11 +123,16 @@ export default function AppRouter() {
           path: 'settings',
           element: <Settings />
         },
-        // --- SPECIAL COURSES ROUTES ---
+        {
+          path: 'profile',
+          element: (<><Profile /> <TrackPageViews /></>)
+        },
+        // ENROLL COURSE route (dashboard nested)
         {
           path: 'enroll-course',
           element: (<><EnrollCoursePage /> <TrackPageViews /></>)
         },
+        // Special Courses Routes
         {
           path: 'enrolled-courses',
           element: (<><EnrolledCoursesPage /> <TrackPageViews /></>)
@@ -138,8 +146,7 @@ export default function AppRouter() {
           element: (<><TestInstructionsPage /> <TrackPageViews /></>)
         },
         {
-          // FIX: Changed 'take-test' to 'test' to match CourseWaitingPage navigation
-          path: 'course/:enrollmentId/test', 
+          path: 'course/:enrollmentId/take-test',
           element: (<><TestInterfacePage /> <TrackPageViews /></>)
         },
         {
@@ -159,7 +166,7 @@ export default function AppRouter() {
       path: '/',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here too */}
           <LandingPage />
         </>
       ),
@@ -169,7 +176,7 @@ export default function AppRouter() {
       path: '/about',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here too */}
           <AboutPage />
         </>
       ),
@@ -179,7 +186,7 @@ export default function AppRouter() {
       path: '/policies',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here too */}
           <PoliciesPage />
         </>
       ),
@@ -189,7 +196,7 @@ export default function AppRouter() {
       path: '/login',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <SignIn />
         </>
       ),
@@ -199,7 +206,7 @@ export default function AppRouter() {
       path: '/signup',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <SignUpRoleSelection />
         </>
       ),
@@ -209,7 +216,7 @@ export default function AppRouter() {
       path: '/signup-student',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <StudentSignUp />
         </>
       ),
@@ -219,7 +226,7 @@ export default function AppRouter() {
       path: '/signup-lecturer',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <LecturerSignUp />
         </>
       ),
@@ -229,7 +236,7 @@ export default function AppRouter() {
       path: '/lecturer-dashboard',
       element: (
         <>
-          <TrackPageViews />
+          <TrackPageViews /> {/* Add tracker here */}
           <LecturerDashboard />
         </>
       ),
@@ -243,12 +250,11 @@ export default function AppRouter() {
       path: '*',
       element: <Navigate to="/404" replace />
     },
-    // Redundant group-test route (already in dashboard), but kept for backward compat if needed
     {
       path: '/group-test/:testId',
       element: (
         <>
-          <TrackPageViews /> 
+          <TrackPageViews /> {/* Add tracker here */}
           <GroupTestPage />
         </>
       )
