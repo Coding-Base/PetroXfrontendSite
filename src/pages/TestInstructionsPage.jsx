@@ -12,7 +12,7 @@ export default function TestInstructionsPage() {
     setStartingTest(true);
     // Small delay for UX
     setTimeout(() => {
-      navigate(`/dashboard/course/${enrollmentId}/take-test`);
+      navigate(`/dashboard/course/${encodeURIComponent(enrollmentId)}/take-test`);
     }, 300);
   };
 
@@ -143,7 +143,7 @@ export default function TestInstructionsPage() {
             {/* Action Buttons */}
             <div className="flex flex-col md:flex-row gap-4">
               <button
-                onClick={() => navigate(`/dashboard/course/${enrollmentId}/waiting`)}
+                onClick={() => navigate(`/dashboard/course/${encodeURIComponent(enrollmentId)}/waiting`)}
                 className="flex-1 py-3 px-6 rounded-lg font-semibold text-gray-700 border border-gray-300 hover:bg-gray-50 transition-all"
               >
                 Go Back

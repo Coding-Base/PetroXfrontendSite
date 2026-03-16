@@ -63,6 +63,55 @@ const UploadPassQuestions = () => {
     loadCourses();
   }, []);
 
+  // Try to extract options and answer from a question text when backend
+  // didn't populate optionA/optionB/... or correct_answer fields.
+  const extractOptionsFromText = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') return {};
+
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const joined = lines.join('\n');
+
+    // Patterns for option lines like: a) option, a. option, (a) option, A) option
+    const optionRegex = /(^|\n)\s*\(?\b([A-Da-d])\b\)?\s*[\).:-]?\s*(.+?)(?=(\n\s*\(?\b[A-Da-d]\b\)?\s*[\).:-])|$)/gs;
+    const result = {};
+    const options = {};
+    let match;
+    try {
+      while ((match = optionRegex.exec(joined)) !== null) {
+        const label = match[2].toUpperCase();
+        const text = match[3].trim().replace(/^(?:\)|:|-)+/, '').trim();
+        if (label && text) options[label] = text;
+      }
+    } catch (e) {
+      // fallthrough
+    }
+
+    // Attempt to find answer indicator lines like: Answer: b or Ans: B or Correct: C
+    const answerMatch = joined.match(/(?:Answer|Ans|Ans\.|Correct|Corr|Key)[:\s]*([A-Da-d])/i);
+    if (answerMatch) {
+      result.answer = answerMatch[1].toUpperCase();
+    } else {
+      // sometimes the answer is given as the full option text, try to match
+      const ansTextMatch = joined.match(/(?:Answer|Ans|Correct|Key)[:\s]*([\w\s\.,\-\(\)]+)/i);
+      if (ansTextMatch) {
+        const rawAns = ansTextMatch[1].trim();
+        // find which option has this text as a substring
+        const found = Object.entries(options).find(([, optText]) => optText.toLowerCase().includes(rawAns.toLowerCase()));
+        if (found) result.answer = found[0];
+      }
+    }
+
+    // Map options to A/B/C/D
+    if (Object.keys(options).length > 0) {
+      result.A = options.A || options['A'] || '';
+      result.B = options.B || options['B'] || '';
+      result.C = options.C || options['C'] || '';
+      result.D = options.D || options['D'] || '';
+    }
+
+    return result;
+  };
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -137,18 +186,46 @@ const UploadPassQuestions = () => {
         
         // Normalize field names: backend uses optionA/optionB/optionC/optionD/correct_answer
         // but form uses A/B/C/D/answer
-        const normalizedQuestions = remoteQuestions.map(q => {
-          console.log('Normalizing question:', q);
+        const normalizedQuestions = remoteQuestions.map(rawQ => {
+          console.log('Normalizing question:', rawQ);
+
+          // prefer a variety of text fields from backend
+          const text = rawQ.text || rawQ.question || rawQ.body || rawQ.content || rawQ.raw || '';
+
+          // If backend returned options as an array, map them to A/B/C/D
+          let A = rawQ.optionA || rawQ.A || '';
+          let B = rawQ.optionB || rawQ.B || '';
+          let C = rawQ.optionC || rawQ.C || '';
+          let D = rawQ.optionD || rawQ.D || '';
+          let answer = rawQ.correct_answer || rawQ.answer || '';
+
+          if ((!A || !B || !C || !D) && Array.isArray(rawQ.options)) {
+            // map first 4 to A-D
+            A = A || rawQ.options[0] || '';
+            B = B || rawQ.options[1] || '';
+            C = C || rawQ.options[2] || '';
+            D = D || rawQ.options[3] || '';
+          }
+
+          // If still missing option fields, attempt to extract from raw text
+          if ((!A || !B || !C || !D) || !answer) {
+            const parsed = extractOptionsFromText(text || rawQ.full_text || rawQ.raw_text || '');
+            A = A || parsed.A || '';
+            B = B || parsed.B || '';
+            C = C || parsed.C || '';
+            D = D || parsed.D || '';
+            answer = answer || parsed.answer || '';
+          }
+
           return {
-            ...q,
-            // Ensure we have the right field names for the form
-            A: q.optionA || q.A || '',
-            B: q.optionB || q.B || '',
-            C: q.optionC || q.C || '',
-            D: q.optionD || q.D || '',
-            answer: q.correct_answer || q.answer || '',
-            text: q.text || '',
-            id: Math.random().toString(36).substr(2, 9)
+            ...rawQ,
+            A,
+            B,
+            C,
+            D,
+            answer,
+            text,
+            id: rawQ.id || Math.random().toString(36).substr(2, 9)
           };
         });
 
