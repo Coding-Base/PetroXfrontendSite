@@ -112,7 +112,7 @@ export default function TestInterfacePage() {
         </div>
       </div>
 
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 max-h-[calc(100vh-5rem)] overflow-auto">
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 max-h-[calc(100vh-5rem)] overflow-auto scrollable">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content Area */}
         <div className="lg:col-span-3">

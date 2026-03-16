@@ -29,7 +29,7 @@ export default function TestInstructionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 flex items-start md:items-center justify-center">
       <div className="max-w-3xl w-full max-h-[calc(100vh-4rem)] overflow-auto mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 flex-1 flex flex-col max-h-[calc(100vh-4rem)] overflow-auto scrollable">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-12 text-white">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">{course?.title}</h1>

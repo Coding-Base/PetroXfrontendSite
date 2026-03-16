@@ -84,7 +84,7 @@ export default function CourseWaitingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4" key={renderKey}>
       <div className="max-w-2xl w-full mx-auto flex flex-col min-h-screen">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 flex-1 flex flex-col">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 flex-1 flex flex-col max-h-[calc(100vh-4rem)] overflow-auto scrollable">
           {/* Logo/Icon */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
