@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaEnvelope, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
-
+import image from "../IMG_0596.png"
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,7 +36,7 @@ const AboutPage = () => {
             <div className="lg:w-1/3">
               <div className="overflow-hidden rounded-2xl shadow-xl">
                 <img
-                  src="https://share.google/3Rmf1OaP8O89xvAjI"
+                  src={image}
                   alt="Osimi Godsgift Gbubemi"
                   className="h-full w-full object-cover"
                 />
