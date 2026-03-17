@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaEnvelope, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
-import image from "../IMG_0596.png"
+import image from "./IMG_0596.png"
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
