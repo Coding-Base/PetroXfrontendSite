@@ -72,22 +72,22 @@ const LandingPage = () => {
       if (response.ok) {
         const data = await response.json();
         setStats({
-          users: data.total_users ?? 200,
-          questions: data.total_questions ?? 538,
+          users: data.total_users ?? 299,
+          questions: data.total_questions ?? 880,
           downloads: data.total_downloads ?? 20
         });
       } else {
         setStats({
-          users: 200,
-          questions: 538,
+          users: 299,
+          questions: 880,
           downloads: 20
         });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
       setStats({
-        users: 200,
-        questions: 538,
+        users: 299,
+        questions: 880,
         downloads: 20
       });
     } finally {
@@ -760,7 +760,7 @@ const LandingPage = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about#contact" className="text-gray-400 hover:text-white transition-colors duration-300">
+                  <Link to="/about" className="text-gray-400 hover:text-white transition-colors duration-300">
                     Contact
                   </Link>
                 </li>
@@ -916,7 +916,7 @@ const resources = [
   { name: 'Community', url: 'https://petrox-test-frontend.onrender.com/login' },
   { name: 'Study Guides', url: 'https://petrox-test-frontend.onrender.com/login' },
   { name: 'Past Questions', url: 'https://petrox-test-frontend.onrender.com/login' },
-  { name: 'Campus Map', url: 'https://petrox-test-frontend.onrender.com/login' }
+  { name: 'CEO DESKS', url: 'https://petrox-test-frontend.onrender.com/about' }
 ];
 
 export default LandingPage;
