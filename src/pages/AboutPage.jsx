@@ -36,7 +36,7 @@ const AboutPage = () => {
             <div className="lg:w-1/3">
               <div className="overflow-hidden rounded-2xl shadow-xl">
                 <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMaHANnMgvaIHW7JrRnFX0jTlvtBPcpPOrzw&s"
+                  src="https://share.google/3Rmf1OaP8O89xvAjI"
                   alt="Osimi Godsgift Gbubemi"
                   className="h-full w-full object-cover"
                 />
