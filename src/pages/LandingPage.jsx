@@ -43,22 +43,22 @@ const LandingPage = () => {
       title: 'Navigate Your Academic Journey',
       subtitle: 'Campus compass, study resources, and AI-powered learning',
       image: 'https://wordinblack.com/wp-content/uploads/2024/09/GettyImages-2172168002-scaled.jpg',
-      gradient: 'from-blue-900/80 to-purple-900/80'
+      gradient: 'from-black/90 via-black/70 to-black/40'
     },
     {
       title: 'Master Your Subjects',
       subtitle: 'Personalized learning with PetroMark AI assistant',
       image: 'https://plus.unsplash.com/premium_photo-1683135216954-ab7130031b44?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmxhY2slMjBzdHVkZW50c3xlbnwwfHwwfHx8MA%3D%3D',
-      gradient: 'from-indigo-900/80 to-blue-900/80'
+      gradient: 'from-black/90 via-zinc-900/70 to-black/40'
     },
     {
       title: 'Access 538+ Past Questions',
       subtitle: 'Comprehensive exam preparation resources',
       image: image1,
-      gradient: 'from-purple-900/80 to-pink-900/80'
+      gradient: 'from-black/90 via-black/70 to-amber-950/30'
     }
   ];
-  
+
   const safeFormatNumber = (v) => {
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'number') return v.toLocaleString();
@@ -97,7 +97,7 @@ const LandingPage = () => {
 
   useEffect(() => {
     fetchStats();
-    
+
     // Wake up the backend by pinging the admin endpoint
     const wakeBackend = async () => {
       try {
@@ -108,7 +108,7 @@ const LandingPage = () => {
         console.log('Backend wake-up ping failed (non-blocking):', error);
       }
     };
-    
+
     wakeBackend();
   }, []);
 
@@ -163,26 +163,41 @@ const LandingPage = () => {
     };
   }, [mobileMenuOpen]);
 
+  // Cosmetic only: load the display/body typefaces used by the new theme.
+  useEffect(() => {
+    const linkId = 'petrox-theme-fonts';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  const displayFont = { fontFamily: "'Fraunces', serif" };
+  const bodyFont = { fontFamily: "'Inter', sans-serif" };
+
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black" style={bodyFont}>
         <div className="text-center">
           <div className="relative mx-auto mb-6">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-            <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full border-4 border-blue-400 opacity-75"></div>
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
+            <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full border-4 border-amber-400/60 opacity-60"></div>
           </div>
-          <h1 className="text-4xl font-bold tracking-wider text-white mb-2">
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">PETRO</span>
+          <h1 className="text-4xl font-bold tracking-wider text-white mb-2" style={displayFont}>
+            <span className="text-white">PETRO</span>
             <span className="text-amber-400">X</span>
           </h1>
-          <p className="text-gray-300 font-light">Preparing your learning experience</p>
+          <p className="text-zinc-400 font-light tracking-wide">Preparing your learning experience</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 overflow-x-hidden">
+    <div className="min-h-screen bg-black overflow-x-hidden" style={bodyFont}>
       {/* Enhanced Header */}
       <header className="relative h-screen overflow-hidden">
         {/* Animated Background */}
@@ -191,16 +206,17 @@ const LandingPage = () => {
             <div
               key={index}
               className={`absolute inset-0 transition-all duration-1000 transform ${
-                currentSlide === index 
-                  ? 'opacity-100 scale-100' 
+                currentSlide === index
+                  ? 'opacity-100 scale-100'
                   : 'opacity-0 scale-110'
               }`}
             >
               <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[15%]"
                 style={{ backgroundImage: `url(${slide.image})` }}
               ></div>
               <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient}`}></div>
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent"></div>
             </div>
           ))}
         </div>
@@ -208,8 +224,8 @@ const LandingPage = () => {
         {/* Navigation */}
         <nav
           className={`fixed z-50 w-full transition-all duration-500 ${
-            scrolled 
-              ? 'bg-white/90 backdrop-blur-xl shadow-lg py-2' 
+            scrolled
+              ? 'bg-black/90 backdrop-blur-xl shadow-lg shadow-black/50 py-2 border-b border-amber-500/10'
               : 'bg-transparent py-4'
           }`}
         >
@@ -218,9 +234,9 @@ const LandingPage = () => {
               {/* Logo */}
               <div className="flex items-center">
                 <div className={`rounded-lg p-2 ${
-                  scrolled ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-white/20'
+                  scrolled ? 'bg-zinc-900 border border-amber-500/20' : 'bg-white/10'
                 }`}>
-                  <h1 className="text-2xl font-bold tracking-tight">
+                  <h1 className="text-2xl font-bold tracking-tight" style={displayFont}>
                     <span className="text-white">PETRO</span>
                     <span className="text-amber-400">X</span>
                   </h1>
@@ -233,34 +249,30 @@ const LandingPage = () => {
                   <a
                     key={item}
                     href={`#${item.toLowerCase().replace(' ', '-')}`}
-                    className={`font-medium transition-all duration-300 hover:scale-105 ${
-                      scrolled 
-                        ? 'text-gray-700 hover:text-blue-600' 
-                        : 'text-white/90 hover:text-white'
-                    }`}
+                    className="font-medium text-zinc-300 hover:text-amber-400 transition-all duration-300"
                   >
                     {item}
                   </a>
                 ))}
                 <Link
                   to="/login"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-6 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-amber-500/20"
                 >
                   Get Started
                 </Link>
               </div>
 
               {/* Mobile menu button */}
-              <button 
+              <button
                 className={`md:hidden p-2 rounded-lg transition-all duration-300 ${
-                  scrolled ? 'bg-gray-100' : 'bg-white/20'
+                  scrolled ? 'bg-zinc-900 border border-amber-500/20' : 'bg-white/10'
                 } menu-button`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? (
-                  <FaTimes className={scrolled ? 'text-gray-700' : 'text-white'} size={20} />
+                  <FaTimes className="text-white" size={20} />
                 ) : (
-                  <FaBars className={scrolled ? 'text-gray-700' : 'text-white'} size={20} />
+                  <FaBars className="text-white" size={20} />
                 )}
               </button>
             </div>
@@ -269,21 +281,21 @@ const LandingPage = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="fixed top-20 right-4 z-50 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl py-4 md:hidden mobile-menu">
+          <div className="fixed top-20 right-4 z-50 w-64 bg-zinc-950/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/60 border border-amber-500/10 py-4 md:hidden mobile-menu">
             {['Features', 'How It Works', 'Testimonials', 'About', 'Policies'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="block px-6 py-3 text-gray-700 font-medium transition-all duration-300 hover:bg-blue-50 hover:text-blue-600"
+                className="block px-6 py-3 text-zinc-300 font-medium transition-all duration-300 hover:bg-amber-500/10 hover:text-amber-400"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item}
               </a>
             ))}
-            <div className="px-6 pt-4 border-t border-gray-200">
+            <div className="px-6 pt-4 border-t border-zinc-800">
               <Link
                 to="/login"
-                className="block w-full text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105"
+                className="block w-full text-center bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-4 py-2.5 rounded-full font-semibold transition-all duration-300 hover:scale-105"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Get Started
@@ -295,38 +307,38 @@ const LandingPage = () => {
         {/* Hero Content */}
         <div className="relative z-10 flex h-full items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm text-white">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/5 border border-amber-500/20 backdrop-blur-sm px-4 py-2 text-sm text-zinc-200">
               <FaStar className="text-amber-400" />
               <span>Trusted by {safeFormatNumber(stats.users)}+ Students</span>
             </div>
 
-            <h1 className="mb-6 text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-              <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent">
+            <h1 className="mb-6 text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl" style={displayFont}>
+              <span className="bg-gradient-to-r from-white via-zinc-100 to-amber-200 bg-clip-text text-transparent">
                 {slides[currentSlide].title}
               </span>
             </h1>
-            
-            <p className="mx-auto mb-8 max-w-2xl text-xl text-blue-100 lg:text-2xl">
+
+            <p className="mx-auto mb-8 max-w-2xl text-xl text-zinc-300 lg:text-2xl">
               {slides[currentSlide].subtitle}
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 to="/signup"
-                className="group relative bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                className="group relative bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Create Free Account
                   <FaArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
               </Link>
-              
+
               <Link
                 to="/features"
-                className="group bg-white/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/30 hover:scale-105"
+                className="group bg-white/5 backdrop-blur-sm border border-white/10 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/10 hover:border-amber-500/30 hover:scale-105"
               >
                 <span className="flex items-center gap-2">
-                  <FaPlay className="text-sm" />
+                  <FaPlay className="text-sm text-amber-400" />
                   Watch Demo
                 </span>
               </Link>
@@ -340,10 +352,10 @@ const LandingPage = () => {
                 { value: stats.downloads, label: 'Resources' }
               ].map((stat, index) => (
                 <div key={index} className="text-center">
-                  <div className="text-2xl font-bold text-white sm:text-3xl">
+                  <div className="text-2xl font-bold text-amber-400 sm:text-3xl" style={displayFont}>
                     {safeFormatNumber(stat.value)}+
                   </div>
-                  <div className="text-sm text-blue-200">{stat.label}</div>
+                  <div className="text-sm text-zinc-400">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -358,8 +370,8 @@ const LandingPage = () => {
               onClick={() => setCurrentSlide(index)}
               className={`h-3 rounded-full transition-all duration-500 ${
                 currentSlide === index
-                  ? 'w-8 bg-white'
-                  : 'w-3 bg-white/50 hover:bg-white/80'
+                  ? 'w-8 bg-amber-400'
+                  : 'w-3 bg-white/30 hover:bg-white/60'
               }`}
             />
           ))}
@@ -368,20 +380,20 @@ const LandingPage = () => {
         {/* Scroll Indicator */}
         <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
           <div className="animate-bounce">
-            <div className="h-6 w-px bg-white/60"></div>
+            <div className="h-6 w-px bg-amber-400/60"></div>
           </div>
         </div>
       </header>
 
       {/* Trust Badges */}
-      <section className="bg-white py-8 border-b border-gray-100">
+      <section className="bg-black py-8 border-b border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-6">
-            <p className="text-gray-500 text-sm font-medium">Trusted by students from</p>
+            <p className="text-zinc-500 text-sm font-medium tracking-wide">Trusted by students from</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center opacity-60">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center opacity-50">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="text-center text-gray-400 font-semibold text-lg">
+              <div key={i} className="text-center text-zinc-500 font-semibold text-lg" style={displayFont}>
                 University {i + 1}
               </div>
             ))}
@@ -390,13 +402,14 @@ const LandingPage = () => {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-20 bg-white">
+      <section id="features" className="py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Excel</span>
+            <p className="text-amber-500 text-sm font-semibold tracking-[0.2em] uppercase mb-3">— What's Inside</p>
+            <h2 className="text-4xl font-bold text-white mb-4" style={displayFont}>
+              Everything You Need to <span className="text-amber-400">Excel</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
               Comprehensive tools and resources designed to transform your academic journey
             </p>
           </div>
@@ -405,28 +418,26 @@ const LandingPage = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200"
+                className="group relative bg-zinc-950 rounded-2xl p-8 shadow-sm hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500 border border-zinc-800 hover:border-amber-500/30"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
-                
                 <div className="relative z-10">
-                  <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl flex items-center justify-center text-black text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
                     {feature.icon}
                   </div>
-                  
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+
+                  <h3 className="text-xl font-bold text-white mb-3" style={displayFont}>
                     {feature.title}
                   </h3>
-                  
-                  <p className="text-gray-600 mb-4 leading-relaxed">
+
+                  <p className="text-zinc-400 mb-4 leading-relaxed">
                     {feature.description}
                   </p>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {feature.tags.map((tag, tagIndex) => (
                       <span
                         key={tagIndex}
-                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+                        className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium border border-amber-500/10"
                       >
                         {tag}
                       </span>
@@ -440,19 +451,22 @@ const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900">
+      <section className="py-20 bg-zinc-950 border-y border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { value: stats.users, label: 'Current Users', suffix: '+', color: 'from-blue-400 to-cyan-400' },
-              { value: stats.questions, label: 'Past Questions', suffix: '+', color: 'from-purple-400 to-pink-400' },
-              { value: stats.downloads, label: 'Resources Downloadable', suffix: '+', color: 'from-green-400 to-blue-400' }
+              { value: stats.users, label: 'Current Users' },
+              { value: stats.questions, label: 'Past Questions' },
+              { value: stats.downloads, label: 'Resources Downloadable' }
             ].map((stat, index) => (
               <div key={index} className="text-center group">
-                <div className={`text-5xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                  {safeFormatNumber(stat.value)}{stat.suffix}
+                <div
+                  className="text-5xl font-bold bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 bg-clip-text text-transparent mb-4 group-hover:scale-110 transition-transform duration-300"
+                  style={displayFont}
+                >
+                  {safeFormatNumber(stat.value)}+
                 </div>
-                <div className="text-xl text-gray-300 font-medium">
+                <div className="text-xl text-zinc-400 font-medium">
                   {stat.label}
                 </div>
               </div>
@@ -464,49 +478,50 @@ const LandingPage = () => {
       <Affilate />
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-gray-50">
+      <section id="how-it-works" className="py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PetroX</span> Works
+            <p className="text-amber-500 text-sm font-semibold tracking-[0.2em] uppercase mb-3">— The Process</p>
+            <h2 className="text-4xl font-bold text-white mb-4" style={displayFont}>
+              How <span className="text-amber-400">PetroX</span> Works
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
               Get started in minutes and unlock your academic potential
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-                <img 
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShGiNXczSdhTVmzY7W3nf4y7imrrf5NZhGhA&s" 
-                  alt="PetroX Platform" 
-                  className="w-full h-auto rounded-xl shadow-lg"
+              <div className="bg-zinc-950 rounded-2xl shadow-xl border border-zinc-800 p-8">
+                <img
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShGiNXczSdhTVmzY7W3nf4y7imrrf5NZhGhA&s"
+                  alt="PetroX Platform"
+                  className="w-full h-auto rounded-xl shadow-lg grayscale-[10%]"
                 />
               </div>
-              
+
               {/* Floating Elements */}
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-500 rounded-2xl opacity-10 animate-pulse"></div>
-              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-purple-500 rounded-2xl opacity-10 animate-pulse delay-1000"></div>
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-amber-500 rounded-2xl opacity-10 animate-pulse"></div>
+              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-amber-400 rounded-2xl opacity-10 animate-pulse delay-1000"></div>
             </div>
 
             <div className="space-y-8">
               {steps.map((step, index) => (
                 <div key={index} className="flex items-start group">
                   <div className="flex-shrink-0 relative">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-xl flex items-center justify-center text-black font-bold text-lg group-hover:scale-110 transition-transform duration-300 shadow-lg" style={displayFont}>
                       {index + 1}
                     </div>
                     {index < steps.length - 1 && (
-                      <div className="absolute left-6 top-12 w-0.5 h-8 bg-gradient-to-b from-blue-500 to-purple-600"></div>
+                      <div className="absolute left-6 top-12 w-0.5 h-8 bg-gradient-to-b from-amber-500/60 to-transparent"></div>
                     )}
                   </div>
-                  
+
                   <div className="ml-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <h3 className="text-xl font-bold text-white mb-2" style={displayFont}>
                       {step.title}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-zinc-400 leading-relaxed">
                       {step.description}
                     </p>
                   </div>
@@ -514,14 +529,14 @@ const LandingPage = () => {
               ))}
 
               {/* CTA Card */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-                <h3 className="text-2xl font-bold mb-2">Ready to get started?</h3>
-                <p className="text-blue-100 mb-6">
+              <div className="bg-gradient-to-r from-amber-500 to-yellow-600 rounded-2xl p-8 text-black">
+                <h3 className="text-2xl font-bold mb-2" style={displayFont}>Ready to get started?</h3>
+                <p className="text-black/70 mb-6">
                   Join thousands of students already using PetroX
                 </p>
                 <Link
                   to="/signup"
-                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:scale-105 transition-transform duration-300"
+                  className="inline-flex items-center gap-2 bg-black text-amber-400 px-6 py-3 rounded-full font-semibold hover:scale-105 transition-transform duration-300"
                 >
                   Sign Up Free
                   <FaArrowRight />
@@ -533,37 +548,37 @@ const LandingPage = () => {
       </section>
 
       {/* AI Assistant Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-zinc-950 border-y border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <FaRobot className="text-blue-600" />
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <FaRobot />
                 AI-Powered Learning
               </div>
 
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Meet <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PetroMark AI</span>
+              <h2 className="text-4xl font-bold text-white mb-6" style={displayFont}>
+                Meet <span className="text-amber-400">PetroMark AI</span>
               </h2>
-              
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+
+              <p className="text-xl text-zinc-400 mb-8 leading-relaxed">
                 Your personal AI tutor that adapts to your learning style and helps you master complex subjects through intelligent, interactive assistance.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {aiBenefits.map((benefit, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="text-green-600 text-sm" />
+                    <div className="w-6 h-6 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FaCheckCircle className="text-amber-400 text-sm" />
                     </div>
-                    <span className="text-gray-700">{benefit}</span>
+                    <span className="text-zinc-300">{benefit}</span>
                   </div>
                 ))}
               </div>
 
               <Link
                 to="/petromark"
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition-transform duration-300 shadow-lg"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-8 py-4 rounded-full font-semibold hover:scale-105 transition-transform duration-300 shadow-lg shadow-amber-500/20"
               >
                 <FaRobot />
                 Try PetroMark Now
@@ -571,41 +586,41 @@ const LandingPage = () => {
             </div>
 
             <div className="relative">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 shadow-xl">
+              <div className="bg-black rounded-2xl p-8 shadow-xl border border-zinc-800">
                 {/* AI Chat Interface */}
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+                <div className="bg-zinc-950 rounded-xl shadow-lg overflow-hidden border border-zinc-800">
+                  <div className="bg-gradient-to-r from-amber-500 to-yellow-600 p-4 text-black">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-black/10 rounded-full flex items-center justify-center">
                         <FaRobot />
                       </div>
                       <div>
                         <div className="font-semibold">PetroMark AI</div>
-                        <div className="text-blue-100 text-sm">Online • Ready to help</div>
+                        <div className="text-black/70 text-sm">Online • Ready to help</div>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-6 space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <FaRobot className="text-blue-600 text-sm" />
+                      <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <FaRobot className="text-amber-400 text-sm" />
                       </div>
-                      <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3">
-                        <p className="text-gray-700">Hi! I'm PetroMark. How can I help with your studies today?</p>
+                      <div className="bg-zinc-900 rounded-2xl rounded-tl-none px-4 py-3">
+                        <p className="text-zinc-200">Hi! I'm PetroMark. How can I help with your studies today?</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-start gap-3 justify-end">
-                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl rounded-tr-none px-4 py-3 max-w-xs">
-                        <p className="text-white">Can you explain quantum physics concepts?</p>
+                      <div className="bg-gradient-to-r from-amber-500 to-yellow-600 rounded-2xl rounded-tr-none px-4 py-3 max-w-xs">
+                        <p className="text-black">Can you explain quantum physics concepts?</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mt-4">
                       {aiFeatures.slice(0, 4).map((feature, index) => (
-                        <div key={index} className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="text-xs text-blue-700 font-medium">{feature}</div>
+                        <div key={index} className="text-center p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
+                          <div className="text-xs text-amber-400 font-medium">{feature}</div>
                         </div>
                       ))}
                     </div>
@@ -618,13 +633,14 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-gradient-to-br from-gray-900 to-blue-900">
+      <section id="testimonials" className="py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <p className="text-amber-500 text-sm font-semibold tracking-[0.2em] uppercase mb-3">— Real Stories</p>
+            <h2 className="text-4xl font-bold text-white mb-4" style={displayFont}>
               What Students Say
             </h2>
-            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
               Hear from students who have transformed their academic journey with PetroX
             </p>
           </div>
@@ -633,22 +649,22 @@ const LandingPage = () => {
             {testimonials.map((testimonial, index) => (
               <div
                 key={index}
-                className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-500 group"
+                className="bg-zinc-950 rounded-2xl p-8 border border-zinc-800 hover:border-amber-500/30 transition-all duration-500 group"
               >
                 <div className="flex items-center mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-black font-bold text-lg mr-4" style={displayFont}>
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">{testimonial.name}</h4>
-                    <p className="text-blue-200 text-sm">{testimonial.role}</p>
+                    <h4 className="font-bold text-white" style={displayFont}>{testimonial.name}</h4>
+                    <p className="text-zinc-500 text-sm">{testimonial.role}</p>
                   </div>
                 </div>
-                
+
                 <div className="relative">
-                  <FaQuoteLeft className="text-blue-300/40 text-2xl mb-4" />
-                  <p className="text-blue-100 leading-relaxed mb-6">"{testimonial.quote}"</p>
-                  
+                  <FaQuoteLeft className="text-amber-500/30 text-2xl mb-4" />
+                  <p className="text-zinc-300 leading-relaxed mb-6">"{testimonial.quote}"</p>
+
                   <div className="flex text-amber-400">
                     {[...Array(5)].map((_, i) => (
                       <FaStar key={i} className="fill-current" />
@@ -662,52 +678,52 @@ const LandingPage = () => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800">
+      <section className="py-20 bg-gradient-to-b from-black via-zinc-950 to-black border-t border-amber-500/10">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-4xl font-bold text-white mb-6" style={displayFont}>
             Ready to Transform Your Academic Journey?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto">
             Join thousands of successful students who are already achieving their academic goals with PetroX.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               to="/signup"
-              className="bg-white text-blue-600 px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-transform duration-300 shadow-2xl"
+              className="bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-transform duration-300 shadow-2xl shadow-amber-500/20"
             >
               Start Learning Free
             </Link>
             <Link
               to="/features"
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300"
+              className="border-2 border-amber-500/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-amber-500 hover:text-black hover:border-amber-500 transition-all duration-300"
             >
               Explore Features
             </Link>
           </div>
-          
-          <p className="text-blue-200 mt-6 text-sm">
+
+          <p className="text-zinc-500 mt-6 text-sm">
             No credit card required • Free forever plan
           </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
+      <footer className="bg-black text-white border-t border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Brand */}
             <div>
               <div className="flex items-center mb-6">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-2 mr-3">
-                  <h1 className="text-xl font-bold text-white">PX</h1>
+                <div className="bg-gradient-to-br from-amber-400 to-yellow-600 rounded-lg p-2 mr-3">
+                  <h1 className="text-xl font-bold text-black" style={displayFont}>PX</h1>
                 </div>
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-2xl font-bold" style={displayFont}>
                   <span className="text-white">PETRO</span>
                   <span className="text-amber-400">X</span>
                 </h1>
               </div>
-              <p className="text-gray-400 mb-6 leading-relaxed">
+              <p className="text-zinc-500 mb-6 leading-relaxed">
                 The ultimate academic platform for students seeking excellence and success in their educational journey.
               </p>
               <div className="flex space-x-4">
@@ -715,7 +731,7 @@ const LandingPage = () => {
                   <a
                     key={index}
                     href={social.url}
-                    className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-300"
+                    className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:text-amber-400 hover:border-amber-500/30 transition-all duration-300"
                   >
                     {social.icon}
                   </a>
@@ -725,13 +741,13 @@ const LandingPage = () => {
 
             {/* Resources */}
             <div>
-              <h4 className="font-bold text-lg mb-6">Resources</h4>
+              <h4 className="font-bold text-lg mb-6" style={displayFont}>Resources</h4>
               <ul className="space-y-3">
                 {resources.map((resource, index) => (
                   <li key={index}>
                     <a
                       href={resource.url}
-                      className="text-gray-400 hover:text-white transition-colors duration-300"
+                      className="text-zinc-500 hover:text-amber-400 transition-colors duration-300"
                     >
                       {resource.name}
                     </a>
@@ -742,25 +758,25 @@ const LandingPage = () => {
 
             {/* Legal */}
             <div>
-              <h4 className="font-bold text-lg mb-6">Legal</h4>
+              <h4 className="font-bold text-lg mb-6" style={displayFont}>Legal</h4>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/policies" className="text-gray-400 hover:text-white transition-colors duration-300">
+                  <Link to="/policies" className="text-zinc-500 hover:text-amber-400 transition-colors duration-300">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link to="/policies" className="text-gray-400 hover:text-white transition-colors duration-300">
+                  <Link to="/policies" className="text-zinc-500 hover:text-amber-400 transition-colors duration-300">
                     Terms & Conditions
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white transition-colors duration-300">
+                  <Link to="/about" className="text-zinc-500 hover:text-amber-400 transition-colors duration-300">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white transition-colors duration-300">
+                  <Link to="/about" className="text-zinc-500 hover:text-amber-400 transition-colors duration-300">
                     Contact
                   </Link>
                 </li>
@@ -769,25 +785,25 @@ const LandingPage = () => {
 
             {/* Newsletter */}
             <div>
-              <h4 className="font-bold text-lg mb-6">Stay Updated</h4>
-              <p className="text-gray-400 mb-4">
+              <h4 className="font-bold text-lg mb-6" style={displayFont}>Stay Updated</h4>
+              <p className="text-zinc-500 mb-4">
                 Get the latest updates and academic tips
               </p>
               <div className="flex">
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-l-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-zinc-900 border border-zinc-800 rounded-l-lg px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
                 />
-                <button className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 rounded-r-lg font-semibold hover:opacity-90 transition-opacity duration-300">
+                <button className="bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-6 py-3 rounded-r-lg font-semibold hover:opacity-90 transition-opacity duration-300">
                   Subscribe
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-            <p className="text-gray-500">
+          <div className="border-t border-zinc-900 mt-12 pt-8 text-center">
+            <p className="text-zinc-600">
               &copy; {new Date().getFullYear()} PetroX. All rights reserved.
             </p>
           </div>
